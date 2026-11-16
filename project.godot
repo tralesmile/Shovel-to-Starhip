@@ -1,0 +1,35 @@
+; Engine configuration file.
+; Shovel to Starship - Phase 0 prototype
+
+config_version=5
+
+[application]
+
+config/name="Shovel to Starship"
+config/description="Start with a shovel, end with a starship."
+config/version="0.3.0"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[autoload]
+
+Graphics="*res://scripts/graphics.gd"
+Game="*res://scripts/game_state.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+rendering_device/fallback_to_opengl3=true
+rendering_device/fallback_to_vulkan=true
+rendering_device/fallback_to_d3d12=true
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+
+anti_aliasing/quality/msaa_3d=2
