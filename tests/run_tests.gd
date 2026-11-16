@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -469,4 +469,30 @@ func test_fishing() -> bool:
 	check(after == before + 1, "spot catch adds a fish")
 	var w := Terrain.is_water(-17.8, 1.0)
 	check(not w, "fishing spot is on dry land")
+	return true
+
+
+func test_delivery() -> bool:
+	var j := DeliveryJob.new()
+	check(j.complete() == 0 and not j.tick(1.0), "idle job pays nothing")
+	j.start(1, Vector2(19, 10.5))
+	check(j.active and j.time_total >= DeliveryJob.MIN_TIME, "job starts with a timer")
+	var full := j.payout()
+	j.tick(j.time_total * 0.5)
+	check(j.payout() < full and j.payout() > DeliveryJob.BASE_PAY, "tip shrinks with time")
+	check(not j.is_near(Vector2(0, 0)) and j.is_near(j.dest_pos()), "near check")
+	var pay := j.complete()
+	check(pay > 0 and not j.active, "complete pays and ends")
+	j.start(0, Vector2(19, 10.5))
+	check(j.tick(j.time_total + 1.0) and not j.active, "timeout ends the job")
+	for d in DeliveryJob.DESTINATIONS:
+		check(not Terrain.is_water(d[1], d[2]), "drop-off dry: " + d[0])
+	var depot := DeliveryDepot.new()
+	root.add_child(depot)
+	game.car_owned = false
+	depot.interact(game)
+	check(not depot.job.active, "no car, no job")
+	game.car_owned = true
+	depot.interact(game)
+	check(depot.job.active, "car owner gets a job")
 	return true

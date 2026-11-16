@@ -31,6 +31,7 @@ func _ready() -> void:
 	_build_sell_bin()
 	_build_fence()
 	_build_fishing_spot()
+	_build_delivery_depot()
 	_build_car_dealer()
 	_build_police()
 	_build_trees()
@@ -419,6 +420,20 @@ func _build_fishing_spot() -> void:
 	var l := Art.label("FISHING\n(bring patience)", 40, Color(0.7, 0.9, 1.0))
 	l.position.y = 1.8
 	spot.add_child(l)
+
+
+func _build_delivery_depot() -> void:
+	var depot := DeliveryDepot.new()
+	depot.name = "DeliveryDepot"
+	depot.position = Vector3(19.0, 0, 10.5)
+	depot.position.y = Terrain.height_at(depot.position.x, depot.position.z)
+	depot.interact_radius = 1.8
+	add_child(depot)
+	Models.solid(depot, Models.MED + "crate_A_big.gltf", Vector3(0.9, 0, 0), 4.0)
+	var m := Models.put(depot, Models.CHAR + "Rogue.glb", Vector3.ZERO, 0.72, PI)
+	var l := Art.label("PARCEL PETE\nfast-ish delivery", 44, Color(1.0, 0.9, 0.6))
+	l.position.y = 2.4
+	depot.add_child(l)
 
 
 func _build_fence() -> void:
