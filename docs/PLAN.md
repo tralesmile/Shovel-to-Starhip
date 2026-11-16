@@ -14,7 +14,7 @@ Mark each item [x] when done and tested.
 - [x] Tests for door/enter/exit and NPC schedule
 ### Sprint 2 - Robbery and reputation
 - [x] Lockpick minigame, loot containers in homes, carry limit (v1: timing lockpick via E, prompt-text meter; drawer in each town home; carry limit 4; visual HUD meter still to do)
-- [ ] Witness/alarm system, police "heat" levels, hiding
+- [x] Witness/alarm system, heat levels (v1: view-cone suspicion meter per NPC while picking, heat 0-3 decaying 1/day, HUD label; police response + hiding still to do)
 - [ ] Lawful/Outlaw reputation, fence NPC buys stolen goods
 ### Sprint 3 - Cars
 - [ ] Buyable drivable car (enter/exit, handling, fuel optional)
@@ -42,3 +42,5 @@ Mark each item [x] when done and tested.
 - NPC dialogue barks + shop closing hours tied to the keeper
 - Witness system: gradual suspicion meter (fills faster when close/in view cone, decays when out of sight) instead of instant detection; cone + distance scaling (research: stealth-game spotting write-ups, Klei alarm design)
 - Lockpick HUD: replace text bar with on-screen meter + sound click per pin
+- Hiding: crouch/shadow reduces witness fill rate; closets in homes (follow-up to witness meter)
+- Heat consequences: police NPC patrol at heat 3, shop price penalty at heat 2

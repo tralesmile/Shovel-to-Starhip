@@ -8,6 +8,8 @@ var work_spot: Vector3          ## global position outdoors
 var door_outside: Vector3       ## global position just outside the home door
 var wake_shift: float = 0.0     ## hours; lets NPCs have different habits
 var activity: int = -1
+var npc_name: String = "Townsperson"
+var witness := Witness.new()
 var indoors: bool = true
 var speed: float = 2.0
 var _anim: AnimationPlayer
@@ -53,6 +55,11 @@ func update_routine(time_of_day: float, delta: float) -> void:
 		if want_in:
 			indoors = true
 			global_position = home_spot
+
+
+## Sleeping neighbours see nothing (snoring is not a witness statement).
+func can_witness() -> bool:
+	return activity != Buildings.Schedule.Activity.SLEEP
 
 
 func _play(anim: String) -> void:

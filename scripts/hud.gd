@@ -8,6 +8,7 @@ var _money: Label
 var _clock: Label
 var _inv: Label
 var _prompt: Label
+var _heat: Label
 var _toast_box: VBoxContainer
 var _slots: Array[PanelContainer] = []
 var _help: PanelContainer
@@ -37,6 +38,9 @@ func _ready() -> void:
 	_inv = _label(root, 20)
 	_place(_inv, 0, 0, 0, 0, 24, 58, 1024, 88)
 
+	_heat = _label(root, 22)
+	_heat.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_place(_heat, 1, 0, 1, 0, -524, 58, -24, 88)
 	_prompt = _label(root, 26)
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_place(_prompt, 0.5, 1, 0.5, 1, -600, -156, 600, -116)
@@ -210,6 +214,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	_clock.text = "Day %d   %s" % [Game.day, Game.clock_text()]
+	if Game.crime_suspicion > 0.02:
+		_heat.text = "Someone is watching... [%s%s]" % ["#".repeat(int(Game.crime_suspicion * 10)), "-".repeat(10 - int(Game.crime_suspicion * 10))]
+	elif Game.heat_level() > 0:
+		_heat.text = "Heat: %s" % Game.heat_name()
+	else:
+		_heat.text = ""
 	_click_hint.visible = Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
 	if player and player.target:
 		_prompt.text = player.target.get_prompt(Game)

@@ -90,3 +90,4 @@ func on_new_day(game: GameState) -> void:
 func _enter_tree() -> void:
 	super._enter_tree()
 	add_to_group("daily")
+	add_to_group("lootbox")

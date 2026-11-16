@@ -45,6 +45,12 @@ var time_of_day: float = START_TIME
 var current_tool: int = Tool.HOE
 var clock_running: bool = true
 var total_earned: int = 0
+var crime_suspicion: float = 0.0   ## highest witness meter right now (HUD only)
+var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the alarm
+
+const MAX_HEAT := 3.0
+const HEAT_DECAY_PER_DAY := 1.0
+const HEAT_NAMES := ["Clean as a turnip", "Raised eyebrows", "Angry whispers", "Pitchforks (pending)"]
 
 
 func _ready() -> void:
@@ -150,10 +156,25 @@ func set_tool(index: int) -> void:
 	tool_changed.emit(current_tool)
 
 
+# ---------------------------------------------------------------- heat
+
+func heat_level() -> int:
+	return int(ceil(heat - 0.001))
+
+
+func heat_name() -> String:
+	return HEAT_NAMES[clampi(heat_level(), 0, HEAT_NAMES.size() - 1)]
+
+
+func add_heat(amount: float) -> void:
+	heat = clampf(heat + amount, 0.0, MAX_HEAT)
+
+
 # ---------------------------------------------------------------- time
 
 func advance_day() -> void:
 	day += 1
+	heat = maxf(0.0, heat - HEAT_DECAY_PER_DAY)
 	for node in get_tree().get_nodes_in_group("daily"):
 		node.on_new_day(self)
 	day_changed.emit(day)
@@ -192,6 +213,7 @@ func to_dict() -> Dictionary:
 		"time_of_day": time_of_day,
 		"current_tool": current_tool,
 		"total_earned": total_earned,
+		"heat": heat,
 		"world": world,
 	}
 
@@ -206,6 +228,7 @@ func from_dict(data: Dictionary) -> void:
 	time_of_day = float(data.get("time_of_day", START_TIME))
 	current_tool = int(data.get("current_tool", 0))
 	total_earned = int(data.get("total_earned", 0))
+	heat = float(data.get("heat", 0.0))
 	var world: Dictionary = data.get("world", {})
 	for node in get_tree().get_nodes_in_group("saveable"):
 		if world.has(str(node.name)):

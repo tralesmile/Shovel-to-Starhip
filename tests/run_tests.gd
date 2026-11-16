@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -303,4 +303,49 @@ func test_carry_limit() -> bool:
 	root.add_child(c)
 	c.interact(game)
 	check(c.state == "locked", "full pockets refuse to start picking")
+	return true
+
+
+func test_witness_cone() -> bool:
+	# Facing +Z (rotation.y = 0): target ahead is seen, behind is not.
+	check(Witness.can_see(Vector3.ZERO, 0.0, Vector3(0, 0, 5)), "sees target ahead")
+	check(not Witness.can_see(Vector3.ZERO, 0.0, Vector3(0, 0, -5)), "no eyes in the back of the head")
+	check(not Witness.can_see(Vector3.ZERO, 0.0, Vector3(0, 0, 20)), "too far to see")
+	check(not Witness.can_see(Vector3.ZERO, 0.0, Vector3(5, 0, 0.5)), "outside the cone sideways")
+	check(Witness.can_see(Vector3.ZERO, PI / 2.0, Vector3(5, 0, 0)), "turning rotates the cone")
+	return true
+
+
+func test_witness_meter() -> bool:
+	var w := Witness.new()
+	check(not w.update(0.5, true, 2.0), "not instant")
+	check(w.suspicion > 0.0, "meter fills while seen")
+	var s := w.suspicion
+	w.update(0.5, false)
+	check(w.suspicion < s, "meter drains out of sight")
+	var far := Witness.new()
+	var near := Witness.new()
+	far.update(0.5, true, 8.0)
+	near.update(0.5, true, 1.0)
+	check(near.suspicion > far.suspicion, "closer fills faster")
+	var alarm := false
+	for i in 100:
+		alarm = alarm or w.update(0.1, true, 1.0)
+	check(alarm, "alarm eventually fires")
+	check(w.suspicion == 0.0, "meter resets after alarm")
+	return true
+
+
+func test_heat() -> bool:
+	check(game.heat_level() == 0, "starts clean")
+	game.add_heat(1.0)
+	check(game.heat_level() == 1, "level 1")
+	game.add_heat(10.0)
+	check(game.heat == GameState.MAX_HEAT, "heat capped")
+	var saved := game.to_dict()
+	game.heat = 0.0
+	game.from_dict(saved)
+	check(game.heat == GameState.MAX_HEAT, "heat survives save")
+	game.advance_day()
+	check(game.heat == GameState.MAX_HEAT - 1.0, "heat cools by a level each day")
 	return true

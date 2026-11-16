@@ -71,6 +71,23 @@ func _process(delta: float) -> void:
 	_update_daylight()
 	for n in _npcs:
 		n.update_routine(Game.time_of_day, delta)
+	_update_witnesses(delta)
+
+
+## Watchers fill a suspicion meter while the player picks a lock in their view.
+func _update_witnesses(delta: float) -> void:
+	var crime := false
+	for c in get_tree().get_nodes_in_group("lootbox"):
+		if c.state == "picking":
+			crime = true
+	Game.crime_suspicion = 0.0
+	for n in _npcs:
+		var seen := crime and n.can_witness() and Witness.can_see(n.global_position, n.rotation.y, player.global_position)
+		var d := n.global_position.distance_to(player.global_position)
+		if n.witness.update(delta, seen, d):
+			Game.add_heat(1.0)
+			Game.say("%s: \"HEY! Is that MY spoon?!\"  Heat: %s" % [n.npc_name, Game.heat_name()])
+		Game.crime_suspicion = maxf(Game.crime_suspicion, n.witness.suspicion)
 
 
 ## Sun, moon, sky colours, lamps and fireflies follow the clock.
@@ -308,6 +325,7 @@ func _build_interiors() -> void:
 		npc.work_spot = h["work"]
 		npc.door_outside = outside
 		npc.wake_shift = h["shift"]
+		npc.npc_name = h["name"]
 		npc.global_position = npc.home_spot
 		_npcs.append(npc)
 
