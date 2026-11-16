@@ -21,7 +21,7 @@ Mark each item [x] when done and tested.
 - [x] Buyable drivable car (v1: Honest Hank's dealer at (14,0,10.5), $400 sedan, E to enter/exit, WASD + Space handbrake, bicycle-model steering, thud on collision, parked position saved; fuel/engine sound/headlights still to do)
 - [ ] Traffic basics, police chase
 ### Sprint 4 - Fishing and first job
-- [ ] Fishing minigame at pond, fish sell prices
+- [x] Fishing minigame at pond, fish sell prices (v1: Fishing logic cast/wait/bite window 1s, FishingSpot on east pond shore at (-17.8,?,1), 6 catches incl. boot/golden carp/wizard hat sold at bin; rods/bait/fish sizes still to do)
 - [ ] Delivery job using car, pay on completion
 - [ ] 2+ more crops, shop stock
 ### Sprint 5 - Polish
@@ -50,3 +50,4 @@ Mark each item [x] when done and tested.
 - Police heat cooling: heat should only decay once you are out of sight of police (search-and-lose, as in modern wanted-system write-ups), not just by day count
 - Police: add a second constable / car patrol once Sprint 3 cars land; crouch + shadows hiding still to do
 - Car follow-ups: speed-sensitive FOV/camera lag, tyre-screech dust particles, headlights at night, fuel (optional), traffic AI with lane waypoints, cops chase by car at heat 3 (Sprint 3 part 2)
+- Fishing follow-ups: bobber visual + splash/sound cue on bite, rod upgrades and bait, fish by time of day/weather, fish size and a journal (research: fishing minigame taxonomy write-ups; keep a forgiving bite window for cozy feel)

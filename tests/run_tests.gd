@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -434,4 +434,39 @@ func test_car() -> bool:
 	game.car_pos = [0.0, 0.0, 0.0, 0.0]
 	game.from_dict(saved)
 	check(game.car_owned and game.car_pos[0] == 3.0 and game.car_pos[3] == 1.0, "car saves position")
+	return true
+
+
+func test_fishing() -> bool:
+	var f := Fishing.new(3)
+	check(f.reel() == "", "nothing to reel when idle")
+	f.cast()
+	check(f.state == "waiting", "cast waits")
+	check(f.reel() == "early" and f.state == "idle", "early reel fails")
+	f.cast()
+	f.tick(f.bite_time + 0.01)
+	check(f.state == "bite", "bite arrives")
+	check(f.reel() == "caught", "reel in window catches")
+	f.cast()
+	f.tick(f.bite_time + 0.01)
+	f.tick(Fishing.BITE_WINDOW + 0.1)
+	check(f.state == "done" and f.reel() == "late", "late reel misses")
+	check(Fishing.roll_fish(0.0) == "boot" and Fishing.roll_fish(0.999) == "old_wizard_hat", "fish table ends")
+	for e in Fishing.FISH_TABLE:
+		check(GameState.ITEMS.has(e[0]), "fish item defined: " + e[0])
+	var spot := FishingSpot.new()
+	root.add_child(spot)
+	spot.interact(game)
+	check(spot.fishing.state == "waiting", "spot casts")
+	spot.fishing.tick(spot.fishing.bite_time + 0.01)
+	var before: int = 0
+	for e in Fishing.FISH_TABLE:
+		before += game.count(e[0])
+	spot.interact(game)
+	var after: int = 0
+	for e in Fishing.FISH_TABLE:
+		after += game.count(e[0])
+	check(after == before + 1, "spot catch adds a fish")
+	var w := Terrain.is_water(-17.8, 1.0)
+	check(not w, "fishing spot is on dry land")
 	return true

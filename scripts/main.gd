@@ -30,6 +30,7 @@ func _ready() -> void:
 	_build_store()
 	_build_sell_bin()
 	_build_fence()
+	_build_fishing_spot()
 	_build_car_dealer()
 	_build_police()
 	_build_trees()
@@ -407,6 +408,19 @@ func _build_sell_bin() -> void:
 
 
 ## Shady Sal lurks behind the town homes, fittingly next to a lamp that is "broken".
+## Little jetty spot on the pond's east shore.
+func _build_fishing_spot() -> void:
+	var spot := FishingSpot.new()
+	spot.name = "FishingSpot"
+	spot.position = Vector3(-17.8, 0, 1.0)
+	spot.position.y = Terrain.height_at(spot.position.x, spot.position.z)
+	spot.interact_radius = 2.2
+	add_child(spot)
+	var l := Art.label("FISHING\n(bring patience)", 40, Color(0.7, 0.9, 1.0))
+	l.position.y = 1.8
+	spot.add_child(l)
+
+
 func _build_fence() -> void:
 	var fence := Station.new()
 	fence.name = "Fence"

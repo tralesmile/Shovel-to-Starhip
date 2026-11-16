@@ -21,6 +21,13 @@ const ITEMS := {
 	"turnip_seed": {"name": "Turnip Seeds", "buy": 10, "sell": 0},
 	"turnip": {"name": "Turnip", "buy": 0, "sell": 35},
 	"wood": {"name": "Wood", "buy": 0, "sell": 5},
+	# Fish: sell at the bin.
+	"boot": {"name": "Old Boot", "buy": 0, "sell": 2},
+	"minnow": {"name": "Minnow", "buy": 0, "sell": 8},
+	"carp": {"name": "Carp", "buy": 0, "sell": 20},
+	"trout": {"name": "Trout", "buy": 0, "sell": 40},
+	"golden_carp": {"name": "Golden Carp", "buy": 0, "sell": 150},
+	"old_wizard_hat": {"name": "Soggy Wizard Hat", "buy": 0, "sell": 60},
 	# Stolen goods: sell 0 at the bin; the fence buys them.
 	"gold_spoon": {"name": "Gold Spoon", "buy": 0, "sell": 0, "loot": true, "value": 60},
 	"suspicious_vase": {"name": "Suspicious Vase", "buy": 0, "sell": 0, "loot": true, "value": 90},
