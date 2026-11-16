@@ -17,9 +17,21 @@ const SAVE_PATH := "user://save.json"
 enum Tool { HOE, SEEDS, WATER, AXE }
 const TOOL_NAMES := ["Hoe", "Turnip Seeds", "Watering Can", "Axe"]
 
+## Crop table: seed item, harvest item, watered nights to ripen, ripe model.
+const CROPS := {
+	"turnip": {"days": 2, "model": "food_ingredient_onion.gltf", "y": -0.12, "scale": 0.5},
+	"carrot": {"days": 3, "model": "food_ingredient_carrot.gltf", "y": 0.0, "scale": 0.55},
+	"tomato": {"days": 4, "model": "food_ingredient_tomato.gltf", "y": 0.0, "scale": 0.6},
+}
+const CROP_ORDER := ["turnip", "carrot", "tomato"]
+
 const ITEMS := {
 	"turnip_seed": {"name": "Turnip Seeds", "buy": 10, "sell": 0},
 	"turnip": {"name": "Turnip", "buy": 0, "sell": 35},
+	"carrot_seed": {"name": "Carrot Seeds", "buy": 18, "sell": 0},
+	"carrot": {"name": "Carrot", "buy": 0, "sell": 70},
+	"tomato_seed": {"name": "Tomato Seeds", "buy": 30, "sell": 0},
+	"tomato": {"name": "Tomato", "buy": 0, "sell": 125},
 	"wood": {"name": "Wood", "buy": 0, "sell": 5},
 	# Fish: sell at the bin.
 	"boot": {"name": "Old Boot", "buy": 0, "sell": 2},
@@ -50,6 +62,7 @@ var inventory: Dictionary = {"turnip_seed": 5}
 var day: int = 1
 var time_of_day: float = START_TIME
 var current_tool: int = Tool.HOE
+var selected_crop: String = "turnip"   ## which seed the Seeds tool plants
 var clock_running: bool = true
 var total_earned: int = 0
 var crime_suspicion: float = 0.0   ## highest witness meter right now (HUD only)
@@ -211,8 +224,28 @@ func say(text: String) -> void:
 
 
 func set_tool(index: int) -> void:
+	if index == Tool.SEEDS and current_tool == Tool.SEEDS:
+		cycle_crop()
+		return
 	current_tool = clampi(index, 0, TOOL_NAMES.size() - 1)
 	tool_changed.emit(current_tool)
+
+
+## Pressing [2] again with seeds in hand switches to the next seed type.
+func cycle_crop() -> void:
+	var i := CROP_ORDER.find(selected_crop)
+	selected_crop = CROP_ORDER[(i + 1) % CROP_ORDER.size()]
+	tool_changed.emit(current_tool)
+
+
+func crop_seed_id(crop: String = "") -> String:
+	return (selected_crop if crop == "" else crop) + "_seed"
+
+
+func tool_label(i: int) -> String:
+	if i == Tool.SEEDS:
+		return "%s Seeds" % selected_crop.capitalize()
+	return TOOL_NAMES[i]
 
 
 # ---------------------------------------------------------------- heat
@@ -297,6 +330,7 @@ func to_dict() -> Dictionary:
 		"day": day,
 		"time_of_day": time_of_day,
 		"current_tool": current_tool,
+		"selected_crop": selected_crop,
 		"total_earned": total_earned,
 		"heat": heat,
 		"reputation": reputation,
@@ -315,6 +349,9 @@ func from_dict(data: Dictionary) -> void:
 	day = int(data.get("day", 1))
 	time_of_day = float(data.get("time_of_day", START_TIME))
 	current_tool = int(data.get("current_tool", 0))
+	selected_crop = str(data.get("selected_crop", "turnip"))
+	if not CROPS.has(selected_crop):
+		selected_crop = "turnip"
 	total_earned = int(data.get("total_earned", 0))
 	heat = float(data.get("heat", 0.0))
 	reputation = float(data.get("reputation", 0.0))

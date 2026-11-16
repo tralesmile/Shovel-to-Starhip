@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -89,14 +89,14 @@ func test_farm_cycle() -> bool:
 	game.set_tool(GameState.Tool.SEEDS)
 	p.interact(game)
 	check(p.state == FarmPlot.State.PLANTED and game.count("turnip_seed") == 4, "plant uses a seed")
-	for night in FarmPlot.GROW_DAYS:
+	for night in p.grow_days():
 		game.set_tool(GameState.Tool.WATER)
 		p.interact(game)
 		check(p.watered, "watered night %d" % night)
 		check(not p.is_ripe(), "not ripe before night %d" % night)
 		game.advance_day()
 		check(not p.watered, "soil dries overnight %d" % night)
-	check(p.is_ripe(), "ripe after %d watered nights" % FarmPlot.GROW_DAYS)
+	check(p.is_ripe(), "ripe after %d watered nights" % p.grow_days())
 	game.set_tool(GameState.Tool.AXE)   # any tool harvests a ripe crop
 	p.interact(game)
 	check(game.count("turnip") >= 1, "harvest gives turnip")
@@ -495,4 +495,40 @@ func test_delivery() -> bool:
 	game.car_owned = true
 	depot.interact(game)
 	check(depot.job.active, "car owner gets a job")
+	return true
+
+
+func test_crops() -> bool:
+	check(game.selected_crop == "turnip", "default seed is turnip")
+	game.set_tool(GameState.Tool.SEEDS)
+	game.set_tool(GameState.Tool.SEEDS)
+	check(game.selected_crop == "carrot", "pressing 2 again cycles to carrot")
+	game.set_tool(GameState.Tool.SEEDS)
+	game.set_tool(GameState.Tool.SEEDS)
+	check(game.selected_crop == "turnip", "seed cycle wraps around")
+	game.cycle_crop()
+	check(game.tool_label(GameState.Tool.SEEDS) == "Carrot Seeds", "tool label follows seed")
+	game.add_item("carrot_seed", 1)
+	game.set_tool(GameState.Tool.HOE)
+	var p := _plot()
+	p.interact(game)
+	game.set_tool(GameState.Tool.SEEDS)
+	p.interact(game)
+	check(p.state == FarmPlot.State.PLANTED and p.crop == "carrot" and game.count("carrot_seed") == 0, "plants carrot")
+	check(p.grow_days() == 3, "carrot takes 3 nights")
+	for n in 3:
+		p.watered = true
+		game.advance_day()
+	check(p.is_ripe(), "carrot ripe after 3 nights")
+	p.interact(game)
+	check(game.count("carrot") >= 1, "harvest gives carrot")
+	game.add_item("tomato", 1)
+	var before := game.money
+	game.sell_all()
+	check(game.money >= before + 70 + 125, "carrot and tomato sell for more than turnips")
+	var d := p.to_dict()
+	check(d["crop"] == "carrot", "plot saves crop type")
+	game.selected_crop = "tomato"
+	var g2 := game.to_dict()
+	check(g2["selected_crop"] == "tomato", "selected seed saved")
 	return true

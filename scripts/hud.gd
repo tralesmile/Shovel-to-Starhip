@@ -68,7 +68,7 @@ func _ready() -> void:
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		row.add_child(icon)
 		var l := Label.new()
-		l.text = GameState.TOOL_NAMES[i].replace(" ", "\n")
+		l.text = Game.tool_label(i).replace(" ", "\n")
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l.add_theme_font_size_override("font_size", 17)
 		row.add_child(l)
@@ -243,6 +243,9 @@ func _refresh() -> void:
 		else:
 			sb.bg_color = Color(0.1, 0.1, 0.15, 0.7)
 		_slots[i].add_theme_stylebox_override("panel", sb)
+		var lab := _slots[i].find_children("*", "Label", true, false)
+		if lab.size() > 1:
+			lab[1].text = Game.tool_label(i).replace(" ", "\n")
 
 
 func _on_toast(text: String) -> void:

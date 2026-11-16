@@ -4,3 +4,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-16 | Godot 4.7.1 downloaded from github-builds OK; export templates and Windows export not attempted this run (sprint not complete) | none | export at Sprint 3/phase completion
 - 2026-11-16 | WebSearch research step skipped, and a headless in-scene driving smoke test hung (timeout) | relied on unit tests + clean boot check | next run: load WebSearch, try xvfb screenshot test of driving
 - 2026-11-16 | Traffic basics + police car chase (Sprint 3 leftover) deferred; Godot had to be re-downloaded (fresh session) | took fishing from Sprint 4 instead (reorder only, nothing cut) | do traffic later; in-scene driving smoke test still not attempted
+- 2026-11-16 | Web search gave no useful page content (only link list); Godot re-downloaded again; Windows export skipped (sprint not complete) | used design rule of thumb | none

@@ -23,7 +23,7 @@ Mark each item [x] when done and tested.
 ### Sprint 4 - Fishing and first job
 - [x] Fishing minigame at pond, fish sell prices (v1: Fishing logic cast/wait/bite window 1s, FishingSpot on east pond shore at (-17.8,?,1), 6 catches incl. boot/golden carp/wizard hat sold at bin; rods/bait/fish sizes still to do)
 - [x] Delivery job using car, pay on completion (v1: Parcel Pete at (19,0,10.5) needs owned car, 4 drop-offs with beacon, timer, tip for speed; job state not saved; HUD timer/arrow still to do)
-- [ ] 2+ more crops, shop stock
+- [x] 2+ more crops, shop stock (v1: carrot 3 nights/$70, tomato 4 nights/$125 alongside turnip 2/$35; press [2] again to cycle seed type; shop sells the selected seed; per-crop seed prices $10/$18/$30; shop stock limits and crop art per growth stage still to do)
 ### Sprint 5 - Polish
 - [ ] Sound effects + music (CC0 packs from GitHub), audio settings
 - [ ] Main menu, settings, tutorial, controller basic support
@@ -52,3 +52,5 @@ Mark each item [x] when done and tested.
 - Car follow-ups: speed-sensitive FOV/camera lag, tyre-screech dust particles, headlights at night, fuel (optional), traffic AI with lane waypoints, cops chase by car at heat 3 (Sprint 3 part 2)
 - Fishing follow-ups: bobber visual + splash/sound cue on bite, rod upgrades and bait, fish by time of day/weather, fish size and a journal (research: fishing minigame taxonomy write-ups; keep a forgiving bite window for cozy feel)
 - Delivery follow-ups: HUD countdown + direction arrow, chained deliveries/streak bonus, fragile parcels that lose pay on collisions (research: courier-game reviews e.g. Easy Delivery Co: short cozy shifts, odd customers)
+- Crops follow-ups: seasonal crops, regrowing crops (tomato yields several harvests), quality tiers, crop-specific growth models (research: cozy farm games balance by growth days vs price; longer crops pay more per day)
+- Delivery HUD timer/arrow still pending

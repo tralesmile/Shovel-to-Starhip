@@ -15,8 +15,8 @@ const ROCKET_PRICE := 1000000
 func get_prompt(game: GameState) -> String:
 	match kind:
 		Kind.SHOP:
-			var price: int = GameState.ITEMS["turnip_seed"]["buy"] * SEED_PACK
-			return "[E] Buy %d turnip seeds ($%d)" % [SEED_PACK, price]
+			var price: int = GameState.ITEMS[game.crop_seed_id()]["buy"] * SEED_PACK
+			return "[E] Buy %d %s seeds ($%d)  - [2] with seeds out switches type" % [SEED_PACK, game.selected_crop, price]
 		Kind.SELL_BIN:
 			var value := 0
 			for id in game.inventory.keys():
@@ -39,9 +39,9 @@ func get_prompt(game: GameState) -> String:
 func interact(game: GameState) -> void:
 	match kind:
 		Kind.SHOP:
-			if game.buy("turnip_seed", SEED_PACK):
+			if game.buy(game.crop_seed_id(), SEED_PACK):
 				FX.burst(self, global_position + Vector3(0, 1.0, 0), Color(0.9, 0.8, 0.45), 8, 0.1, 2.5)
-				game.say("Bought %d seeds. The shopkeeper winks. Weird." % SEED_PACK)
+				game.say("Bought %d %s seeds. The shopkeeper winks. Weird." % [SEED_PACK, game.selected_crop])
 			else:
 				game.say("Not enough money. Try selling turnips first.")
 		Kind.SELL_BIN:
