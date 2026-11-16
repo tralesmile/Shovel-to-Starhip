@@ -16,6 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
+		"test_lockpick", "test_loot_container", "test_carry_limit",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -240,4 +241,66 @@ func test_npc_routine_movement() -> bool:
 	for i in 400:
 		npc.update_routine(19.0 / 24.0, 0.1)
 	check(npc.indoors and npc.global_position.is_equal_approx(npc.home_spot), "goes home in the evening")
+	return true
+
+
+func test_lockpick() -> bool:
+	var lp := Lockpick.new(0.0, 7)
+	lp.phase = 0.0
+	check(is_equal_approx(lp.cursor(), 0.0), "cursor starts at 0")
+	lp.phase = 1.0
+	check(is_equal_approx(lp.cursor(), 1.0), "cursor peaks at 1")
+	lp.phase = 2.5
+	check(is_equal_approx(lp.cursor(), 0.5), "cursor sweeps back")
+	# Perfect play opens the lock.
+	for i in Lockpick.PINS:
+		lp.phase = lp.zone_center   # cursor == zone_center on the rising edge
+		var r := lp.press()
+		check(r == "pin" or r == "open", "pin %d set" % i)
+	check(lp.is_open(), "lock opens after all pins")
+	# Misses break picks.
+	var bad := Lockpick.new(0.0, 7)
+	bad.zone_center = 0.9
+	bad.phase = 0.05
+	check(bad.press() == "snap", "miss snaps a pick")
+	check(bad.picks_left == Lockpick.PICKS - 1, "pick consumed")
+	for i in Lockpick.PICKS - 1:
+		bad.zone_center = 0.9
+		bad.phase = 0.05
+		bad.press()
+	check(bad.is_broken(), "all picks gone")
+	check(Lockpick.new(3.0, 1).zone_width < Lockpick.new(0.0, 1).zone_width, "harder locks have smaller zones")
+	return true
+
+
+func test_loot_container() -> bool:
+	var c := LootContainer.new()
+	root.add_child(c)
+	c.loot_id = "gold_spoon"
+	check(c.state == "locked", "starts locked")
+	c.interact(game)
+	check(c.state == "picking", "interact starts picking")
+	for i in Lockpick.PINS:
+		c.lock.phase = c.lock.zone_center
+		c.interact(game)
+	check(c.state == "open", "container opens")
+	check(game.count("gold_spoon") == 1, "loot added to pockets")
+	check(c.get_prompt(game).begins_with("Empty"), "empty prompt")
+	c.on_new_day(game)
+	check(c.state == "locked", "refills next day")
+	check(LootContainer.roll_loot(0.0) == "gold_spoon" and LootContainer.roll_loot(0.99) == "rubber_duck_gold", "loot table roll")
+	return true
+
+
+func test_carry_limit() -> bool:
+	for i in GameState.CARRY_LIMIT:
+		check(game.add_loot("gnome" if false else "garden_gnome"), "carry %d" % i)
+	check(not game.add_loot("gold_spoon"), "pockets full")
+	check(game.loot_count() == GameState.CARRY_LIMIT, "loot count")
+	game.add_item("turnip", 20)
+	check(game.loot_count() == GameState.CARRY_LIMIT, "turnips do not count as loot")
+	var c := LootContainer.new()
+	root.add_child(c)
+	c.interact(game)
+	check(c.state == "locked", "full pockets refuse to start picking")
 	return true

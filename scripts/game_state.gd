@@ -21,7 +21,14 @@ const ITEMS := {
 	"turnip_seed": {"name": "Turnip Seeds", "buy": 10, "sell": 0},
 	"turnip": {"name": "Turnip", "buy": 0, "sell": 35},
 	"wood": {"name": "Wood", "buy": 0, "sell": 5},
+	# Stolen goods: sell 0 here, the fence (Sprint 2) will buy them.
+	"gold_spoon": {"name": "Gold Spoon", "buy": 0, "sell": 0, "loot": true, "value": 60},
+	"suspicious_vase": {"name": "Suspicious Vase", "buy": 0, "sell": 0, "loot": true, "value": 90},
+	"garden_gnome": {"name": "Garden Gnome", "buy": 0, "sell": 0, "loot": true, "value": 120},
+	"rubber_duck_gold": {"name": "Golden Rubber Duck", "buy": 0, "sell": 0, "loot": true, "value": 200},
 }
+
+const CARRY_LIMIT := 4   ## max stolen items in your pockets
 
 const NEW_DAY_JOKES := [
 	"The rooster has opinions about this.",
@@ -85,6 +92,26 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 	if inventory[item_id] == 0:
 		inventory.erase(item_id)
 	inventory_changed.emit()
+	return true
+
+
+func loot_count() -> int:
+	var n := 0
+	for id in inventory.keys():
+		if ITEMS.get(id, {}).get("loot", false):
+			n += count(id)
+	return n
+
+
+func can_carry(amount: int = 1) -> bool:
+	return loot_count() + amount <= CARRY_LIMIT
+
+
+## Adds a stolen item if the carry limit allows. Returns false when too heavy.
+func add_loot(item_id: String) -> bool:
+	if not can_carry():
+		return false
+	add_item(item_id, 1)
 	return true
 
 

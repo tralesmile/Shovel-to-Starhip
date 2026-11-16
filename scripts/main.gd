@@ -291,6 +291,15 @@ func _build_interiors() -> void:
 		var outside := Vector3(h["x"], 0.1, 22.8)
 		var inside := Buildings.build_interior(interiors, 2 + i, outside, h["color"], "%s's place" % h["name"])
 		Buildings.add_front_door(town, Vector3(h["x"], 0, 24.4), inside["entry"], "Enter %s's home" % h["name"])
+		var drawer := LootContainer.new()
+		drawer.name = "Drawer_%d" % i
+		drawer.position = Vector3(-3.0, 0, -1.8)
+		drawer.difficulty = float(i)
+		drawer.seed_value = 100 + i
+		drawer.loot_id = LootContainer.roll_loot(0.15 + 0.3 * i)
+		drawer.interact_radius = 1.5
+		inside["root"].add_child(drawer)
+		Buildings.solid_box(drawer, Vector3(1.0, 0.9, 0.5), Vector3(0, 0.45, 0), Art.WOOD.darkened(0.2))
 		var npc := Npc.new()
 		npc.name = "Npc_%d" % i
 		add_child(npc)

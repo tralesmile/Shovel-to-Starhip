@@ -13,7 +13,7 @@ Mark each item [x] when done and tested.
 - [x] NPCs with daily routines (wake, work, home, sleep) using game clock (3 townsfolk; data-driven per-NPC schedules still to do)
 - [x] Tests for door/enter/exit and NPC schedule
 ### Sprint 2 - Robbery and reputation
-- [ ] Lockpick minigame, loot containers in homes, carry limit
+- [x] Lockpick minigame, loot containers in homes, carry limit (v1: timing lockpick via E, prompt-text meter; drawer in each town home; carry limit 4; visual HUD meter still to do)
 - [ ] Witness/alarm system, police "heat" levels, hiding
 - [ ] Lawful/Outlaw reputation, fence NPC buys stolen goods
 ### Sprint 3 - Cars
@@ -40,3 +40,5 @@ Mark each item [x] when done and tested.
 - Data-driven NPC schedules (list of {from_hour, to_hour, place}) so each NPC can have custom routines, shop hours and events (idea from Godot forum schedule threads)
 - Interior polish: furniture props from KayKit packs, door open animation, fade-to-black on enter/exit
 - NPC dialogue barks + shop closing hours tied to the keeper
+- Witness system: gradual suspicion meter (fills faster when close/in view cone, decays when out of sight) instead of instant detection; cone + distance scaling (research: stealth-game spotting write-ups, Klei alarm design)
+- Lockpick HUD: replace text bar with on-screen meter + sound click per pin
