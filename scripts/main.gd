@@ -28,6 +28,7 @@ func _ready() -> void:
 	_build_house()
 	_build_store()
 	_build_sell_bin()
+	_build_fence()
 	_build_trees()
 	_build_road_and_signs()
 	_build_interiors()
@@ -346,6 +347,21 @@ func _build_sell_bin() -> void:
 	var l := Art.label("SELL BIN\nturnips & wood", 44, Color(1, 0.9, 0.9))
 	l.position.y = 2.2
 	bin.add_child(l)
+
+
+## Shady Sal lurks behind the town homes, fittingly next to a lamp that is "broken".
+func _build_fence() -> void:
+	var fence := Station.new()
+	fence.name = "Fence"
+	fence.kind = Station.Kind.FENCE
+	fence.position = Vector3(-44.0, 0, 28.0)
+	fence.interact_radius = 1.8
+	add_child(fence)
+	Models.solid(fence, Models.MED + "crate_A_big.gltf", Vector3(0.9, 0, 0), 4.0)
+	var m := Models.put(fence, Models.CHAR + "Rogue.glb", Vector3.ZERO, 0.72, PI)
+	var l := Art.label("SHADY SAL\nno questions", 44, Color(0.8, 1.0, 0.8))
+	l.position.y = 2.4
+	fence.add_child(l)
 
 
 func _build_trees() -> void:

@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -348,4 +348,35 @@ func test_heat() -> bool:
 	check(game.heat == GameState.MAX_HEAT, "heat survives save")
 	game.advance_day()
 	check(game.heat == GameState.MAX_HEAT - 1.0, "heat cools by a level each day")
+	return true
+
+
+func test_fence_reputation() -> bool:
+	check(game.reputation_title() == "Honest-ish", "starts neutral")
+	check(game.fence_offer() == 0, "nothing to fence")
+	check(game.fence_sell_all() == 0, "fence pays nothing for nothing")
+	game.add_loot("garden_gnome")
+	game.add_loot("gold_spoon")
+	check(game.fence_offer() == 60 + 30, "fence pays half value")
+	var before := game.money
+	var paid := game.fence_sell_all()
+	check(paid == 90 and game.money == before + 90, "fence pays out")
+	check(game.loot_count() == 0, "loot gone")
+	check(game.reputation == -2.0, "fencing costs reputation")
+	game.add_loot("gold_spoon")
+	check(game.fence_offer() > 30, "outlaws get a better rate")
+	game.add_reputation(-20.0)
+	check(game.reputation == -GameState.MAX_REP and game.reputation_title() == "Outlaw", "capped outlaw")
+	game.add_reputation(20.0)
+	check(game.reputation_title() == "Lawful", "can go lawful")
+	game.add_heat(1.0)
+	check(game.reputation == GameState.MAX_REP - 1.0, "alarm costs reputation")
+	var saved := game.to_dict()
+	game.reputation = 0.0
+	game.from_dict(saved)
+	check(game.reputation == GameState.MAX_REP - 1.0, "reputation saves")
+	game.reputation = 0.0
+	game.add_item("turnip", 1)
+	game.sell_all()
+	check(game.reputation == 0.5, "honest sales add reputation")
 	return true

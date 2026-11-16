@@ -2,7 +2,7 @@ class_name Station
 extends Interactable
 ## Simple fixed-function stations: shop counter, sell bin, bed, rocket tease.
 
-enum Kind { SHOP, SELL_BIN, BED, ROCKET }
+enum Kind { SHOP, SELL_BIN, BED, ROCKET, FENCE }
 
 @export var kind: int = Kind.SHOP
 
@@ -22,6 +22,9 @@ func get_prompt(game: GameState) -> String:
 			return "[E] Sell everything ($%d)" % value if value > 0 else "Sell bin. Bring turnips or wood."
 		Kind.BED:
 			return "[E] Sleep until morning"
+		Kind.FENCE:
+			var offer := game.fence_offer()
+			return "[E] Sell stolen goods ($%d)  [%s]" % [offer, game.reputation_title()] if offer > 0 else "Shady Sal: \"Got anything... acquired?\""
 		Kind.ROCKET:
 			return "Rocket: $%s to finish. You have $%d. Keep farming." % [_pretty(ROCKET_PRICE), game.money]
 	return ""
@@ -44,6 +47,13 @@ func interact(game: GameState) -> void:
 				game.say("The sell bin echoes. It's empty, like your pockets.")
 		Kind.BED:
 			game.sleep()
+		Kind.FENCE:
+			var paid := game.fence_sell_all()
+			if paid > 0:
+				game.say("Shady Sal: \"Never seen it before in my life.\" +$%d  (%s)" % [paid, game.reputation_title()])
+				FX.burst(self, global_position + Vector3(0, 1.2, 0), Color(0.6, 0.9, 0.5), 14, 0.14, 4.0)
+			else:
+				game.say("Shady Sal: \"Come back when your pockets are interesting.\"")
 		Kind.ROCKET:
 			game.say("One day, little rocket. One day.")
 

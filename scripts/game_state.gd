@@ -21,7 +21,7 @@ const ITEMS := {
 	"turnip_seed": {"name": "Turnip Seeds", "buy": 10, "sell": 0},
 	"turnip": {"name": "Turnip", "buy": 0, "sell": 35},
 	"wood": {"name": "Wood", "buy": 0, "sell": 5},
-	# Stolen goods: sell 0 here, the fence (Sprint 2) will buy them.
+	# Stolen goods: sell 0 at the bin; the fence buys them.
 	"gold_spoon": {"name": "Gold Spoon", "buy": 0, "sell": 0, "loot": true, "value": 60},
 	"suspicious_vase": {"name": "Suspicious Vase", "buy": 0, "sell": 0, "loot": true, "value": 90},
 	"garden_gnome": {"name": "Garden Gnome", "buy": 0, "sell": 0, "loot": true, "value": 120},
@@ -48,6 +48,10 @@ var total_earned: int = 0
 var crime_suspicion: float = 0.0   ## highest witness meter right now (HUD only)
 var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the alarm
 
+var reputation: float = 0.0     ## -MAX_REP (Outlaw) .. +MAX_REP (Lawful)
+
+const MAX_REP := 10.0
+const FENCE_CUT := 0.5          ## fence pays this share of an item's value
 const MAX_HEAT := 3.0
 const HEAT_DECAY_PER_DAY := 1.0
 const HEAT_NAMES := ["Clean as a turnip", "Raised eyebrows", "Angry whispers", "Pitchforks (pending)"]
@@ -144,7 +148,52 @@ func sell_all() -> int:
 	if total > 0:
 		inventory_changed.emit()
 		earn(total)
+		add_reputation(0.5)   # honest work looks good on you
 	return total
+
+
+## What the fence would pay right now for everything stolen in your pockets.
+func fence_offer() -> int:
+	var total := 0
+	for id in inventory.keys():
+		if ITEMS.get(id, {}).get("loot", false):
+			total += fence_price(id) * count(id)
+	return total
+
+
+## Per-item fence price: half value, +4% per Outlaw point (they like a pro).
+func fence_price(item_id: String) -> int:
+	var v: int = ITEMS.get(item_id, {}).get("value", 0)
+	var bonus := 1.0 + 0.04 * maxf(0.0, -reputation)
+	return int(round(v * FENCE_CUT * bonus))
+
+
+## Sells all stolen goods to the fence. Returns money earned; turns you more Outlaw.
+func fence_sell_all() -> int:
+	var total := 0
+	var items := 0
+	for id in inventory.keys():
+		if ITEMS.get(id, {}).get("loot", false):
+			total += fence_price(id) * count(id)
+			items += count(id)
+			inventory.erase(id)
+	if items > 0:
+		inventory_changed.emit()
+		earn(total)
+		add_reputation(-1.0 * items)
+	return total
+
+
+func add_reputation(amount: float) -> void:
+	reputation = clampf(reputation + amount, -MAX_REP, MAX_REP)
+
+
+func reputation_title() -> String:
+	if reputation >= 3.0:
+		return "Lawful"
+	if reputation <= -3.0:
+		return "Outlaw"
+	return "Honest-ish"
 
 
 func say(text: String) -> void:
@@ -168,6 +217,8 @@ func heat_name() -> String:
 
 func add_heat(amount: float) -> void:
 	heat = clampf(heat + amount, 0.0, MAX_HEAT)
+	if amount > 0.0:
+		add_reputation(-amount)   # getting caught costs your good name
 
 
 # ---------------------------------------------------------------- time
@@ -214,6 +265,7 @@ func to_dict() -> Dictionary:
 		"current_tool": current_tool,
 		"total_earned": total_earned,
 		"heat": heat,
+		"reputation": reputation,
 		"world": world,
 	}
 
@@ -229,6 +281,7 @@ func from_dict(data: Dictionary) -> void:
 	current_tool = int(data.get("current_tool", 0))
 	total_earned = int(data.get("total_earned", 0))
 	heat = float(data.get("heat", 0.0))
+	reputation = float(data.get("reputation", 0.0))
 	var world: Dictionary = data.get("world", {})
 	for node in get_tree().get_nodes_in_group("saveable"):
 		if world.has(str(node.name)):
