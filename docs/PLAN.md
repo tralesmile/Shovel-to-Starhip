@@ -16,6 +16,7 @@ Mark each item [x] when done and tested.
 - [x] Lockpick minigame, loot containers in homes, carry limit (v1: timing lockpick via E, prompt-text meter; drawer in each town home; carry limit 4; visual HUD meter still to do)
 - [x] Witness/alarm system, heat levels (v1: view-cone suspicion meter per NPC while picking, heat 0-3 decaying 1/day, HUD label; police response + hiding still to do)
 - [x] Lawful/Outlaw reputation, fence NPC buys stolen goods (v1: Shady Sal behind town buys loot at 50% +4%/Outlaw point; rep -10..10 saved; farm sales +0.5, fencing -1/item, alarm -1/heat; HUD shows title; police/hiding still to do)
+- [x] Police response (v1: Constable Bumble patrols town at heat 3, chases on sight at 6.4 speed, arrest = lose loot + 25% cash fine, heat drops to 1; hiding indoors makes him lose you; crouch/shadow hiding and closets still to do)
 ### Sprint 3 - Cars
 - [ ] Buyable drivable car (enter/exit, handling, fuel optional)
 - [ ] Traffic basics, police chase
@@ -46,3 +47,5 @@ Mark each item [x] when done and tested.
 - Heat consequences: police NPC patrol at heat 3, shop price penalty at heat 2
 - Fence price should drop when heat is high (fences get nervous) and fence stock/daily cap to avoid dumping (research: stolen-goods design threads)
 - Reputation effects: Lawful gets shop discount, Outlaw gets fence bonus + townsfolk barks
+- Police heat cooling: heat should only decay once you are out of sight of police (search-and-lose, as in modern wanted-system write-ups), not just by day count
+- Police: add a second constable / car patrol once Sprint 3 cars land; crouch + shadows hiding still to do

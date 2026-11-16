@@ -221,6 +221,22 @@ func add_heat(amount: float) -> void:
 		add_reputation(-amount)   # getting caught costs your good name
 
 
+## Constable Bumble caught you. Loot is confiscated, a quarter of your cash
+## (min $10, never more than you have) is fined, and the heat drops to level 1.
+## Returns {"fine": int, "loot": int}.
+func arrest() -> Dictionary:
+	var lost := 0
+	for id in inventory.keys():
+		if ITEMS.get(id, {}).get("loot", false):
+			lost += count(id)
+			inventory.erase(id)
+	var fine := mini(money, maxi(10, int(money * 0.25)))
+	money -= fine
+	heat = minf(heat, 1.0)
+	inventory_changed.emit()
+	return {"fine": fine, "loot": lost}
+
+
 # ---------------------------------------------------------------- time
 
 func advance_day() -> void:

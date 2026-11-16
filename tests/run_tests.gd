@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -379,4 +379,28 @@ func test_fence_reputation() -> bool:
 	game.add_item("turnip", 1)
 	game.sell_all()
 	check(game.reputation == 0.5, "honest sales add reputation")
+	return true
+
+
+func test_police() -> bool:
+	var P := Police.State
+	check(Police.next_state(P.OFF, 2.0, true, false, 3.0) == P.OFF, "no police below max heat")
+	check(Police.next_state(P.OFF, 3.0, false, false, 30.0) == P.PATROL, "max heat starts patrol")
+	check(Police.next_state(P.PATROL, 3.0, true, false, 8.0) == P.CHASE, "sees player -> chase")
+	check(Police.next_state(P.PATROL, 3.0, false, false, 8.0) == P.PATROL, "unseen -> keeps patrolling")
+	check(Police.next_state(P.CHASE, 3.0, false, false, 10.0) == P.CHASE, "keeps chasing nearby")
+	check(Police.next_state(P.CHASE, 3.0, false, false, 40.0) == P.PATROL, "far away -> gives up")
+	check(Police.next_state(P.CHASE, 3.0, true, true, 5.0) == P.PATROL, "hiding indoors ends chase")
+	check(Police.next_state(P.CHASE, 1.0, true, false, 5.0) == P.OFF, "heat cooled -> police go home")
+	check(Police.is_hidden(Buildings.interior_origin(0)), "interior counts as hiding")
+	check(not Police.is_hidden(Vector3(0, 0, 8)), "outside is not hiding")
+	game.money = 200
+	game.add_loot("gold_spoon")
+	game.add_heat(3.0)
+	var r := game.arrest()
+	check(r["fine"] == 50 and r["loot"] == 1, "arrest fines 25% and takes loot")
+	check(game.money == 150 and game.loot_count() == 0, "money and loot updated")
+	check(game.heat == 1.0, "heat drops to 1 after arrest")
+	game.money = 4
+	check(game.arrest()["fine"] == 4 and game.money == 0, "fine never exceeds cash")
 	return true

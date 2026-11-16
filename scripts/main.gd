@@ -12,6 +12,7 @@ var _lamp_mat: ShaderMaterial
 var _fireflies: Array[CPUParticles3D] = []
 var _day_critters: Array[Node3D] = []
 var _npcs: Array[Npc] = []
+var _police: Police
 
 const TREE_SPOTS := [
 	Vector3(-8, 0, -9), Vector3(-4, 0, -11), Vector3(2, 0, -10), Vector3(7, 0, -9),
@@ -29,6 +30,7 @@ func _ready() -> void:
 	_build_store()
 	_build_sell_bin()
 	_build_fence()
+	_build_police()
 	_build_trees()
 	_build_road_and_signs()
 	_build_interiors()
@@ -73,6 +75,10 @@ func _process(delta: float) -> void:
 	for n in _npcs:
 		n.update_routine(Game.time_of_day, delta)
 	_update_witnesses(delta)
+	if _police and _police.update_police(delta, player.global_position, Game.heat):
+		var r := Game.arrest()
+		player.global_position = Vector3(0, 2, 8)
+		Game.say("Busted! Fined $%d and %d stolen item(s) confiscated. Heat: %s" % [r["fine"], r["loot"], Game.heat_name()])
 
 
 ## Watchers fill a suspicion meter while the player picks a lock in their view.
@@ -329,6 +335,15 @@ func _build_interiors() -> void:
 		npc.npc_name = h["name"]
 		npc.global_position = npc.home_spot
 		_npcs.append(npc)
+
+
+func _build_police() -> void:
+	_police = Police.new()
+	_police.name = "ConstableBumble"
+	add_child(_police)
+	_police.setup()
+	_police.spotted.connect(func(): Game.say("Constable Bumble: \"STOP! In the name of the turnip!\""))
+	_police.waypoints = [Vector3(-30, 0, 18), Vector3(-10, 0, 18), Vector3(-10, 0, 8), Vector3(-30, 0, 8)]
 
 
 func interior_pos(index: int, local: Vector3) -> Vector3:
