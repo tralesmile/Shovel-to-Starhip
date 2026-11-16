@@ -15,7 +15,7 @@ func _run() -> void:
 	for test in [
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
-		"test_save_roundtrip",
+		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -187,4 +187,57 @@ func test_save_roundtrip() -> bool:
 	check(game.money == 150, "money restored")
 	check(game.count("wood") == 7, "inventory restored")
 	check(p.state == FarmPlot.State.PLANTED and p.growth == 1 and p.watered, "plot restored")
+	return true
+
+
+func test_door_enter_exit() -> bool:
+	var outside := Vector3(10, 0.1, 5)
+	var inside := Buildings.build_interior(root, 0, outside, Color.WHITE, "Test")
+	var front := Buildings.add_front_door(root, Vector3(10, 0, 3), inside["entry"], "Enter", false)
+	var body := CharacterBody3D.new()
+	root.add_child(body)
+	body.global_position = Vector3(10, 0.1, 4)
+	body.velocity = Vector3(3, 0, 3)
+	check(front.get_prompt(game) == "[E] Enter", "door prompt")
+	front.go(body)
+	check(body.global_position.is_equal_approx(inside["entry"]), "entering teleports inside")
+	check(body.global_position.x > 300.0, "interior is parked away from town")
+	check(body.velocity == Vector3.ZERO, "velocity cleared at door")
+	(inside["exit_door"] as Door).go(body)
+	check(body.global_position.is_equal_approx(outside), "exit door returns outside")
+	check(Buildings.interior_origin(2) != Buildings.interior_origin(3), "interiors do not overlap")
+	return true
+
+
+func test_npc_schedule() -> bool:
+	var S = Buildings.Schedule
+	check(S.activity_at(3.0 / 24.0) == S.Activity.SLEEP, "3am sleep")
+	check(S.activity_at(7.0 / 24.0) == S.Activity.WAKE, "7am wake")
+	check(S.activity_at(12.0 / 24.0) == S.Activity.WORK, "noon work")
+	check(S.activity_at(19.0 / 24.0) == S.Activity.HOME, "7pm home")
+	check(S.activity_at(23.0 / 24.0) == S.Activity.SLEEP, "11pm sleep")
+	check(S.activity_at(7.0 / 24.0, 1.5) == S.Activity.SLEEP, "late riser still asleep at 7am")
+	check(S.is_indoors(S.Activity.WORK) == false, "work is outdoors")
+	check(S.is_indoors(S.Activity.SLEEP), "sleep is indoors")
+	return true
+
+
+func test_npc_routine_movement() -> bool:
+	var npc := Npc.new()
+	root.add_child(npc)
+	npc.home_spot = Vector3(400, 0, 60)
+	npc.work_spot = Vector3(0, 0, 20)
+	npc.door_outside = Vector3(-5, 0, 22)
+	npc.update_routine(3.0 / 24.0, 0.1)
+	check(npc.indoors and npc.global_position.is_equal_approx(npc.home_spot), "asleep at home at 3am")
+	npc.update_routine(12.0 / 24.0, 0.1)
+	check(not npc.indoors, "leaves home for work at noon")
+	check(npc.global_position.distance_to(npc.door_outside) < 1.0, "appears at the door")
+	for i in 400:
+		npc.update_routine(12.0 / 24.0, 0.1)
+	check(npc.global_position.distance_to(npc.work_spot) < 0.3, "walks to work")
+	npc.update_routine(19.0 / 24.0, 0.1)
+	for i in 400:
+		npc.update_routine(19.0 / 24.0, 0.1)
+	check(npc.indoors and npc.global_position.is_equal_approx(npc.home_spot), "goes home in the evening")
 	return true

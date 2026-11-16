@@ -11,6 +11,7 @@ var _lamps: Array[OmniLight3D] = []
 var _lamp_mat: ShaderMaterial
 var _fireflies: Array[CPUParticles3D] = []
 var _day_critters: Array[Node3D] = []
+var _npcs: Array[Npc] = []
 
 const TREE_SPOTS := [
 	Vector3(-8, 0, -9), Vector3(-4, 0, -11), Vector3(2, 0, -10), Vector3(7, 0, -9),
@@ -29,6 +30,7 @@ func _ready() -> void:
 	_build_sell_bin()
 	_build_trees()
 	_build_road_and_signs()
+	_build_interiors()
 	_build_spaceport()
 	_build_scenery()
 	_build_flowers()
@@ -67,6 +69,8 @@ func _process(delta: float) -> void:
 		if c.position.x > 110.0:
 			c.position.x = -110.0
 	_update_daylight()
+	for n in _npcs:
+		n.update_routine(Game.time_of_day, delta)
 
 
 ## Sun, moon, sky colours, lamps and fireflies follow the clock.
@@ -214,28 +218,6 @@ func _build_house() -> void:
 	Models.solid(self, Models.MED + "resource_lumber.gltf", Vector3(-8, 0, -12), 4.5, 0.2)
 	for bx in [-2.0, 2.0]:
 		Models.put(house, Models.CITY + "bush.gltf", Vector3(bx, 0, 2.8), 3.0)
-	# The bed lives outside. Long story.
-	var bed := Station.new()
-	bed.name = "Bed"
-	bed.kind = Station.Kind.BED
-	bed.position = Vector3(2.6, 0, 4.4)
-	bed.interact_radius = 1.6
-	house.add_child(bed)
-	var frame := Art.box(Vector3(1.2, 0.4, 2.1), Art.WOOD)
-	frame.position.y = 0.2
-	bed.add_child(frame)
-	var head := Art.box(Vector3(1.3, 0.9, 0.12), Art.WOOD.darkened(0.15))
-	head.position = Vector3(0, 0.45, -1.05)
-	bed.add_child(head)
-	var sheet := Art.box(Vector3(1.1, 0.15, 1.5), Color(0.35, 0.55, 0.85))
-	sheet.position = Vector3(0, 0.47, 0.25)
-	bed.add_child(sheet)
-	var pillow := Art.box(Vector3(0.9, 0.18, 0.4), Color(0.97, 0.95, 0.9))
-	pillow.position = Vector3(0, 0.48, -0.72)
-	bed.add_child(pillow)
-	var note := Art.label("BED\n(moved outside, long story)", 40, Color(0.9, 0.95, 1))
-	note.position = Vector3(0, 1.6, 0)
-	bed.add_child(note)
 
 
 func _build_store() -> void:
@@ -244,7 +226,52 @@ func _build_store() -> void:
 	store.position = Vector3(14, 0, 4)
 	add_child(store)
 	Models.solid(store, Models.MED + "building_market_red.gltf", Vector3.ZERO, 5.0, 0.0, 0.85)
-	var keeper := Models.put(store, Models.CHAR + "Mage.glb", Vector3(0, 0, 2.6), 0.72, 0.0)
+	var sign := Art.label("GENERAL STORE\nseeds · snacks · questionable advice", 60, Color(1, 1, 0.8))
+	sign.position = Vector3(0, 6.2, 3.6)
+	sign.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	store.add_child(sign)
+
+
+## Interiors for the player house, the store and three town homes, plus NPCs
+## with daily routines. Interiors live far away; doors teleport the player.
+func _build_interiors() -> void:
+	var interiors := Node3D.new()
+	interiors.name = "Interiors"
+	add_child(interiors)
+	# 0: player house (the bed finally moved indoors)
+	var house := get_node("House") as Node3D
+	var out0 := house.global_position + Vector3(0, 0.1, 4.2)
+	var in0 := Buildings.build_interior(interiors, 0, out0, Art.WALL, "HOME SWEET HOME\n(rent: free, quality: also free)")
+	Buildings.add_front_door(house, Vector3(0, 0, 2.7), in0["entry"], "Enter your house")
+	var bed := Station.new()
+	bed.name = "Bed"
+	bed.kind = Station.Kind.BED
+	bed.position = Vector3(-2.4, 0, -1.6)
+	bed.interact_radius = 1.6
+	in0["root"].add_child(bed)
+	Buildings.solid_box(bed, Vector3(1.2, 0.4, 2.1), Vector3(0, 0.2, 0), Art.WOOD)
+	Buildings.solid_box(bed, Vector3(1.3, 0.9, 0.12), Vector3(0, 0.45, -1.05), Art.WOOD.darkened(0.15))
+	var sheet := Art.box(Vector3(1.1, 0.15, 1.5), Color(0.35, 0.55, 0.85))
+	sheet.position = Vector3(0, 0.47, 0.25)
+	bed.add_child(sheet)
+	var pillow := Art.box(Vector3(0.9, 0.18, 0.4), Color(0.97, 0.95, 0.9))
+	pillow.position = Vector3(0, 0.48, -0.72)
+	bed.add_child(pillow)
+	# 1: general store
+	var store := get_node("Store") as Node3D
+	var out1 := store.global_position + Vector3(-2.5, 0.1, 5.2)
+	var in1 := Buildings.build_interior(interiors, 1, out1, Color(0.9, 0.78, 0.6), "GENERAL STORE\nseeds, snacks, questionable advice")
+	Buildings.add_front_door(store, Vector3(-2.5, 0, 3.3), in1["entry"], "Enter the store")
+	var counter := Station.new()
+	counter.name = "ShopCounter"
+	counter.kind = Station.Kind.SHOP
+	counter.position = Vector3(0, 0, -0.2)
+	counter.interact_radius = 1.9
+	in1["root"].add_child(counter)
+	Models.solid(counter, Models.FOOD + "crate_onions.gltf", Vector3(-1.3, 0, 0), 0.55)
+	Models.solid(counter, Models.FOOD + "crate_carrots.gltf", Vector3(0, 0, 0), 0.55)
+	Models.solid(counter, Models.FOOD + "crate_tomatoes.gltf", Vector3(1.3, 0, 0), 0.55)
+	var keeper := Models.put(in1["root"], Models.CHAR + "Mage.glb", Vector3(0, 0, -1.6), 0.72, 0.0)
 	var ap: AnimationPlayer = keeper.find_children("*", "AnimationPlayer", true, false)[0]
 	Models.set_loops(ap, ["Idle"])
 	ap.play("Idle")
@@ -252,19 +279,32 @@ func _build_store() -> void:
 		var node := keeper.find_child(n, true, false)
 		if node:
 			node.visible = false
-	var sign := Art.label("GENERAL STORE\nseeds · snacks · questionable advice", 60, Color(1, 1, 0.8))
-	sign.position = Vector3(0, 6.2, 3.6)
-	sign.billboard = BaseMaterial3D.BILLBOARD_DISABLED
-	store.add_child(sign)
-	var counter := Station.new()
-	counter.name = "ShopCounter"
-	counter.kind = Station.Kind.SHOP
-	counter.position = Vector3(0, 0, 4.4)
-	counter.interact_radius = 1.9
-	store.add_child(counter)
-	Models.solid(counter, Models.FOOD + "crate_onions.gltf", Vector3(-1.3, 0, 0), 0.55)
-	Models.solid(counter, Models.FOOD + "crate_carrots.gltf", Vector3(0, 0, 0), 0.55)
-	Models.solid(counter, Models.FOOD + "crate_tomatoes.gltf", Vector3(1.3, 0, 0), 0.55)
+	# 2-4: town homes across the road, each with a resident on a daily routine.
+	var town := get_node("Town") as Node3D
+	var homes := [
+		{"x": -36.0, "color": Color(0.85, 0.9, 0.95), "model": "Rogue.glb", "work": Vector3(11, 0, 9), "shift": 0.0, "name": "Pip"},
+		{"x": -25.5, "color": Color(0.95, 0.85, 0.85), "model": "Knight.glb", "work": Vector3(-10, 0, 20), "shift": 0.5, "name": "Dame Gertrude"},
+		{"x": -15.0, "color": Color(0.88, 0.95, 0.85), "model": "Barbarian.glb", "work": Vector3(-18, 0, 3), "shift": -0.5, "name": "Bork"},
+	]
+	for i in homes.size():
+		var h: Dictionary = homes[i]
+		var outside := Vector3(h["x"], 0.1, 22.8)
+		var inside := Buildings.build_interior(interiors, 2 + i, outside, h["color"], "%s's place" % h["name"])
+		Buildings.add_front_door(town, Vector3(h["x"], 0, 24.4), inside["entry"], "Enter %s's home" % h["name"])
+		var npc := Npc.new()
+		npc.name = "Npc_%d" % i
+		add_child(npc)
+		npc.setup(Models.CHAR + h["model"])
+		npc.home_spot = interior_pos(2 + i, Vector3(1.8, 0, -1.2))
+		npc.work_spot = h["work"]
+		npc.door_outside = outside
+		npc.wake_shift = h["shift"]
+		npc.global_position = npc.home_spot
+		_npcs.append(npc)
+
+
+func interior_pos(index: int, local: Vector3) -> Vector3:
+	return Buildings.interior_origin(index) + local
 
 
 func _build_sell_bin() -> void:

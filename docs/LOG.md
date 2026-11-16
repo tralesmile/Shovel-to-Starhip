@@ -1,2 +1,3 @@
 # Run log (newest at the bottom; one entry per hourly run)
 - v0.3 baseline imported from the original build session. 51 headless tests pass.
+- 2026-11-16 | Sprint 1 done (v1): new Buildings/Door/Npc scripts; player house, store and 3 town homes are enterable via doors to far-away interior rooms with warm indoor lights; bed and shop counter moved indoors; 3 NPCs (Pip, Dame Gertrude, Bork) follow sleep/wake/work/home routines from the game clock. 73 headless checks pass (22 new). Research: schedules as data for later. Next: Sprint 2 (lockpick, loot containers, witness/heat) and interior art pass. Needs owner playtest: interior camera/collision feel and door positions on facades (unverified visually).

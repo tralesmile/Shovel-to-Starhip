@@ -8,10 +8,10 @@ Farm loop, tree chopping, store, sell bin, day/night, save/load, toon graphics, 
 ## Phase 1 - Vertical slice (CURRENT)
 Mark each item [x] when done and tested.
 ### Sprint 1 - Buildings and people
-- [ ] Enterable buildings (player house, store, 3+ town homes) with interiors, doors, indoor lighting
-- [ ] Bed moved indoors (sleep = advance day)
-- [ ] NPCs with daily routines (wake, work, home, sleep) using game clock
-- [ ] Tests for door/enter/exit and NPC schedule
+- [x] Enterable buildings (player house, store, 3+ town homes) with interiors, doors, indoor lighting (v1: placeholder box rooms, 5 interiors; needs furniture/art pass)
+- [x] Bed moved indoors (sleep = advance day)
+- [x] NPCs with daily routines (wake, work, home, sleep) using game clock (3 townsfolk; data-driven per-NPC schedules still to do)
+- [x] Tests for door/enter/exit and NPC schedule
 ### Sprint 2 - Robbery and reputation
 - [ ] Lockpick minigame, loot containers in homes, carry limit
 - [ ] Witness/alarm system, police "heat" levels, hiding
@@ -37,3 +37,6 @@ Mark each item [x] when done and tested.
 - Performance profiling pass for High mode
 - Funny writing: NPC barks, item descriptions, news ticker
 - Accessibility options (colour-blind, subtitles, key rebinding)
+- Data-driven NPC schedules (list of {from_hour, to_hour, place}) so each NPC can have custom routines, shop hours and events (idea from Godot forum schedule threads)
+- Interior polish: furniture props from KayKit packs, door open animation, fade-to-black on enter/exit
+- NPC dialogue barks + shop closing hours tied to the keeper

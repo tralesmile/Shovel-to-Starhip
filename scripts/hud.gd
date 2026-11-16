@@ -99,7 +99,7 @@ Mouse  look     Wheel  zoom
 
 Goal: till, plant, water, sleep, harvest, sell.
 Seeds at the General Store. Sell at the red bin.
-Sleep in the bed to skip the night.
+Sleep in the bed (inside your house) to skip the night.
 Chop trees with the Axe for wood.
 
 Pet the chickens and the goat. They like it.
