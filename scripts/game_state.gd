@@ -48,6 +48,9 @@ var total_earned: int = 0
 var crime_suspicion: float = 0.0   ## highest witness meter right now (HUD only)
 var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the alarm
 
+var car_owned: bool = false
+var car_pos: Array = [8.0, 0.0, 14.0, 1.5708]   ## x, y, z, heading of the parked car
+
 var reputation: float = 0.0     ## -MAX_REP (Outlaw) .. +MAX_REP (Lawful)
 
 const MAX_REP := 10.0
@@ -266,6 +269,14 @@ func clock_text() -> String:
 	return "%d:%02d %s" % [h12, m, suffix]
 
 
+func buy_car() -> bool:
+	if car_owned or not spend(Car.PRICE):
+		return false
+	car_owned = true
+	car_pos = [8.0, 0.0, 14.0, 1.5708]
+	return true
+
+
 # ---------------------------------------------------------------- save / load
 
 func to_dict() -> Dictionary:
@@ -282,6 +293,8 @@ func to_dict() -> Dictionary:
 		"total_earned": total_earned,
 		"heat": heat,
 		"reputation": reputation,
+		"car_owned": car_owned,
+		"car_pos": car_pos,
 		"world": world,
 	}
 
@@ -298,6 +311,8 @@ func from_dict(data: Dictionary) -> void:
 	total_earned = int(data.get("total_earned", 0))
 	heat = float(data.get("heat", 0.0))
 	reputation = float(data.get("reputation", 0.0))
+	car_owned = bool(data.get("car_owned", false))
+	car_pos = data.get("car_pos", [8.0, 0.0, 14.0, 1.5708])
 	var world: Dictionary = data.get("world", {})
 	for node in get_tree().get_nodes_in_group("saveable"):
 		if world.has(str(node.name)):

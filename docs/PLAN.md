@@ -18,7 +18,7 @@ Mark each item [x] when done and tested.
 - [x] Lawful/Outlaw reputation, fence NPC buys stolen goods (v1: Shady Sal behind town buys loot at 50% +4%/Outlaw point; rep -10..10 saved; farm sales +0.5, fencing -1/item, alarm -1/heat; HUD shows title; police/hiding still to do)
 - [x] Police response (v1: Constable Bumble patrols town at heat 3, chases on sight at 6.4 speed, arrest = lose loot + 25% cash fine, heat drops to 1; hiding indoors makes him lose you; crouch/shadow hiding and closets still to do)
 ### Sprint 3 - Cars
-- [ ] Buyable drivable car (enter/exit, handling, fuel optional)
+- [x] Buyable drivable car (v1: Honest Hank's dealer at (14,0,10.5), $400 sedan, E to enter/exit, WASD + Space handbrake, bicycle-model steering, thud on collision, parked position saved; fuel/engine sound/headlights still to do)
 - [ ] Traffic basics, police chase
 ### Sprint 4 - Fishing and first job
 - [ ] Fishing minigame at pond, fish sell prices
@@ -49,3 +49,4 @@ Mark each item [x] when done and tested.
 - Reputation effects: Lawful gets shop discount, Outlaw gets fence bonus + townsfolk barks
 - Police heat cooling: heat should only decay once you are out of sight of police (search-and-lose, as in modern wanted-system write-ups), not just by day count
 - Police: add a second constable / car patrol once Sprint 3 cars land; crouch + shadows hiding still to do
+- Car follow-ups: speed-sensitive FOV/camera lag, tyre-screech dust particles, headlights at night, fuel (optional), traffic AI with lane waypoints, cops chase by car at heat 3 (Sprint 3 part 2)

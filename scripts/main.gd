@@ -30,6 +30,7 @@ func _ready() -> void:
 	_build_store()
 	_build_sell_bin()
 	_build_fence()
+	_build_car_dealer()
 	_build_police()
 	_build_trees()
 	_build_road_and_signs()
@@ -59,7 +60,9 @@ func _ready() -> void:
 			add_child(director)
 			return
 
-	if Game.load_game():
+	var loaded := Game.load_game()
+	_spawn_player_car()
+	if loaded:
 		hud.set_help_visible(false)
 		Game.say("Welcome back to Bumpkin Bay! Day %d." % Game.day)
 	else:
@@ -76,6 +79,7 @@ func _process(delta: float) -> void:
 		n.update_routine(Game.time_of_day, delta)
 	_update_witnesses(delta)
 	if _police and _police.update_police(delta, player.global_position, Game.heat):
+		player.exit_car()
 		var r := Game.arrest()
 		player.global_position = Vector3(0, 2, 8)
 		Game.say("Busted! Fined $%d and %d stolen item(s) confiscated. Heat: %s" % [r["fine"], r["loot"], Game.heat_name()])
@@ -348,6 +352,44 @@ func _build_police() -> void:
 
 func interior_pos(index: int, local: Vector3) -> Vector3:
 	return Buildings.interior_origin(index) + local
+
+
+func _build_car_dealer() -> void:
+	var dealer := Station.new()
+	dealer.name = "CarDealer"
+	dealer.kind = Station.Kind.CAR_DEALER
+	dealer.position = Vector3(14, 0, 10.5)
+	dealer.interact_radius = 2.4
+	add_child(dealer)
+	dealer.car_bought.connect(_spawn_player_car)
+	Models.solid(dealer, Models.CITY + "car_hatchback.gltf", Vector3(0, 0, 0), 4.4, 0.4)
+	var post := Art.box(Vector3(0.15, 2.4, 0.15), Art.WOOD)
+	post.position = Vector3(-2.2, 1.2, 0)
+	dealer.add_child(post)
+	var l := Art.label("HONEST HANK'S CARS\nonly one previous owner", 56, Color(1, 0.95, 0.6))
+	l.position = Vector3(-2.2, 3.0, 0)
+	dealer.add_child(l)
+	var hank := Models.put(dealer, Models.CHAR + "Rogue.glb", Vector3(-1.2, 0, 1.4), 0.72, PI)
+	var found := hank.find_children("*", "AnimationPlayer", true, false)
+	if not found.is_empty():
+		Models.set_loops(found[0], ["Idle"])
+		found[0].play("Idle")
+
+
+## Spawns (or re-spawns after load) the owned car where it was last parked.
+func _spawn_player_car() -> void:
+	if not Game.car_owned:
+		return
+	var existing := get_tree().get_first_node_in_group("car")
+	if existing:
+		existing.queue_free()
+	var car := Car.new()
+	car.name = "PlayerCar"
+	car.position = Vector3(Game.car_pos[0], 0.1, Game.car_pos[2])
+	car.heading = float(Game.car_pos[3])
+	car.rotation.y = car.heading
+	add_child(car)
+	car.setup()
 
 
 func _build_sell_bin() -> void:

@@ -18,6 +18,8 @@ var _pivot: Node3D
 var _arm: SpringArm3D
 var camera: Camera3D
 var _model: Node3D
+var vehicle: Car = null
+var _shape: CollisionShape3D
 
 
 func _ready() -> void:
@@ -28,6 +30,7 @@ func _ready() -> void:
 	shape.shape = cap
 	shape.position.y = 0.85
 	add_child(shape)
+	_shape = shape
 	_build_model()
 
 	_pivot = Node3D.new()
@@ -148,7 +151,41 @@ func _unhandled_input(event: InputEvent) -> void:
 			Game.set_tool(i)
 
 
+func enter_car(car: Car) -> void:
+	if vehicle != null:
+		return
+	vehicle = car
+	if not car.bumped.is_connected(_on_car_bump):
+		car.bumped.connect(_on_car_bump)
+	car.driven = true
+	_shape.set_deferred("disabled", true)
+	_model.visible = false
+	velocity = Vector3.ZERO
+	_yaw = car.heading + PI
+	Game.say("Vroom. Mind the goat.")
+
+
+func _on_car_bump() -> void:
+	Game.shake.emit(0.3)
+
+
+func exit_car() -> void:
+	if vehicle == null:
+		return
+	var car := vehicle
+	vehicle = null
+	car.driven = false
+	car.speed = 0.0
+	global_position = car.exit_position()
+	_shape.set_deferred("disabled", false)
+	_model.visible = true
+	Game.car_pos = [car.global_position.x, car.global_position.y, car.global_position.z, car.heading]
+
+
 func _use() -> void:
+	if vehicle != null:
+		exit_car()
+		return
 	if target == null or _action_time > 0.0:
 		return
 	var anim := "Interact"
@@ -170,7 +207,24 @@ func _use() -> void:
 	target.interact(Game)
 
 
+func _drive(delta: float) -> void:
+	var throttle := Input.get_axis("move_back", "move_forward")
+	var steer := Input.get_axis("move_right", "move_left")
+	vehicle.drive(delta, throttle, steer, Input.is_action_pressed("jump"))
+	global_position = vehicle.global_position
+	# Chase camera drifts behind the car unless the mouse is being used.
+	_yaw = lerp_angle(_yaw, vehicle.heading + PI, 2.0 * delta)
+	_zoom = max(_zoom, 8.0)
+	camera.fov = lerp(camera.fov, 65.0 + absf(vehicle.speed) * 0.6, 4.0 * delta)
+	_dust.emitting = false
+	_update_camera(delta)
+	target = null
+
+
 func _physics_process(delta: float) -> void:
+	if vehicle != null:
+		_drive(delta)
+		return
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	elif Input.is_action_just_pressed("jump"):

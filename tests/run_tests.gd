@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -403,4 +403,35 @@ func test_police() -> bool:
 	check(game.heat == 1.0, "heat drops to 1 after arrest")
 	game.money = 4
 	check(game.arrest()["fine"] == 4 and game.money == 0, "fine never exceeds cash")
+	return true
+
+
+func test_car() -> bool:
+	var dt := 0.1
+	var v := 0.0
+	for i in 200:
+		v = Car.step_speed(v, 1.0, false, dt)
+	check(v > Car.MAX_SPEED * 0.95 and v <= Car.MAX_SPEED, "full throttle approaches top speed (%.1f)" % v)
+	var r := 0.0
+	for i in 200:
+		r = Car.step_speed(r, -1.0, false, dt)
+	check(is_equal_approx(r, -Car.MAX_REVERSE), "reverse capped")
+	check(Car.step_speed(10.0, 0.0, false, dt) < 10.0 and Car.step_speed(10.0, 0.0, false, dt) > 0.0, "coasting slows gently")
+	check(Car.step_speed(10.0, 0.0, true, dt) < Car.step_speed(10.0, 0.0, false, dt), "handbrake slows faster")
+	check(Car.step_speed(-3.0, 1.0, false, dt) > -3.0, "forward while rolling back brakes")
+	check(Car.steer_limit(Car.MAX_SPEED) < Car.steer_limit(0.0), "less steering lock at speed")
+	check(Car.turn_delta(0.0, 1.0, dt) == 0.0, "parked car cannot turn")
+	check(Car.turn_delta(8.0, 1.0, dt) * Car.turn_delta(-8.0, 1.0, dt) < 0.0, "reversing flips turn direction")
+	check(Car.turn_delta(8.0, 1.0, dt) < 0.0 and Car.turn_delta(8.0, -1.0, dt) > 0.0, "steer sign matches input")
+	game.money = 100
+	check(not game.buy_car() and not game.car_owned and game.money == 100, "cannot afford car")
+	game.money = 500
+	check(game.buy_car() and game.car_owned and game.money == 500 - Car.PRICE, "buy car")
+	check(not game.buy_car() and game.money == 500 - Car.PRICE, "only one car")
+	game.car_pos = [3.0, 0.0, 4.0, 1.0]
+	var saved := game.to_dict()
+	game.car_owned = false
+	game.car_pos = [0.0, 0.0, 0.0, 0.0]
+	game.from_dict(saved)
+	check(game.car_owned and game.car_pos[0] == 3.0 and game.car_pos[3] == 1.0, "car saves position")
 	return true
