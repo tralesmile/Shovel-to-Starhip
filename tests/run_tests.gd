@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -566,4 +566,19 @@ func test_crops() -> bool:
 	game.selected_crop = "tomato"
 	var g2 := game.to_dict()
 	check(g2["selected_crop"] == "tomato", "selected seed saved")
+	return true
+
+
+func test_audio_settings() -> bool:
+	var a := AudioSettings.new()
+	a.set_volume("Music", 2.0)
+	check(a.volumes["Music"] == 1.0, "volume clamped high")
+	a.set_volume("SFX", -1.0)
+	check(a.volumes["SFX"] == 0.0 and AudioSettings.to_db(0.0) == -80.0, "mute maps to -80 dB")
+	check(is_equal_approx(AudioSettings.to_db(0.5), linear_to_db(0.5)), "db mapping")
+	var b := AudioSettings.new()
+	b.from_dict(a.to_dict())
+	check(b.volumes == a.volumes, "dict roundtrip")
+	a.apply()
+	check(AudioServer.get_bus_index("SFX") != -1 and AudioServer.get_bus_index("Music") != -1, "buses created")
 	return true
