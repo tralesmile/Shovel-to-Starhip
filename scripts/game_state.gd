@@ -413,11 +413,57 @@ func setup_input() -> void:
 	_key_action("help", [KEY_H, KEY_F1])
 	_key_action("save", [KEY_F5])
 	_key_action("pause", [KEY_ESCAPE])
+	setup_gamepad()
 	if not InputMap.has_action("interact_click"):
 		InputMap.add_action("interact_click")
 		var mb := InputEventMouseButton.new()
 		mb.button_index = MOUSE_BUTTON_LEFT
 		InputMap.action_add_event("interact_click", mb)
+
+
+## Gamepad bindings (Xbox layout; Godot maps other pads to it). Adds to existing actions.
+const PAD_BUTTONS := {
+	"jump": [JOY_BUTTON_A], "interact": [JOY_BUTTON_X], "interact_click": [JOY_BUTTON_RIGHT_SHOULDER],
+	"sprint": [JOY_BUTTON_LEFT_STICK], "help": [JOY_BUTTON_Y], "pause": [JOY_BUTTON_START],
+	"tool_1": [JOY_BUTTON_DPAD_UP], "tool_2": [JOY_BUTTON_DPAD_RIGHT],
+	"tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT],
+}
+const PAD_AXES := {
+	"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],
+	"move_forward": [JOY_AXIS_LEFT_Y, -1.0], "move_back": [JOY_AXIS_LEFT_Y, 1.0],
+	"look_left": [JOY_AXIS_RIGHT_X, -1.0], "look_right": [JOY_AXIS_RIGHT_X, 1.0],
+	"look_up": [JOY_AXIS_RIGHT_Y, -1.0], "look_down": [JOY_AXIS_RIGHT_Y, 1.0],
+}
+
+
+func setup_gamepad() -> void:
+	for action in PAD_BUTTONS:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action)
+		for b in PAD_BUTTONS[action]:
+			if not _has_pad_event(action, InputEventJoypadButton, b):
+				var ev := InputEventJoypadButton.new()
+				ev.button_index = b
+				InputMap.action_add_event(action, ev)
+	for action in PAD_AXES:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action, 0.2)
+		var a: Array = PAD_AXES[action]
+		if not _has_pad_event(action, InputEventJoypadMotion, a[0]):
+			var ev := InputEventJoypadMotion.new()
+			ev.axis = a[0]
+			ev.axis_value = a[1]
+			InputMap.action_add_event(action, ev)
+
+
+func _has_pad_event(action: String, type, code: int) -> bool:
+	for e in InputMap.action_get_events(action):
+		if is_instance_of(e, type):
+			if type == InputEventJoypadButton and e.button_index == code:
+				return true
+			if type == InputEventJoypadMotion and e.axis == code:
+				return true
+	return false
 
 
 func _key_action(action: String, keys: Array) -> void:

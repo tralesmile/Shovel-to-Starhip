@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_settings_menu", "test_tutorial",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_settings_menu", "test_tutorial", "test_gamepad",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -610,4 +610,26 @@ func test_tutorial() -> bool:
 		check(t.advance(e) != "", "step %s shows tip" % e)
 	check(t.done and t.advance("day") == "", "tutorial finishes once")
 	t.free()
+	return true
+
+
+func test_gamepad() -> bool:
+	game.setup_input()
+	var has_btn := func(action: String, b: int) -> bool:
+		for e in InputMap.action_get_events(action):
+			if e is InputEventJoypadButton and e.button_index == b:
+				return true
+		return false
+	check(has_btn.call("jump", JOY_BUTTON_A), "A jumps")
+	check(has_btn.call("interact", JOY_BUTTON_X), "X interacts")
+	check(has_btn.call("pause", JOY_BUTTON_START), "Start pauses")
+	check(InputMap.has_action("look_left") and InputMap.has_action("look_down"), "right stick look actions exist")
+	var n := InputMap.action_get_events("jump").size()
+	game.setup_gamepad()
+	check(InputMap.action_get_events("jump").size() == n, "setup_gamepad is idempotent")
+	var keys := false
+	for e in InputMap.action_get_events("move_forward"):
+		if e is InputEventKey:
+			keys = true
+	check(keys, "keyboard bindings kept")
 	return true

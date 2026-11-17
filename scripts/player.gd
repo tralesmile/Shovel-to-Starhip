@@ -11,6 +11,7 @@ const MOUSE_SENS := 0.0035
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 var target: Interactable = null
 
+const PAD_LOOK_SPEED := 2.6
 var _yaw: float = 0.0
 var _pitch: float = -0.45
 var _zoom: float = 7.0
@@ -222,6 +223,10 @@ func _drive(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	var look := Input.get_vector("look_left", "look_right", "look_down", "look_up")
+	if look.length() > 0.0:
+		_yaw -= look.x * PAD_LOOK_SPEED * delta
+		_pitch = clamp(_pitch + look.y * PAD_LOOK_SPEED * 0.6 * delta, -1.2, 0.25)
 	if vehicle != null:
 		_drive(delta)
 		return
