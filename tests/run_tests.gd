@@ -649,6 +649,7 @@ func test_tutorial() -> bool:
 	check(t.once("pick") != "" and t.once("pick") == "", "pick hint shows once")
 	check(t.once("cast") != "" and t.once("drive") != "", "cast and drive hints show")
 	check(t.once("bogus") == "", "unknown hint ignored")
+	check(t.once("heat") != "" and t.once("fence") != "" and t.once("arrest") != "", "heat/fence/arrest hints show")
 	for k in Tutorial.ONCE:
 		check(not "{" in InputPrompts.format(Tutorial.ONCE[k], true) and not "{" in InputPrompts.format(Tutorial.ONCE[k], false), "once tokens resolve: " + k)
 	t.free()

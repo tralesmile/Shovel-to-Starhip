@@ -205,6 +205,7 @@ func fence_sell_all() -> int:
 		inventory_changed.emit()
 		earn(total)
 		add_reputation(-1.0 * items)
+		hint_event.emit("fence")
 	return total
 
 
@@ -262,6 +263,7 @@ func heat_name() -> String:
 func add_heat(amount: float) -> void:
 	heat = clampf(heat + amount, 0.0, MAX_HEAT)
 	if amount > 0.0:
+		hint_event.emit("heat")
 		add_reputation(-amount)   # getting caught costs your good name
 
 
@@ -278,6 +280,7 @@ func arrest() -> Dictionary:
 	money -= fine
 	heat = minf(heat, 1.0)
 	inventory_changed.emit()
+	hint_event.emit("arrest")
 	return {"fine": fine, "loot": lost}
 
 
