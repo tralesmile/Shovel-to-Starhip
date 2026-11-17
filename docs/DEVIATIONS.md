@@ -14,3 +14,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-17 | Godot re-downloaded (fresh session); clone was detached HEAD so checked out main from origin; WebSearch not run | tutorial implemented from design rules of thumb | none
 - 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only; no physical gamepad testable in cloud | unit-tested bindings only | owner to test with a pad
 - 2026-11-17 | Godot re-downloaded (fresh session); search returned links only | applied distance-based footstep idea from memory | none
+- 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only | applied pitch-from-speed idea from memory | none

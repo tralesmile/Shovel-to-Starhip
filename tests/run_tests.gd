@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -599,6 +599,17 @@ func test_sfx() -> bool:
 		check(w.data.size() > 1000 and w.mix_rate == Sfx.RATE, "sfx %s has samples" % k)
 	check(Sfx.make("coin").data == Sfx.make("coin").data, "sfx deterministic")
 	check(Sfx.make("nonsense").data.size() == Sfx.make("blip").data.size(), "unknown kind falls back")
+	return true
+
+
+func test_engine_sfx() -> bool:
+	check(is_equal_approx(Sfx.engine_pitch(0.0), 0.8), "idle pitch")
+	check(Sfx.engine_pitch(18.0) > Sfx.engine_pitch(5.0), "pitch rises with speed")
+	check(is_equal_approx(Sfx.engine_pitch(-9.0), Sfx.engine_pitch(9.0)), "reverse same as forward")
+	check(Sfx.engine_pitch(500.0) <= 2.4, "pitch clamped")
+	check(Sfx.engine_volume(18.0) > Sfx.engine_volume(0.0) and Sfx.engine_volume(99.0) <= 0.7, "volume range")
+	var w := Sfx.make_engine()
+	check(w.loop_mode == AudioStreamWAV.LOOP_FORWARD and w.loop_end > 100 and w.data.size() == w.loop_end * 2, "engine loop")
 	return true
 
 

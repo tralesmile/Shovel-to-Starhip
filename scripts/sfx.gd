@@ -19,6 +19,8 @@ var _cache := {}
 var _players: Array[AudioStreamPlayer] = []
 var _last_money := -1
 var _step_dist := 0.0
+var _engine: AudioStreamPlayer = null
+const ENGINE_BASE_HZ := 55.0
 const STEP_LENGTH := 2.1
 
 
@@ -28,6 +30,55 @@ static func step_progress(acc: float, moved: float) -> Array:
 	if acc >= STEP_LENGTH:
 		return [fmod(acc, STEP_LENGTH), true]
 	return [acc, false]
+
+
+## Engine pitch scale from car speed (m/s): idle 0.8, about 2.4 at top speed.
+static func engine_pitch(speed: float) -> float:
+	return 0.8 + clampf(absf(speed) / 18.0, 0.0, 1.2) * 1.33
+
+
+## Engine volume (linear) from speed: quiet idle, louder with revs.
+static func engine_volume(speed: float) -> float:
+	return 0.25 + clampf(absf(speed) / 18.0, 0.0, 1.0) * 0.45
+
+
+## Seamless looping engine hum (whole number of cycles so the loop has no click).
+static func make_engine() -> AudioStreamWAV:
+	var cycles := 11
+	var n := int(RATE * cycles / ENGINE_BASE_HZ)
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	for i in n:
+		var ph := TAU * float(i) * cycles / float(n)
+		var s := sin(ph) * 0.5 + sin(ph * 2.0) * 0.3 + sin(ph * 3.0) * 0.15 + sin(ph * 5.0) * 0.05
+		s *= 0.55 + 0.25 * sin(ph * 0.5 * 4.0)  # rough putter
+		data.encode_s16(i * 2, int(clampf(s, -1.0, 1.0) * 20000.0))
+	var w := AudioStreamWAV.new()
+	w.format = AudioStreamWAV.FORMAT_16_BITS
+	w.mix_rate = RATE
+	w.data = data
+	w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	w.loop_begin = 0
+	w.loop_end = n
+	return w
+
+
+func _update_engine(pl: Node) -> void:
+	var car = pl.get("vehicle") if pl != null else null
+	if car == null:
+		if _engine != null and _engine.playing:
+			_engine.stop()
+		return
+	if _engine == null:
+		_engine = AudioStreamPlayer.new()
+		_engine.bus = "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master"
+		_engine.stream = make_engine()
+		add_child(_engine)
+	if not _engine.playing:
+		_engine.play()
+	var spd: float = car.get("speed")
+	_engine.pitch_scale = engine_pitch(spd)
+	_engine.volume_db = linear_to_db(engine_volume(spd))
 
 
 ## Play a named effect from anywhere (finds the Sfx node via its group).
@@ -41,6 +92,7 @@ static func play_on(node: Node, kind: String) -> void:
 
 func _process(delta: float) -> void:
 	var pl := get_tree().get_first_node_in_group("player")
+	_update_engine(pl)
 	if pl == null or not (pl is CharacterBody3D) or pl.get("vehicle") != null:
 		return
 	var flat := Vector2(pl.velocity.x, pl.velocity.z).length()
