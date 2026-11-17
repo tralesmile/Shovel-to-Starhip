@@ -57,11 +57,17 @@ func _on_money(v: int) -> void:
 	_last_money = v
 
 
+## +-5% pitch variation so repeated sounds do not feel robotic. r in 0..1.
+static func pitch_jitter(r: float) -> float:
+	return 0.95 + clampf(r, 0.0, 1.0) * 0.10
+
+
 func play(kind: String) -> void:
 	if not _cache.has(kind):
 		_cache[kind] = make(kind)
 	for pl in _players:
 		if not pl.playing:
 			pl.stream = _cache[kind]
+			pl.pitch_scale = pitch_jitter(randf())
 			pl.play()
 			return

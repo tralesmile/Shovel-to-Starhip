@@ -57,6 +57,10 @@ func _ready() -> void:
 	sfx.name = "Sfx"
 	add_child(sfx)
 
+	var menu := SettingsMenu.new()
+	menu.name = "SettingsMenu"
+	add_child(menu)
+
 	var hud := Hud.new()
 	hud.player = player
 	add_child(hud)
