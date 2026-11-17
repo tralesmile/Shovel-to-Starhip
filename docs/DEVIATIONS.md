@@ -7,3 +7,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-16 | Web search gave no useful page content (only link list); Godot re-downloaded again; Windows export skipped (sprint not complete) | used design rule of thumb | none
 - 2026-11-17 | WebSearch research skipped again (kept run small); Godot re-downloaded | none | load WebSearch via ToolSearch next run
 - 2026-11-17 | Godot re-downloaded again (fresh session); search returned link list only; police car chase deferred | shipped traffic only | next run: police car chase
+- 2026-11-17 | Godot re-downloaded again; web search returned link list only | used standard pursuit steering from memory | none

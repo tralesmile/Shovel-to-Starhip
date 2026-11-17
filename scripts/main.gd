@@ -13,6 +13,7 @@ var _fireflies: Array[CPUParticles3D] = []
 var _day_critters: Array[Node3D] = []
 var _npcs: Array[Npc] = []
 var _police: Police
+var _police_car: PoliceCar
 
 const TREE_SPOTS := [
 	Vector3(-8, 0, -9), Vector3(-4, 0, -11), Vector3(2, 0, -10), Vector3(7, 0, -9),
@@ -34,6 +35,7 @@ func _ready() -> void:
 	_build_delivery_depot()
 	_build_car_dealer()
 	_build_police()
+	_build_police_car()
 	_build_trees()
 	_build_road_and_signs()
 	_build_interiors()
@@ -80,7 +82,13 @@ func _process(delta: float) -> void:
 	for n in _npcs:
 		n.update_routine(Game.time_of_day, delta)
 	_update_witnesses(delta)
+	var busted := false
 	if _police and _police.update_police(delta, player.global_position, Game.heat):
+		busted = true
+	if _police_car and _police_car.update_chase(delta, player.global_position, Game.heat, player.vehicle != null):
+		busted = true
+		Game.say("Squad car: \"Pull over! Your tyres look suspiciously stolen!\"")
+	if busted:
 		player.exit_car()
 		var r := Game.arrest()
 		player.global_position = Vector3(0, 2, 8)
@@ -341,6 +349,13 @@ func _build_interiors() -> void:
 		npc.npc_name = h["name"]
 		npc.global_position = npc.home_spot
 		_npcs.append(npc)
+
+
+func _build_police_car() -> void:
+	_police_car = PoliceCar.new()
+	_police_car.name = "SquadCar"
+	add_child(_police_car)
+	_police_car.setup()
 
 
 func _build_police() -> void:

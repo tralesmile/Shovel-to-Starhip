@@ -20,7 +20,7 @@ Mark each item [x] when done and tested.
 ### Sprint 3 - Cars
 - [x] Buyable drivable car (v1: Honest Hank's dealer at (14,0,10.5), $400 sedan, E to enter/exit, WASD + Space handbrake, bicycle-model steering, thud on collision, parked position saved; fuel/engine sound/headlights still to do)
 - [x] Traffic basics (v1: 3 ambient TrafficCars loop two lanes of the town road, brake for anything ahead, wrap at ends; police car chase still to do)
-- [ ] Police car chase at heat 3
+- [x] Police car chase at heat 3 (v1: PoliceCar squad car spawns on the road ahead when heat 3 and player is driving, pure pursuit steering cruise 15 vs player top 18, catch = arrest, despawns when you hide or get 70m away; sirens/roadblocks/collisions still to do)
 ### Sprint 4 - Fishing and first job
 - [x] Fishing minigame at pond, fish sell prices (v1: Fishing logic cast/wait/bite window 1s, FishingSpot on east pond shore at (-17.8,?,1), 6 catches incl. boot/golden carp/wizard hat sold at bin; rods/bait/fish sizes still to do)
 - [x] Delivery job using car, pay on completion (v1: Parcel Pete at (19,0,10.5) needs owned car, 4 drop-offs with beacon, timer, tip for speed; job state not saved; HUD timer/arrow still to do)
@@ -57,3 +57,4 @@ Mark each item [x] when done and tested.
 - Delivery HUD: DONE v1 (text line with timer, distance, compass, tip); a 3D/screen-space arrow still nice-to-have
 - Idea (2026-11-17): traffic via simple looping waypoint cars before police car chase
 - Traffic follow-ups (2026-11-17 research: waypoint/lane following is the standard cheap approach): honk + swerve when the player jumps out, traffic reacts to heat/police, junction turns via waypoint graph, vary colours/speeds
+- Police car follow-ups (2026-11-17 search returned links only): siren light flash + sound, roadblocks/PIT, squad car avoids buildings (needs nav), spawn behind player offscreen

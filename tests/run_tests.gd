@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -403,6 +403,21 @@ func test_police() -> bool:
 	check(game.heat == 1.0, "heat drops to 1 after arrest")
 	game.money = 4
 	check(game.arrest()["fine"] == 4 and game.money == 0, "fine never exceeds cash")
+	return true
+
+
+func test_police_car() -> bool:
+	check(PoliceCar.should_chase(3.0, true, false), "max heat + driving -> squad car")
+	check(not PoliceCar.should_chase(2.0, true, false), "lower heat -> no squad car")
+	check(not PoliceCar.should_chase(3.0, false, false), "on foot -> no squad car")
+	check(not PoliceCar.should_chase(3.0, true, true), "hidden -> no squad car")
+	check(absf(PoliceCar.steer(0.0, 3.0, 0.1) - 0.1) < 0.001, "steer limited by turn rate")
+	check(PoliceCar.steer(0.0, 0.05, 0.1) == 0.05, "steer lands on small angle")
+	check(PoliceCar.steer(3.0, -3.0, 0.5) > 3.0, "steer takes the short way round")
+	check(PoliceCar.next_speed(0.0, 0.0, 0.5) > 0.0, "accelerates")
+	check(PoliceCar.next_speed(15.0, 2.0, 1.0) < 15.0, "slows for sharp turns")
+	check(PoliceCar.CRUISE < Car.MAX_SPEED, "player top speed beats squad cruise")
+	check(PoliceCar.caught(2.0) and not PoliceCar.caught(10.0), "catch distance")
 	return true
 
 
