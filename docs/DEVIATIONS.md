@@ -18,3 +18,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only | applied position-based surface footsteps | none
 - 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only; no CC0 music fetchable | synthesised procedural music in code (no license needed) | owner to judge music; swap for CC0 recorded tracks if a source is reachable
 - 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only | applied crossfade and focus from docs knowledge | none
+- 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only; Game autoload not visible to test script so menu uses a signal for New Game | applied focus-on-open idea | none

@@ -27,7 +27,7 @@ Mark each item [x] when done and tested.
 - [x] 2+ more crops, shop stock (v1: carrot 3 nights/$70, tomato 4 nights/$125 alongside turnip 2/$35; press [2] again to cycle seed type; shop sells the selected seed; per-crop seed prices $10/$18/$30; shop stock limits and crop art per growth stage still to do)
 ### Sprint 5 - Polish
 - [ ] Sound effects + music (CC0 packs from GitHub), audio settings (AudioSettings logic + tests DONE; v1 procedural SFX DONE: coin/spend/blip/thud via Sfx node; pause/settings menu with volume sliders DONE (ESC); +-5% pitch variance DONE; v1 chop/footstep/splash SFX DONE (distance-based steps); v1 car engine loop DONE (pitch/volume from speed); v1 surface-dependent footsteps DONE (grass/wood interiors/road by position); v1 procedural day/night background music DONE (Music node, Music bus); CC0 recorded music still optional; music day/night 3s equal-power crossfade DONE; pad-navigable ESC menu v1 DONE (first slider grabs focus on open))
-- [ ] Main menu, settings, tutorial, controller basic support (settings DONE via ESC menu; v1 tutorial hints DONE: 5 event-driven tips on new games; controller basic support DONE (gamepad bindings + right-stick camera, 0.2 deadzone); main menu and on-screen pad prompts still to do)
+- [ ] Main menu, settings, tutorial, controller basic support (settings DONE via ESC menu; v1 tutorial hints DONE: 5 event-driven tips on new games; controller basic support DONE (gamepad bindings + right-stick camera, 0.2 deadzone); v1 main menu DONE (title screen: Continue/New Game/Quit, pauses tree, pad-focusable); on-screen pad prompts still to do)
 - [ ] Demo-ready build
 
 ## Phase 2 - Earth Early Access: larger town, building your own house, animals (catch/keep/resources), clothes, weapons/combat, car building, more jobs, racing.
@@ -36,6 +36,7 @@ Mark each item [x] when done and tested.
 ## Phase 5 - Beyond: more planets, endgame, Steam launch.
 
 ## Improvement backlog (research-driven; append ideas here, pick 1 small one per run)
+- Focus Audit style pass: check every menu is keyboard/pad navigable and ESC menu returns focus; on-screen pad glyph prompts swapping by last input device
 - Surface-aware footsteps (grass/wood floor/road) via ground raycast group lookup (Godot 4 reactive footsteps idea, itch.io blog); car engine pitch from speed
 - Audio: sfxr-style parameter presets (GodotSfxr/gdfxr exist) for chop, splash, lockpick click, car engine pitch via AudioStreamGenerator; randomise pitch +-5% per play to avoid repetition
 - Performance profiling pass for High mode

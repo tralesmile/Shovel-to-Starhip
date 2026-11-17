@@ -86,6 +86,12 @@ func _ready() -> void:
 		var tut := Tutorial.new()
 		tut.name = "Tutorial"
 		add_child(tut)
+	if not MainMenu.consume_skip():
+		var title_menu := MainMenu.new()
+		title_menu.name = "MainMenu"
+		title_menu.has_save = loaded
+		title_menu.new_game_requested.connect(Game.delete_save)
+		add_child(title_menu)
 
 
 func _process(delta: float) -> void:
