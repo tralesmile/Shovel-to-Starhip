@@ -12,6 +12,8 @@ const KINDS := {
 	"spend": [660.0, 330.0, 0.14, 0.0],
 	"chop": [210.0, 90.0, 0.12, 0.45],
 	"step": [95.0, 60.0, 0.06, 0.5],
+	"step_wood": [150.0, 110.0, 0.05, 0.25],
+	"step_road": [70.0, 50.0, 0.05, 0.8],
 	"splash": [400.0, 150.0, 0.3, 0.7],
 }
 
@@ -30,6 +32,25 @@ static func step_progress(acc: float, moved: float) -> Array:
 	if acc >= STEP_LENGTH:
 		return [fmod(acc, STEP_LENGTH), true]
 	return [acc, false]
+
+
+## Surface under a world position: interiors are wood floors, the town road is
+## a strip along z=16, everything else is grass.
+static func surface_at(pos: Vector3) -> String:
+	if pos.x > 300.0:
+		return "wood"
+	if absf(pos.z - 16.0) < 2.4 and absf(pos.x) < 62.0:
+		return "road"
+	return "grass"
+
+
+static func step_kind(surface: String) -> String:
+	match surface:
+		"wood":
+			return "step_wood"
+		"road":
+			return "step_road"
+	return "step"
 
 
 ## Engine pitch scale from car speed (m/s): idle 0.8, about 2.4 at top speed.
@@ -100,7 +121,7 @@ func _process(delta: float) -> void:
 		var r := step_progress(_step_dist, flat * delta)
 		_step_dist = r[0]
 		if r[1]:
-			play("step")
+			play(step_kind(surface_at(pl.global_position)))
 
 
 ## Builds a 16-bit mono WAV for a named effect. Pure function, deterministic.
