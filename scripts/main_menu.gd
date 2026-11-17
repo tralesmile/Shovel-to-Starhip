@@ -8,6 +8,9 @@ const FONT := preload("res://assets/fonts/lilita_one_regular.ttf")
 ## Set by New Game so the reloaded scene skips the title screen once.
 static var skip_next := false
 
+## Demo feedback link (opens in the player's browser).
+const FEEDBACK_URL := "https://github.com/tralesmile/Shovel-to-Starhip/issues"
+
 signal closed
 signal new_game_requested
 
@@ -22,6 +25,7 @@ static func options(save_exists: bool) -> Array:
 	if save_exists:
 		o.append("Continue")
 	o.append("New Game")
+	o.append("Send Feedback")
 	o.append("Quit")
 	return o
 
@@ -85,6 +89,8 @@ func _on_pressed(label: String) -> void:
 			skip_next = true
 			get_tree().paused = false
 			get_tree().reload_current_scene()
+		"Send Feedback":
+			OS.shell_open(FEEDBACK_URL)
 		"Quit":
 			get_tree().quit()
 

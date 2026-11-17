@@ -23,3 +23,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only | applied HUD prompt swap | none
 - 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only | applied help panel tokens | none
 - 2026-11-17 | Godot + export templates re-downloaded (fresh session); detached HEAD, checked out main; search returned links only; no GitHub release made (sprint 5 not complete) | verified export locally only | cut release when Sprint 5 done
+- 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only; Windows export/release not done (owner smoke pass pending) | added feedback button from general knowledge | cut release after owner playtest

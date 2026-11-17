@@ -693,8 +693,8 @@ func test_music_fade() -> bool:
 
 
 func test_main_menu() -> bool:
-	check(MainMenu.options(false) == ["New Game", "Quit"], "no save: New Game and Quit only")
-	check(MainMenu.options(true) == ["Continue", "New Game", "Quit"], "save: Continue first")
+	check(MainMenu.options(false) == ["New Game", "Send Feedback", "Quit"], "no save: New Game, Feedback, Quit")
+	check(MainMenu.options(true) == ["Continue", "New Game", "Send Feedback", "Quit"], "save: Continue first")
 	MainMenu.skip_next = true
 	check(MainMenu.consume_skip() and not MainMenu.consume_skip(), "skip flag consumed once")
 	var m := MainMenu.new()
@@ -702,6 +702,7 @@ func test_main_menu() -> bool:
 	root.add_child(m)
 	check(root.get_tree().paused, "menu pauses the tree")
 	check(m._first != null and m._first.text == "Continue", "first button is Continue")
+	check(MainMenu.FEEDBACK_URL.begins_with("https://"), "feedback url is https")
 	m.close()
 	check(not root.get_tree().paused, "closing unpauses")
 	return true
