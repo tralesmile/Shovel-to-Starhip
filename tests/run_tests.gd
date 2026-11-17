@@ -725,4 +725,8 @@ func test_input_prompts() -> bool:
 	check(InputPrompts.device_for_event(m, false), "real stick motion switches")
 	for tip in Tutorial.STEPS:
 		check(not "{" in InputPrompts.format(tip["tip"], true), "all tutorial tokens resolve")
+	for dev in [true, false]:
+		check(not "{" in InputPrompts.format(InputPrompts.HELP_TEMPLATE, dev), "help tokens resolve")
+	check("Left stick" in InputPrompts.format(InputPrompts.HELP_TEMPLATE, true), "help shows pad move label")
+	check("WASD" in InputPrompts.format(InputPrompts.HELP_TEMPLATE, false), "help shows key move label")
 	return true

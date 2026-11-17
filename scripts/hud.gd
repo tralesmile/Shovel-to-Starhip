@@ -99,22 +99,8 @@ func _ready() -> void:
 	_help.add_theme_stylebox_override("panel", hsb)
 	var help_text := Label.new()
 	help_text.add_theme_font_size_override("font_size", 16)
-	help_text.text = """SHOVEL TO STARSHIP  —  prototype 0.3
-
-WASD  walk      Shift  run      Space  jump
-Mouse  look     Wheel  zoom
-1-4  pick tool  E / Left click  use it
-
-Goal: till, plant, water, sleep, harvest, sell.
-Seeds at the General Store. Sell at the red bin.
-Sleep in the bed (inside your house) to skip the night.
-Chop trees with the Axe for wood.
-
-Pet the chickens and the goat. They like it.
-
-F5 save (also saves every morning and on quit)
-G  graphics: %s  (switching restarts the game)
-H  hide / show this help""" % Graphics.label()
+	help_text.name = "HelpText"
+	help_text.text = _help_text()
 	_help.add_child(help_text)
 	root.add_child(_help)
 	_place(_help, 0, 0, 0, 0, 24, 100, 444, 400)
@@ -201,6 +187,18 @@ func _label(parent: Control, size: int) -> Label:
 	return l
 
 
+func _help_text() -> String:
+	return InputPrompts.format(InputPrompts.HELP_TEMPLATE, InputPrompts.use_pad) % Graphics.label()
+
+
+func _refresh_help() -> void:
+	if _help != null and _help.visible:
+		var t := _help_text()
+		var l: Label = _help.get_node("HelpText")
+		if l.text != t:
+			l.text = t
+
+
 func set_help_visible(v: bool) -> void:
 	_help.visible = v
 
@@ -217,6 +215,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
+	_refresh_help()
 	_job.text = ""
 	var dep := get_tree().get_first_node_in_group("delivery_depot")
 	if dep and dep.job.active:
