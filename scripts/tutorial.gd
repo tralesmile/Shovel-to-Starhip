@@ -4,11 +4,11 @@ extends Node
 ## Each step waits for an event, then the next hint is shown through Game.say.
 
 const STEPS := [
-	{"wait": "start", "tip": "Tip: WASD to walk, Shift to sprint. The turnips will not plant themselves."},
-	{"wait": "move", "tip": "Press 1-4 to switch tools. Hoe a patch, then plant seeds with [2]."},
+	{"wait": "start", "tip": "Tip: WASD or the left stick to walk, {sprint} to sprint. The turnips will not plant themselves."},
+	{"wait": "move", "tip": "Switch tools with {tool_1}-{tool_4}. Hoe a patch, then plant seeds with {tool_2}."},
 	{"wait": "tool", "tip": "Water your crops and wait a night. Sleeping in your bed skips to the next day."},
 	{"wait": "money", "tip": "Cha-ching! Sell goods at the bin, buy seeds at the store. Wallet goes up, shame goes down."},
-	{"wait": "day", "tip": "New day! Press H any time for help, F5 to save, Esc to pause."},
+	{"wait": "day", "tip": "New day! Press {help} any time for help, {save} to save, {pause} to pause."},
 ]
 
 var index := 0
@@ -39,7 +39,7 @@ func _ready() -> void:
 func _event(e: String) -> void:
 	var tip := advance(e)
 	if tip != "":
-		get_node("/root/Game").say(tip)
+		get_node("/root/Game").say(InputPrompts.format(tip, InputPrompts.use_pad))
 
 
 func _physics_process(_d: float) -> void:

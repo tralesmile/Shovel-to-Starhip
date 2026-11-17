@@ -83,6 +83,9 @@ func _ready() -> void:
 		Game.say("Welcome back to Bumpkin Bay! Day %d." % Game.day)
 	else:
 		Game.say("Welcome to Bumpkin Bay! Press H for help.")
+		var prompts := InputPrompts.new()
+		prompts.name = "InputPrompts"
+		add_child(prompts)
 		var tut := Tutorial.new()
 		tut.name = "Tutorial"
 		add_child(tut)

@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -704,4 +704,22 @@ func test_main_menu() -> bool:
 	check(m._first != null and m._first.text == "Continue", "first button is Continue")
 	m.close()
 	check(not root.get_tree().paused, "closing unpauses")
+	return true
+
+
+func test_input_prompts() -> bool:
+	check(InputPrompts.format("Press {interact}", false) == "Press E", "key label")
+	check(InputPrompts.format("Press {interact} or {jump}", true) == "Press X or A", "pad labels")
+	check(InputPrompts.label("nope", true) == "nope", "unknown action falls back")
+	var b := InputEventJoypadButton.new()
+	check(InputPrompts.device_for_event(b, false), "pad button switches to pad")
+	var k := InputEventKey.new()
+	check(not InputPrompts.device_for_event(k, true), "key switches to keyboard")
+	var m := InputEventJoypadMotion.new()
+	m.axis_value = 0.1
+	check(not InputPrompts.device_for_event(m, false), "stick drift ignored")
+	m.axis_value = 0.9
+	check(InputPrompts.device_for_event(m, false), "real stick motion switches")
+	for tip in Tutorial.STEPS:
+		check(not "{" in InputPrompts.format(tip["tip"], true), "all tutorial tokens resolve")
 	return true
