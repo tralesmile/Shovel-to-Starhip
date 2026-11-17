@@ -73,3 +73,20 @@ func complete() -> int:
 	var pay := payout()
 	active = false
 	return pay
+
+
+const COMPASS := ["E", "SE", "S", "SW", "W", "NW", "N", "NE"]  ## world +x = E, +z = S
+
+
+## Compass direction (8-way) from a position to the drop-off.
+func compass_from(pos: Vector2) -> String:
+	var d := dest_pos() - pos
+	var ang := fposmod(atan2(d.y, d.x), TAU)
+	return COMPASS[int(round(ang / (TAU / 8.0))) % 8]
+
+
+## One-line HUD text: timer, distance, heading, current tip.
+func hud_line(pos: Vector2) -> String:
+	if not active:
+		return ""
+	return "PARCEL: %s  %ds  %dm %s  (+$%d)" % [dest_name(), int(ceil(time_left)), int(pos.distance_to(dest_pos())), compass_from(pos), payout()]

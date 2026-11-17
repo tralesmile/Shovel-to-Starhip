@@ -474,6 +474,12 @@ func test_fishing() -> bool:
 
 func test_delivery() -> bool:
 	var j := DeliveryJob.new()
+	j.start(0, Vector2(-10.0, 0.0))
+	check(j.compass_from(Vector2(-10.0, 0.0)) == "S", "compass: drop-off is south")
+	check(j.compass_from(Vector2(-10.0, 40.0)) == "N", "compass: drop-off is north")
+	check(j.hud_line(Vector2.ZERO).begins_with("PARCEL"), "hud line shows while active")
+	j = DeliveryJob.new()
+	check(j.hud_line(Vector2.ZERO) == "", "hud line empty when idle")
 	check(j.complete() == 0 and not j.tick(1.0), "idle job pays nothing")
 	j.start(1, Vector2(19, 10.5))
 	check(j.active and j.time_total >= DeliveryJob.MIN_TIME, "job starts with a timer")

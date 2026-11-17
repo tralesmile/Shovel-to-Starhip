@@ -50,6 +50,8 @@ func _place_beacon() -> void:
 
 
 func _process(delta: float) -> void:
+	if not is_in_group("delivery_depot"):
+		add_to_group("delivery_depot")
 	if not job.active:
 		if beacon and beacon.visible:
 			beacon.visible = false

@@ -53,4 +53,5 @@ Mark each item [x] when done and tested.
 - Fishing follow-ups: bobber visual + splash/sound cue on bite, rod upgrades and bait, fish by time of day/weather, fish size and a journal (research: fishing minigame taxonomy write-ups; keep a forgiving bite window for cozy feel)
 - Delivery follow-ups: HUD countdown + direction arrow, chained deliveries/streak bonus, fragile parcels that lose pay on collisions (research: courier-game reviews e.g. Easy Delivery Co: short cozy shifts, odd customers)
 - Crops follow-ups: seasonal crops, regrowing crops (tomato yields several harvests), quality tiers, crop-specific growth models (research: cozy farm games balance by growth days vs price; longer crops pay more per day)
-- Delivery HUD timer/arrow still pending
+- Delivery HUD: DONE v1 (text line with timer, distance, compass, tip); a 3D/screen-space arrow still nice-to-have
+- Idea (2026-11-17): traffic via simple looping waypoint cars before police car chase

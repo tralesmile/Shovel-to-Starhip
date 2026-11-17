@@ -9,6 +9,7 @@ var _clock: Label
 var _inv: Label
 var _prompt: Label
 var _heat: Label
+var _job: Label
 var _toast_box: VBoxContainer
 var _slots: Array[PanelContainer] = []
 var _help: PanelContainer
@@ -41,6 +42,9 @@ func _ready() -> void:
 	_heat = _label(root, 22)
 	_heat.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_place(_heat, 1, 0, 1, 0, -524, 58, -24, 88)
+	_job = _label(root, 22)
+	_job.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_place(_job, 0.5, 0, 0.5, 0, -400, 8, 400, 40)
 	_prompt = _label(root, 26)
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_place(_prompt, 0.5, 1, 0.5, 1, -600, -156, 600, -116)
@@ -213,6 +217,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
+	_job.text = ""
+	var dep := get_tree().get_first_node_in_group("delivery_depot")
+	if dep and dep.job.active:
+		var who: Node3D = get_tree().get_first_node_in_group("player")
+		if who:
+			_job.text = dep.job.hud_line(Vector2(who.global_position.x, who.global_position.z))
 	_clock.text = "Day %d   %s" % [Game.day, Game.clock_text()]
 	if Game.crime_suspicion > 0.02:
 		_heat.text = "Someone is watching... [%s%s]" % ["#".repeat(int(Game.crime_suspicion * 10)), "-".repeat(10 - int(Game.crime_suspicion * 10))]
