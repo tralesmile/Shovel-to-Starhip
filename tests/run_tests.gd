@@ -373,6 +373,15 @@ func test_fence_reputation() -> bool:
 	check(game.fence_offer() < calm, "heat 2 cuts the fence price")
 	game.heat = 3.0
 	check(game.fence_nerves() == 0.6, "heat 3 cuts fence price by 40%")
+	game.heat = 2.0
+	game.cool_heat(10.0, false, false)
+	check(game.heat == 2.0, "no cooling in the open")
+	game.cool_heat(10.0, true, true)
+	check(game.heat == 2.0, "no cooling while chased")
+	game.cool_heat(10.0, true, false)
+	check(absf(game.heat - 1.75) < 0.001, "hiding indoors cools heat")
+	game.cool_heat(1000.0, true, false)
+	check(game.heat == 0.0, "heat never goes below 0")
 	game.heat = 0.0
 	game.add_reputation(-20.0)
 	check(game.reputation == -GameState.MAX_REP and game.reputation_title() == "Outlaw", "capped outlaw")

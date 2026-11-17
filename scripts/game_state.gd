@@ -79,6 +79,7 @@ const FENCE_CUT := 0.5          ## fence pays this share of an item's value
 const FENCE_HEAT_PENALTY := 0.2  ## price cut per heat level above 1
 const MAX_HEAT := 3.0
 const HEAT_DECAY_PER_DAY := 1.0
+const HIDE_COOL_PER_SEC := 0.025  ## heat shed per second while out of sight (40s per level)
 const HEAT_NAMES := ["Clean as a turnip", "Raised eyebrows", "Angry whispers", "Pitchforks (pending)"]
 
 
@@ -271,6 +272,12 @@ func add_heat(amount: float) -> void:
 	if amount > 0.0:
 		hint_event.emit("heat")
 		add_reputation(-amount)   # getting caught costs your good name
+
+
+## Lie low: heat cools while you are hidden indoors and nobody is chasing you.
+func cool_heat(delta: float, hidden: bool, chased: bool) -> void:
+	if hidden and not chased and heat > 0.0:
+		heat = maxf(0.0, heat - HIDE_COOL_PER_SEC * delta)
 
 
 ## Constable Bumble caught you. Loot is confiscated, a quarter of your cash
