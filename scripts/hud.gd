@@ -232,7 +232,7 @@ func _process(_delta: float) -> void:
 		_heat.text = ""
 	_click_hint.visible = Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
 	if player and player.target:
-		_prompt.text = player.target.get_prompt(Game)
+		_prompt.text = InputPrompts.prompt_text(player.target.get_prompt(Game), InputPrompts.use_pad)
 	else:
 		_prompt.text = ""
 

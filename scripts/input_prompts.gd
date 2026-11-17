@@ -28,6 +28,13 @@ static func format(text: String, pad: bool) -> String:
 	return out
 
 
+## Swap a leading "[E]" interact tag for the device's interact label (pad: "[X]").
+static func prompt_text(text: String, pad: bool) -> String:
+	if text.begins_with("[E] "):
+		return "[%s] %s" % [label("interact", pad), text.substr(4)]
+	return text
+
+
 ## Decide device from an event; returns the new use_pad value (unchanged for other events).
 static func device_for_event(event: InputEvent, current: bool) -> bool:
 	if event is InputEventJoypadButton:
