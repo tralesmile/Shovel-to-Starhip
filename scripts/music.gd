@@ -89,24 +89,67 @@ static func make(mode: String) -> AudioStreamWAV:
 	return w
 
 
+const FADE_SECONDS := 3.0
+
+var _fade_in: AudioStreamPlayer
+var _fade_out: AudioStreamPlayer
+var _fade_t := 1.0
+
+
+## Crossfade progress 0..1 after delta seconds (pure helper for tests).
+static func fade_progress(t: float, delta: float, seconds: float = FADE_SECONDS) -> float:
+	return clampf(t + delta / maxf(seconds, 0.001), 0.0, 1.0)
+
+
+## Equal-power gains (in, out) for crossfade progress t.
+static func fade_gains(t: float) -> Vector2:
+	var c := clampf(t, 0.0, 1.0)
+	return Vector2(sin(c * PI * 0.5), cos(c * PI * 0.5))
+
+
+func _make_player() -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.bus = "Music" if AudioServer.get_bus_index("Music") != -1 else "Master"
+	add_child(p)
+	return p
+
+
 func _ready() -> void:
 	add_to_group("music")
-	_player = AudioStreamPlayer.new()
-	_player.bus = "Music" if AudioServer.get_bus_index("Music") != -1 else "Master"
-	add_child(_player)
+	_player = _make_player()
+	_fade_out = _make_player()
+	_fade_in = _player
 
 
 func set_mode(mode: String) -> void:
 	if mode == _mode:
 		return
+	var first := _mode == ""
 	_mode = mode
 	if not _cache.has(mode):
 		_cache[mode] = make(mode)
-	_player.stream = _cache[mode]
-	_player.play()
+	# the old track keeps playing and fades out while the new one fades in
+	var old := _fade_in
+	_fade_in = _fade_out
+	_fade_out = old
+	_fade_in.stream = _cache[mode]
+	_fade_in.play()
+	_fade_t = 1.0 if first else 0.0
+	_apply_fade()
 
 
-func _process(_delta: float) -> void:
+func _apply_fade() -> void:
+	var g := fade_gains(_fade_t)
+	_fade_in.volume_db = linear_to_db(maxf(g.x, 0.0001))
+	_fade_out.volume_db = linear_to_db(maxf(g.y, 0.0001))
+	if _fade_t >= 1.0 and _fade_out.playing:
+		_fade_out.stop()
+
+
+func _process(delta: float) -> void:
 	var g := get_node_or_null("/root/Game")
 	if g != null:
 		set_mode(mode_for_hour(g.time_of_day))
+	if _fade_t < 1.0:
+		_fade_t = fade_progress(_fade_t, delta)
+		_apply_fade()

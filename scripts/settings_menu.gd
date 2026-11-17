@@ -90,6 +90,9 @@ func is_open() -> bool:
 func open() -> void:
 	_panel.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# focus first slider so a gamepad d-pad/stick can navigate without a mouse
+	if _sliders.has(AudioSettings.BUSES[0]):
+		_sliders[AudioSettings.BUSES[0]].grab_focus()
 
 
 func close() -> void:

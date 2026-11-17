@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -669,4 +669,24 @@ func test_gamepad() -> bool:
 		if e is InputEventKey:
 			keys = true
 	check(keys, "keyboard bindings kept")
+	return true
+
+
+func test_music_fade() -> bool:
+	check(Music.fade_progress(0.0, 1.5) == 0.5, "fade halfway after half the duration")
+	check(Music.fade_progress(0.9, 5.0) == 1.0, "fade clamps at 1")
+	var g0 := Music.fade_gains(0.0)
+	var g1 := Music.fade_gains(1.0)
+	check(is_equal_approx(g0.x, 0.0) and is_equal_approx(g0.y, 1.0), "fade starts on old track")
+	check(is_equal_approx(g1.x, 1.0) and absf(g1.y) < 0.001, "fade ends on new track")
+	var m := Music.fade_gains(0.5)
+	check(is_equal_approx(m.x * m.x + m.y * m.y, 1.0), "equal-power at midpoint")
+	var mu := Music.new()
+	root.add_child(mu)
+	mu.set_mode("day")
+	mu.set_mode("night")
+	check(mu._fade_t == 0.0 and mu._fade_in.playing and mu._fade_out.playing, "mode change crossfades two players")
+	for i in 10:
+		mu._process(0.5)
+	check(mu._fade_t == 1.0 and not mu._fade_out.playing, "crossfade completes and stops old track")
 	return true
