@@ -27,7 +27,7 @@ Mark each item [x] when done and tested.
 - [x] 2+ more crops, shop stock (v1: carrot 3 nights/$70, tomato 4 nights/$125 alongside turnip 2/$35; press [2] again to cycle seed type; shop sells the selected seed; per-crop seed prices $10/$18/$30; shop stock limits and crop art per growth stage still to do)
 ### Sprint 5 - Polish
 - [ ] Sound effects + music (CC0 packs from GitHub), audio settings (AudioSettings logic + tests DONE; v1 procedural SFX DONE: coin/spend/blip/thud via Sfx node; pause/settings menu with volume sliders DONE (ESC); +-5% pitch variance DONE; music and footstep/chop/car SFX still to do)
-- [ ] Main menu, settings, tutorial, controller basic support
+- [ ] Main menu, settings, tutorial, controller basic support (settings DONE via ESC menu; v1 tutorial hints DONE: 5 event-driven tips on new games; main menu and controller still to do)
 - [ ] Demo-ready build
 
 ## Phase 2 - Earth Early Access: larger town, building your own house, animals (catch/keep/resources), clothes, weapons/combat, car building, more jobs, racing.
@@ -59,3 +59,4 @@ Mark each item [x] when done and tested.
 - Idea (2026-11-17): traffic via simple looping waypoint cars before police car chase
 - Traffic follow-ups (2026-11-17 research: waypoint/lane following is the standard cheap approach): honk + swerve when the player jumps out, traffic reacts to heat/police, junction turns via waypoint graph, vary colours/speeds
 - Police car follow-ups (2026-11-17 search returned links only): siren light flash + sound, roadblocks/PIT, squad car avoids buildings (needs nav), spawn behind player offscreen
+- Tutorial follow-ups (2026-11-17): hint on first lockpick/fishing/car, skippable in settings, on-screen key icons instead of text, controller prompts

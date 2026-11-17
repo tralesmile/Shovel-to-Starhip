@@ -11,3 +11,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-17 | Local clone was behind origin/main; built a duplicate Sprint 1 slice that conflicted on push | discarded it (kept on local branch only), rebased onto upstream and did Sprint 5 audio settings instead | always `git pull` before building
 - 2026-11-17 | Kenney/CC0 audio packs not fetchable via proxy (only github release URLs work) | synthesised SFX in code instead (no license needed) | music still needs a CC0 source from a github repo
 - 2026-11-17 | gh release download blocked for godot-builds (403); WebSearch not run | curl on the github.com release URL worked for Godot; skipped research | none
+- 2026-11-17 | Godot re-downloaded (fresh session); clone was detached HEAD so checked out main from origin; WebSearch not run | tutorial implemented from design rules of thumb | none

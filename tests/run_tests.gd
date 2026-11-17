@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_settings_menu",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_settings_menu", "test_tutorial",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -598,4 +598,16 @@ func test_settings_menu() -> bool:
 	check(SettingsMenu.volume_to_percent(0.8) == 80.0, "volume to percent")
 	check(is_equal_approx(Sfx.pitch_jitter(0.0), 0.95) and is_equal_approx(Sfx.pitch_jitter(1.0), 1.05), "pitch jitter range")
 	check(is_equal_approx(Sfx.pitch_jitter(0.5), 1.0), "pitch jitter centre")
+	return true
+
+
+func test_tutorial() -> bool:
+	var t := Tutorial.new()
+	check(t.advance("money") == "", "out-of-order event ignored")
+	check(t.advance("start") != "" and t.index == 1, "start shows first tip")
+	check(t.advance("start") == "", "same event does not repeat")
+	for e in ["move", "tool", "money", "day"]:
+		check(t.advance(e) != "", "step %s shows tip" % e)
+	check(t.done and t.advance("day") == "", "tutorial finishes once")
+	t.free()
 	return true
