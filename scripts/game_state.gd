@@ -9,6 +9,7 @@ signal toast(text: String)
 signal day_changed(day: int)
 signal tool_changed(index: int)
 signal shake(amount: float)
+signal hint_event(name: String)  ## context events for one-time tutorial hints
 
 const DAY_LENGTH := 120.0          ## real seconds per in-game day
 const START_TIME := 0.25           ## 0..1 of a day; 0.25 = 6:00

@@ -164,6 +164,7 @@ func enter_car(car: Car) -> void:
 	velocity = Vector3.ZERO
 	_yaw = car.heading + PI
 	Game.say("Vroom. Mind the goat.")
+	Game.hint_event.emit("drive")
 
 
 func _on_car_bump() -> void:

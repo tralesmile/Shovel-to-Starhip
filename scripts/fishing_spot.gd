@@ -31,6 +31,7 @@ func interact(game: GameState) -> void:
 		fishing.cast()
 		Sfx.play_on(self, "splash")
 		game.say("Plop. Now we wait. Fish are famously punctual.")
+		game.hint_event.emit("cast")
 		return
 	match fishing.reel():
 		"early":

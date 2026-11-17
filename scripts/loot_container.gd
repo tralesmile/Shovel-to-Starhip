@@ -58,6 +58,7 @@ func interact(game: GameState) -> void:
 			lock = Lockpick.new(difficulty, seed_value + game.day)
 			state = "picking"
 			game.say("Steady hands... press E in the zone.")
+			game.hint_event.emit("pick")
 		"picking":
 			var r := lock.press()
 			match r:

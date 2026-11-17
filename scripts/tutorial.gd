@@ -11,8 +11,24 @@ const STEPS := [
 	{"wait": "day", "tip": "New day! Press {help} any time for help, {save} to save, {pause} to pause."},
 ]
 
+## One-time context hints, shown the first time the player does something new.
+const ONCE := {
+	"pick": "Lockpicking: press {interact} when the marker is in the zone. Miss and the pick snaps; get seen and Constable Bumble hears about it.",
+	"cast": "Fishing: wait for the bite, then press {interact} fast. Not too early, not too late. Fish judge.",
+	"drive": "Driving: WASD or the left stick steers, Space is the handbrake, {interact} hops out. Pedestrians are not bonus points.",
+}
+
 var index := 0
 var done := false
+var seen := {}
+
+
+## Returns the one-time hint for a context event the first time only, else "".
+func once(event: String) -> String:
+	if seen.has(event) or not ONCE.has(event):
+		return ""
+	seen[event] = true
+	return ONCE[event]
 
 
 ## Feed an event name; returns the hint to show, or "" if nothing changes.
@@ -33,7 +49,14 @@ func _ready() -> void:
 	g.tool_changed.connect(func(_i): _event("tool"))
 	g.money_changed.connect(func(_v): _event("money"))
 	g.day_changed.connect(func(_d): _event("day"))
+	g.hint_event.connect(func(e): _once_event(e))
 	_event("start")
+
+
+func _once_event(e: String) -> void:
+	var tip := once(e)
+	if tip != "":
+		get_node("/root/Game").say(InputPrompts.format(tip, InputPrompts.use_pad))
 
 
 func _event(e: String) -> void:

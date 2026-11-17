@@ -646,6 +646,11 @@ func test_tutorial() -> bool:
 	for e in ["move", "tool", "money", "day"]:
 		check(t.advance(e) != "", "step %s shows tip" % e)
 	check(t.done and t.advance("day") == "", "tutorial finishes once")
+	check(t.once("pick") != "" and t.once("pick") == "", "pick hint shows once")
+	check(t.once("cast") != "" and t.once("drive") != "", "cast and drive hints show")
+	check(t.once("bogus") == "", "unknown hint ignored")
+	for k in Tutorial.ONCE:
+		check(not "{" in InputPrompts.format(Tutorial.ONCE[k], true) and not "{" in InputPrompts.format(Tutorial.ONCE[k], false), "once tokens resolve: " + k)
 	t.free()
 	return true
 
