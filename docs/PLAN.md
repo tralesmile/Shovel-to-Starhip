@@ -49,7 +49,7 @@ Mark each item [x] when done and tested.
 - Lockpick HUD: replace text bar with on-screen meter + sound click per pin
 - Hiding: crouch/shadow reduces witness fill rate; closets in homes (follow-up to witness meter)
 - Heat consequences: police NPC patrol at heat 3, shop price penalty at heat 2
-- Fence price should drop when heat is high (fences get nervous) and fence stock/daily cap to avoid dumping (research: stolen-goods design threads)
+- Fence price should drop when heat is high (DONE v1: -20%/heat level above 1; daily cap still to do) (fences get nervous) and fence stock/daily cap to avoid dumping (research: stolen-goods design threads)
 - Reputation effects: Lawful gets shop discount, Outlaw gets fence bonus + townsfolk barks
 - Police heat cooling: heat should only decay once you are out of sight of police (search-and-lose, as in modern wanted-system write-ups), not just by day count
 - Police: add a second constable / car patrol once Sprint 3 cars land; crouch + shadows hiding still to do
@@ -71,3 +71,4 @@ Mark each item [x] when done and tested.
 - Demo readiness (2026-11-17 search: Godot 4 Next Fest Demo Shell, bugnet QA checklist for Steam demos; links only): demo-shell menu with wishlist/feedback link, 15-minute smoke test of the exported build before release, clean first-5-minutes tutorial
 - Interactable UX (2026-11-17, search: munchmo 'Rethinking Interactables', Acagamic contextual prompts; links only): pick nearest/most-facing interactable, show prompt only when in view cone; PS vs Xbox glyph set option
 - Context hints (2026-11-17, search: Roblox onboarding techniques, wayline tutorial UX; links only): teach at point of use, once; next add first-heat/police and first-fence hints, make hints skippable in settings; DONE v2: heat, fence, arrest hints; DONE v3: "Show hints" toggle in ESC menu (saved in audio.json)
+- Police cooling (2026-11-17 search: wanted-level write-ups, links only; modern systems make you break line of sight/hide to cool down): next, heat decays faster while hidden indoors/out of sight of Bumble

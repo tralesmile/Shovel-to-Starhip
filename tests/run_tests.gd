@@ -365,6 +365,15 @@ func test_fence_reputation() -> bool:
 	check(game.reputation == -2.0, "fencing costs reputation")
 	game.add_loot("gold_spoon")
 	check(game.fence_offer() > 30, "outlaws get a better rate")
+	game.heat = 0.0
+	var calm := game.fence_offer()
+	game.heat = 1.0
+	check(game.fence_offer() == calm, "heat 1 does not rattle the fence")
+	game.heat = 2.0
+	check(game.fence_offer() < calm, "heat 2 cuts the fence price")
+	game.heat = 3.0
+	check(game.fence_nerves() == 0.6, "heat 3 cuts fence price by 40%")
+	game.heat = 0.0
 	game.add_reputation(-20.0)
 	check(game.reputation == -GameState.MAX_REP and game.reputation_title() == "Outlaw", "capped outlaw")
 	game.add_reputation(20.0)

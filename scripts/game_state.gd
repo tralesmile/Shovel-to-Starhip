@@ -76,6 +76,7 @@ var reputation: float = 0.0     ## -MAX_REP (Outlaw) .. +MAX_REP (Lawful)
 
 const MAX_REP := 10.0
 const FENCE_CUT := 0.5          ## fence pays this share of an item's value
+const FENCE_HEAT_PENALTY := 0.2  ## price cut per heat level above 1
 const MAX_HEAT := 3.0
 const HEAT_DECAY_PER_DAY := 1.0
 const HEAT_NAMES := ["Clean as a turnip", "Raised eyebrows", "Angry whispers", "Pitchforks (pending)"]
@@ -189,7 +190,12 @@ func fence_offer() -> int:
 func fence_price(item_id: String) -> int:
 	var v: int = ITEMS.get(item_id, {}).get("value", 0)
 	var bonus := 1.0 + 0.04 * maxf(0.0, -reputation)
-	return int(round(v * FENCE_CUT * bonus))
+	return int(round(v * FENCE_CUT * bonus * fence_nerves()))
+
+
+## The fence gets jumpy when the law is sniffing about: -20% per heat level above 1.
+func fence_nerves() -> float:
+	return 1.0 - FENCE_HEAT_PENALTY * maxf(0.0, float(heat_level() - 1))
 
 
 ## Sells all stolen goods to the fence. Returns money earned; turns you more Outlaw.
