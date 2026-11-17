@@ -482,6 +482,20 @@ func _build_trees() -> void:
 		Models.solid(trees, Models.MED + rock, pos, rng.randf_range(3.0, 5.0), rng.randf() * TAU)
 
 
+## A few ambient cars loop the road, one lane each way.
+func _spawn_traffic(parent: Node3D) -> void:
+	var specs := [["car_taxi.gltf", 1.0, 14.4, -40.0], ["car_hatchback.gltf", -1.0, 17.6, 30.0], ["car_sedan.gltf", 1.0, 14.4, 20.0]]
+	for sp in specs:
+		var t := TrafficCar.new()
+		t.model = sp[0]
+		t.dir = sp[1]
+		t.lane_z = sp[2]
+		t.position = Vector3(sp[3], 0.1, sp[2])
+		t.name = "Traffic_" + String(sp[0]).get_basename()
+		parent.add_child(t)
+		t.setup()
+
+
 func _build_road_and_signs() -> void:
 	var town := Node3D.new()
 	town.name = "Town"
@@ -501,6 +515,7 @@ func _build_road_and_signs() -> void:
 	Models.solid(town, Models.CITY + "car_taxi.gltf", Vector3(8, 0, 19.2), 4.4, -PI / 2)
 	Models.solid(town, Models.CITY + "car_sedan.gltf", Vector3(24, 0, 12.8), 4.4, PI / 2)
 	Models.solid(town, Models.CITY + "car_hatchback.gltf", Vector3(-30, 0, 12.8), 4.4, -PI / 2)
+	_spawn_traffic(town)
 	Models.solid(town, Models.CITY + "bench.gltf", Vector3(-4, 0, 21.4), 4.0, PI)
 	Models.solid(town, Models.CITY + "firehydrant.gltf", Vector3(2, 0, 21.4), 4.0)
 	Models.solid(town, Models.CITY + "dumpster.gltf", Vector3(18, 0, 22), 4.0, PI)

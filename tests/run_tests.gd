@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -403,6 +403,20 @@ func test_police() -> bool:
 	check(game.heat == 1.0, "heat drops to 1 after arrest")
 	game.money = 4
 	check(game.arrest()["fine"] == 4 and game.money == 0, "fine never exceeds cash")
+	return true
+
+
+func test_traffic() -> bool:
+	var p := Vector3(0, 0, 14.4)
+	check(TrafficCar.blocked(p, 1.0, Vector3(5, 0, 14.4)), "object ahead in lane blocks")
+	check(not TrafficCar.blocked(p, 1.0, Vector3(-5, 0, 14.4)), "object behind does not block")
+	check(not TrafficCar.blocked(p, 1.0, Vector3(5, 0, 19.0)), "other lane does not block")
+	check(not TrafficCar.blocked(p, 1.0, Vector3(30, 0, 14.4)), "far away does not block")
+	check(TrafficCar.blocked(p, -1.0, Vector3(-5, 0, 14.4)), "direction flips look-ahead")
+	check(TrafficCar.next_speed(0.0, 7.0, false, 0.1) > 0.0, "accelerates when clear")
+	check(TrafficCar.next_speed(7.0, 7.0, true, 0.1) < 7.0, "brakes when blocked")
+	check(TrafficCar.next_speed(0.2, 7.0, true, 0.1) == 0.0, "stops, never reverses")
+	check(TrafficCar.wrap_x(60.0) == TrafficCar.MIN_X and TrafficCar.wrap_x(-60.0) == TrafficCar.MAX_X and TrafficCar.wrap_x(3.0) == 3.0, "lane wraps")
 	return true
 
 
