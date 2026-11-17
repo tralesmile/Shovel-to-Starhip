@@ -28,7 +28,7 @@ Mark each item [x] when done and tested.
 ### Sprint 5 - Polish
 - [ ] Sound effects + music (CC0 packs from GitHub), audio settings (AudioSettings logic + tests DONE; v1 procedural SFX DONE: coin/spend/blip/thud via Sfx node; pause/settings menu with volume sliders DONE (ESC); +-5% pitch variance DONE; v1 chop/footstep/splash SFX DONE (distance-based steps); v1 car engine loop DONE (pitch/volume from speed); v1 surface-dependent footsteps DONE (grass/wood interiors/road by position); v1 procedural day/night background music DONE (Music node, Music bus); CC0 recorded music still optional; music day/night 3s equal-power crossfade DONE; pad-navigable ESC menu v1 DONE (first slider grabs focus on open))
 - [ ] Main menu, settings, tutorial, controller basic support (settings DONE via ESC menu; v1 tutorial hints DONE: 5 event-driven tips on new games; controller basic support DONE (gamepad bindings + right-stick camera, 0.2 deadzone); v1 main menu DONE (title screen: Continue/New Game/Quit, pauses tree, pad-focusable); v1 pad/key prompts DONE (InputPrompts tracks last device, tutorial tips use {action} tokens); HUD interact prompts DONE ([E] tag swaps to pad label); help panel prompts DONE (live-swapping tokens))
-- [ ] Demo-ready build
+- [ ] Demo-ready build (v1 groundwork DONE: boot smoke test tests/smoke_boot.gd, Windows export verified working with 4.7.1 templates (116MB exe), docs/DEMO_CHECKLIST.md; still to do: owner manual smoke pass, demo-shell menu with wishlist/feedback link, release zip + READ_ME)
 
 ## Phase 2 - Earth Early Access: larger town, building your own house, animals (catch/keep/resources), clothes, weapons/combat, car building, more jobs, racing.
 ## Phase 3 - Rocket + Moon open world.
