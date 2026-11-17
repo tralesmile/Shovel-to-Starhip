@@ -652,6 +652,17 @@ func test_tutorial() -> bool:
 	check(t.once("heat") != "" and t.once("fence") != "" and t.once("arrest") != "", "heat/fence/arrest hints show")
 	for k in Tutorial.ONCE:
 		check(not "{" in InputPrompts.format(Tutorial.ONCE[k], true) and not "{" in InputPrompts.format(Tutorial.ONCE[k], false), "once tokens resolve: " + k)
+	var t2 := Tutorial.new()
+	Tutorial.enabled = false
+	check(t2.advance("start") == "" and t2.once("pick") == "", "hints off: nothing shown")
+	Tutorial.enabled = true
+	check(t2.advance("start") != "" and t2.once("pick") != "", "hints back on")
+	var hs := AudioSettings.new()
+	hs.hints_enabled = false
+	var hs2 := AudioSettings.new()
+	hs2.from_dict(hs.to_dict())
+	check(not hs2.hints_enabled and AudioSettings.new().hints_enabled, "hints setting roundtrips, default on")
+	t2.free()
 	t.free()
 	return true
 

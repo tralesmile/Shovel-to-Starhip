@@ -7,6 +7,8 @@ const PATH := "user://audio.json"
 const BUSES := ["Master", "Music", "SFX"]
 
 var volumes := {"Master": 0.8, "Music": 0.6, "SFX": 0.9}
+## Tutorial/context hints on or off (stored alongside volumes).
+var hints_enabled := true
 
 
 static func to_db(v: float) -> float:
@@ -19,13 +21,17 @@ func set_volume(bus: String, v: float) -> void:
 
 
 func to_dict() -> Dictionary:
-	return volumes.duplicate()
+	var d := volumes.duplicate()
+	d["hints"] = hints_enabled
+	return d
 
 
 func from_dict(d: Dictionary) -> void:
 	for b in BUSES:
 		if d.has(b):
 			set_volume(b, float(d[b]))
+	if d.has("hints"):
+		hints_enabled = bool(d["hints"])
 
 
 ## Creates Music/SFX buses if missing and applies volumes.

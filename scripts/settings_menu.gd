@@ -14,6 +14,7 @@ var _sliders := {}
 func load_and_apply() -> void:
 	settings.load_file()
 	settings.apply()
+	Tutorial.enabled = settings.hints_enabled
 
 
 ## Slider percent (0..100) -> stored volume, and back. Pure helpers for tests.
@@ -70,6 +71,11 @@ func _ready() -> void:
 		row.add_child(s)
 		box.add_child(row)
 		_sliders[b] = s
+	var hints := CheckButton.new()
+	hints.text = "Show hints"
+	hints.button_pressed = settings.hints_enabled
+	hints.toggled.connect(_on_hints)
+	box.add_child(hints)
 	var resume := Button.new()
 	resume.text = "Resume  (Esc)"
 	resume.pressed.connect(close)
@@ -80,6 +86,12 @@ func _ready() -> void:
 func _on_slider(v: float, bus: String) -> void:
 	settings.set_volume(bus, percent_to_volume(v))
 	settings.apply()
+	settings.save()
+
+
+func _on_hints(on: bool) -> void:
+	settings.hints_enabled = on
+	Tutorial.enabled = on
 	settings.save()
 
 

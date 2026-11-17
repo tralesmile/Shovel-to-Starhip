@@ -21,6 +21,9 @@ const ONCE := {
 	"drive": "Driving: WASD or the left stick steers, Space is the handbrake, {interact} hops out. Pedestrians are not bonus points.",
 }
 
+## Global switch (settings menu). When false no hints are shown.
+static var enabled := true
+
 var index := 0
 var done := false
 var seen := {}
@@ -28,6 +31,8 @@ var seen := {}
 
 ## Returns the one-time hint for a context event the first time only, else "".
 func once(event: String) -> String:
+	if not enabled:
+		return ""
 	if seen.has(event) or not ONCE.has(event):
 		return ""
 	seen[event] = true
@@ -36,6 +41,8 @@ func once(event: String) -> String:
 
 ## Feed an event name; returns the hint to show, or "" if nothing changes.
 func advance(event: String) -> String:
+	if not enabled:
+		return ""
 	if done or index >= STEPS.size():
 		return ""
 	if STEPS[index]["wait"] != event:
