@@ -10,11 +10,45 @@ const KINDS := {
 	"blip": [520.0, 640.0, 0.07, 0.0],
 	"thud": [120.0, 45.0, 0.22, 0.25],
 	"spend": [660.0, 330.0, 0.14, 0.0],
+	"chop": [210.0, 90.0, 0.12, 0.45],
+	"step": [95.0, 60.0, 0.06, 0.5],
+	"splash": [400.0, 150.0, 0.3, 0.7],
 }
 
 var _cache := {}
 var _players: Array[AudioStreamPlayer] = []
 var _last_money := -1
+var _step_dist := 0.0
+const STEP_LENGTH := 2.1
+
+
+## Accumulates walked distance; returns [new_accumulator, step_sound_due].
+static func step_progress(acc: float, moved: float) -> Array:
+	acc += moved
+	if acc >= STEP_LENGTH:
+		return [fmod(acc, STEP_LENGTH), true]
+	return [acc, false]
+
+
+## Play a named effect from anywhere (finds the Sfx node via its group).
+static func play_on(node: Node, kind: String) -> void:
+	if node == null or not node.is_inside_tree():
+		return
+	var s := node.get_tree().get_first_node_in_group("sfx")
+	if s != null:
+		s.play(kind)
+
+
+func _process(delta: float) -> void:
+	var pl := get_tree().get_first_node_in_group("player")
+	if pl == null or not (pl is CharacterBody3D) or pl.get("vehicle") != null:
+		return
+	var flat := Vector2(pl.velocity.x, pl.velocity.z).length()
+	if pl.is_on_floor() and flat > 1.0:
+		var r := step_progress(_step_dist, flat * delta)
+		_step_dist = r[0]
+		if r[1]:
+			play("step")
 
 
 ## Builds a 16-bit mono WAV for a named effect. Pure function, deterministic.
@@ -40,6 +74,7 @@ static func make(kind: String) -> AudioStreamWAV:
 
 
 func _ready() -> void:
+	add_to_group("sfx")
 	for i in 4:
 		var pl := AudioStreamPlayer.new()
 		pl.bus = "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master"

@@ -26,7 +26,7 @@ Mark each item [x] when done and tested.
 - [x] Delivery job using car, pay on completion (v1: Parcel Pete at (19,0,10.5) needs owned car, 4 drop-offs with beacon, timer, tip for speed; job state not saved; HUD timer/arrow still to do)
 - [x] 2+ more crops, shop stock (v1: carrot 3 nights/$70, tomato 4 nights/$125 alongside turnip 2/$35; press [2] again to cycle seed type; shop sells the selected seed; per-crop seed prices $10/$18/$30; shop stock limits and crop art per growth stage still to do)
 ### Sprint 5 - Polish
-- [ ] Sound effects + music (CC0 packs from GitHub), audio settings (AudioSettings logic + tests DONE; v1 procedural SFX DONE: coin/spend/blip/thud via Sfx node; pause/settings menu with volume sliders DONE (ESC); +-5% pitch variance DONE; music and footstep/chop/car SFX still to do)
+- [ ] Sound effects + music (CC0 packs from GitHub), audio settings (AudioSettings logic + tests DONE; v1 procedural SFX DONE: coin/spend/blip/thud via Sfx node; pause/settings menu with volume sliders DONE (ESC); +-5% pitch variance DONE; v1 chop/footstep/splash SFX DONE (distance-based steps); music, car engine SFX and surface-dependent footsteps still to do)
 - [ ] Main menu, settings, tutorial, controller basic support (settings DONE via ESC menu; v1 tutorial hints DONE: 5 event-driven tips on new games; controller basic support DONE (gamepad bindings + right-stick camera, 0.2 deadzone); main menu, on-screen pad prompts and pad-navigable ESC menu still to do)
 - [ ] Demo-ready build
 
@@ -36,6 +36,7 @@ Mark each item [x] when done and tested.
 ## Phase 5 - Beyond: more planets, endgame, Steam launch.
 
 ## Improvement backlog (research-driven; append ideas here, pick 1 small one per run)
+- Surface-aware footsteps (grass/wood floor/road) via ground raycast group lookup (Godot 4 reactive footsteps idea, itch.io blog); car engine pitch from speed
 - Audio: sfxr-style parameter presets (GodotSfxr/gdfxr exist) for chop, splash, lockpick click, car engine pitch via AudioStreamGenerator; randomise pitch +-5% per play to avoid repetition
 - Performance profiling pass for High mode
 - Funny writing: NPC barks, item descriptions, news ticker

@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_settings_menu", "test_tutorial", "test_gamepad",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -581,6 +581,15 @@ func test_audio_settings() -> bool:
 	check(b.volumes == a.volumes, "dict roundtrip")
 	a.apply()
 	check(AudioServer.get_bus_index("SFX") != -1 and AudioServer.get_bus_index("Music") != -1, "buses created")
+	return true
+
+
+func test_steps() -> bool:
+	var r := Sfx.step_progress(0.0, 1.0)
+	check(not r[1] and is_equal_approx(r[0], 1.0), "no step yet")
+	r = Sfx.step_progress(r[0], 1.5)
+	check(r[1] and r[0] < Sfx.STEP_LENGTH, "step due after stride")
+	check(Sfx.KINDS.has("chop") and Sfx.KINDS.has("splash") and Sfx.KINDS.has("step"), "new kinds exist")
 	return true
 
 

@@ -29,6 +29,7 @@ func interact(game: GameState) -> void:
 		next_seed += 7
 		fishing = Fishing.new(next_seed + game.day * 13 + int(Time.get_ticks_msec()))
 		fishing.cast()
+		Sfx.play_on(self, "splash")
 		game.say("Plop. Now we wait. Fish are famously punctual.")
 		return
 	match fishing.reel():
