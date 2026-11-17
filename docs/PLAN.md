@@ -26,7 +26,7 @@ Mark each item [x] when done and tested.
 - [x] Delivery job using car, pay on completion (v1: Parcel Pete at (19,0,10.5) needs owned car, 4 drop-offs with beacon, timer, tip for speed; job state not saved; HUD timer/arrow still to do)
 - [x] 2+ more crops, shop stock (v1: carrot 3 nights/$70, tomato 4 nights/$125 alongside turnip 2/$35; press [2] again to cycle seed type; shop sells the selected seed; per-crop seed prices $10/$18/$30; shop stock limits and crop art per growth stage still to do)
 ### Sprint 5 - Polish
-- [ ] Sound effects + music (CC0 packs from GitHub), audio settings (AudioSettings logic + tests DONE; v1 procedural SFX DONE: coin/spend/blip/thud via Sfx node; pause/settings menu with volume sliders DONE (ESC); +-5% pitch variance DONE; v1 chop/footstep/splash SFX DONE (distance-based steps); v1 car engine loop DONE (pitch/volume from speed); v1 surface-dependent footsteps DONE (grass/wood interiors/road by position); music still to do)
+- [ ] Sound effects + music (CC0 packs from GitHub), audio settings (AudioSettings logic + tests DONE; v1 procedural SFX DONE: coin/spend/blip/thud via Sfx node; pause/settings menu with volume sliders DONE (ESC); +-5% pitch variance DONE; v1 chop/footstep/splash SFX DONE (distance-based steps); v1 car engine loop DONE (pitch/volume from speed); v1 surface-dependent footsteps DONE (grass/wood interiors/road by position); v1 procedural day/night background music DONE (Music node, Music bus); CC0 recorded music still optional)
 - [ ] Main menu, settings, tutorial, controller basic support (settings DONE via ESC menu; v1 tutorial hints DONE: 5 event-driven tips on new games; controller basic support DONE (gamepad bindings + right-stick camera, 0.2 deadzone); main menu, on-screen pad prompts and pad-navigable ESC menu still to do)
 - [ ] Demo-ready build
 
@@ -63,4 +63,5 @@ Mark each item [x] when done and tested.
 - Tutorial follow-ups (2026-11-17): hint on first lockpick/fishing/car, skippable in settings, on-screen key icons instead of text, controller prompts
 - Controller follow-ups (2026-11-17, Godot docs: use InputMap actions + per-action deadzone): pad button prompts in tutorial/HUD when a pad is detected, pad navigation of settings sliders, vibration on car bump, rebinding UI
 - Audio follow-ups (2026-11-17 search: links only; Godot AudioStreamGenerator + pitch_scale from speed is the common approach): engine gear-shift pitch drops, tyre screech on handbrake, music from a CC0 github repo
+- Music follow-ups (2026-11-17, search: links only; adaptive music via AudioStreamInteractive exists): crossfade between day/night loops, extra tracks for indoors/driving/police chase, recorded CC0 tracks (e.g. itch/github packs) if a fetchable source appears
 - Footstep follow-ups (2026-11-17): real material lookup via ground raycast + group/metadata instead of position rules; sand/water steps once biomes exist (Godot Material Footsteps asset exists)

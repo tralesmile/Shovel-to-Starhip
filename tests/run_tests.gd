@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -612,6 +612,21 @@ func test_engine_sfx() -> bool:
 	check(Sfx.engine_volume(18.0) > Sfx.engine_volume(0.0) and Sfx.engine_volume(99.0) <= 0.7, "volume range")
 	var w := Sfx.make_engine()
 	check(w.loop_mode == AudioStreamWAV.LOOP_FORWARD and w.loop_end > 100 and w.data.size() == w.loop_end * 2, "engine loop")
+	return true
+
+
+func test_music() -> bool:
+	check(Music.mode_for_hour(12.0) == "day" and Music.mode_for_hour(22.0) == "night" and Music.mode_for_hour(3.0) == "night", "music mode by hour")
+	check(Music.beat_seconds("night") > Music.beat_seconds("day"), "night is slower")
+	check(is_equal_approx(Music.note_hz(0.0), 261.63) and is_equal_approx(Music.note_hz(12.0), 523.26), "note frequencies")
+	var w := Music.make("day")
+	check(w.loop_mode == AudioStreamWAV.LOOP_FORWARD and w.data.size() == w.loop_end * 2, "day loop shape")
+	check(absf(w.loop_end / float(Music.RATE) - Music.loop_seconds("day")) < 0.01, "day loop length")
+	var peak := 0
+	for i in range(0, w.data.size() / 2, 50):
+		peak = maxi(peak, absi(w.data.decode_s16(i * 2)))
+	check(peak > 1000 and peak < 32000, "music audible, not clipping")
+	check(Music.make("night").data.size() > w.data.size(), "night loop longer")
 	return true
 
 

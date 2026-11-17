@@ -16,3 +16,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-17 | Godot re-downloaded (fresh session); search returned links only | applied distance-based footstep idea from memory | none
 - 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only | applied pitch-from-speed idea from memory | none
 - 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only | applied position-based surface footsteps | none
+- 2026-11-17 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only; no CC0 music fetchable | synthesised procedural music in code (no license needed) | owner to judge music; swap for CC0 recorded tracks if a source is reachable

@@ -57,6 +57,10 @@ func _ready() -> void:
 	sfx.name = "Sfx"
 	add_child(sfx)
 
+	var music := Music.new()
+	music.name = "Music"
+	add_child(music)
+
 	var menu := SettingsMenu.new()
 	menu.name = "SettingsMenu"
 	add_child(menu)
