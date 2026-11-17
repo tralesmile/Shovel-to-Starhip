@@ -53,6 +53,10 @@ func _ready() -> void:
 	player.position = Vector3(0, 0.5, 8)
 	add_child(player)
 
+	var sfx := Sfx.new()
+	sfx.name = "Sfx"
+	add_child(sfx)
+
 	var hud := Hud.new()
 	hud.player = player
 	add_child(hud)
