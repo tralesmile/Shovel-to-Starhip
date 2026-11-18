@@ -19,6 +19,7 @@ var heading: float = 0.0
 var driven: bool = false
 var seat: CarSeat
 var _lamps: Array[SpotLight3D] = []
+var _dust: CPUParticles3D
 
 
 ## Next forward speed given throttle (-1 reverse .. 1 forward) and handbrake.
@@ -34,6 +35,43 @@ static func step_speed(current: float, throttle: float, handbrake: bool, delta: 
 	else:
 		s = move_toward(s, 0.0, DRAG * delta)
 	return clampf(s, -MAX_REVERSE, MAX_SPEED)
+
+
+## Tyre dust puffs when the handbrake is dragged at real speed, or when the car
+## is flung into a tight corner at pace.
+static func dust_amount(spd: float, handbrake: bool, steer_input: float) -> float:
+	var a := absf(spd)
+	if a < 4.0:
+		return 0.0
+	if handbrake:
+		return clampf(a / MAX_SPEED, 0.3, 1.0)
+	if absf(steer_input) > 0.8 and a > MAX_SPEED * 0.7:
+		return 0.4
+	return 0.0
+
+
+func _add_dust() -> void:
+	_dust = CPUParticles3D.new()
+	_dust.position = Vector3(0, 0.2, -1.8)
+	_dust.amount = 24
+	_dust.lifetime = 0.8
+	_dust.emitting = false
+	_dust.direction = Vector3(0, 1, 0)
+	_dust.spread = 40.0
+	_dust.initial_velocity_min = 0.8
+	_dust.initial_velocity_max = 2.0
+	_dust.gravity = Vector3(0, 0.5, 0)
+	_dust.scale_amount_min = 0.5
+	_dust.scale_amount_max = 1.2
+	var m := SphereMesh.new()
+	m.radius = 0.25
+	m.height = 0.5
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.85, 0.8, 0.7, 0.55)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.material = mat
+	_dust.mesh = m
+	add_child(_dust)
 
 
 ## Headlights come on once it is properly dusky (0 = bright day .. 1 = dark night).
@@ -86,11 +124,14 @@ func setup() -> void:
 	seat.interact_radius = 3.2
 	add_child(seat)
 	_add_headlights()
+	_add_dust()
 	add_to_group("car")
 
 
 func drive(delta: float, throttle: float, steer_input: float, handbrake: bool) -> void:
 	speed = step_speed(speed, throttle, handbrake, delta)
+	if _dust:
+		_dust.emitting = dust_amount(speed, handbrake, steer_input) > 0.0
 	heading += turn_delta(speed, steer_input, delta)
 	rotation.y = heading
 	var fwd := Vector3(sin(heading), 0, cos(heading))
