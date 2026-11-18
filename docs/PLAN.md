@@ -16,7 +16,7 @@ Mark each item [x] when done and tested.
 - [x] Lockpick minigame, loot containers in homes, carry limit (v1: timing lockpick via E, prompt-text meter; drawer in each town home; carry limit 4; visual HUD meter still to do)
 - [x] Witness/alarm system, heat levels (v1: view-cone suspicion meter per NPC while picking, heat 0-3 decaying 1/day, HUD label; police response + hiding still to do)
 - [x] Lawful/Outlaw reputation, fence NPC buys stolen goods (v1: Shady Sal behind town buys loot at 50% +4%/Outlaw point; rep -10..10 saved; farm sales +0.5, fencing -1/item, alarm -1/heat; HUD shows title; police/hiding still to do)
-- [x] Police response (v1: Constable Bumble patrols town at heat 3, chases on sight at 6.4 speed, arrest = lose loot + 25% cash fine, heat drops to 1; hiding indoors makes him lose you; crouch/shadow hiding and closets still to do)
+- [x] Police response (v1: Constable Bumble patrols town at heat 3, chases on sight at 6.4 speed, arrest = lose loot + 25% cash fine, heat drops to 1; hiding indoors makes him lose you; crouch/shadow hiding DONE; closets DONE v1)
 ### Sprint 3 - Cars
 - [x] Buyable drivable car (v1: Honest Hank's dealer at (14,0,10.5), $400 sedan, E to enter/exit, WASD + Space handbrake, bicycle-model steering, thud on collision, parked position saved; fuel/engine sound/headlights still to do)
 - [x] Traffic basics (v1: 3 ambient TrafficCars loop two lanes of the town road, brake for anything ahead, wrap at ends; police car chase still to do)
@@ -79,3 +79,4 @@ Mark each item [x] when done and tested.
 - Crouch follow-up DONE (2026-11-18): crouch footsteps play at 25% volume (Sfx.step_volume). Research: stealth shadow-visibility search (links only: Game Developer 'building blocks of stealth play', Splinter Cell lighting). Next: shadow/night visibility bonus (night halves constable sight), closets in homes.
 - Stealth follow-up DONE (2026-11-18): night (20:00-6:00) halves constable sight range, stacks with crouch (Police.is_night, NIGHT_SIGHT_MULT). Research: none this run (small item, unattended). Next: closets in homes, search-radius cop behavior after losing you.
 - Cop search DONE v1 (2026-11-18): after losing you Bumble goes to your last seen spot and looks around 5s (Police.State.SEARCH) before resuming patrol; sees you again = chase. Next: closets in homes, search radius widening.
+- Closets DONE v1 (2026-11-18): each town home has a wardrobe (Closet node); E to hide, heat cools 3x (0.075/s) inside, auto-exit if you walk >2.2m away. Research: hiding-spot design (links only: DOORS wiki Hiding, Hello Neighbor wardrobes). Next: hide-in-closet camera/model hidden, NPC residents hunting you when heat high, search radius widening, closet creak noise risk.

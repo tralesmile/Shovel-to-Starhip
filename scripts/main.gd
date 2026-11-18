@@ -115,7 +115,9 @@ func _process(delta: float) -> void:
 	var chased: bool = _police != null and _police.state == Police.State.CHASE
 	var unseen := not chased and not (_police_car != null and _police_car.active) \
 		and not (_police != null and _police.sees_player(player.global_position, player.crouching, Game.time_of_day))
-	Game.cool_heat(delta, Police.is_hidden(player.global_position), chased, unseen, player.crouching)
+	if Game.in_closet and not _near_closet():
+		Game.in_closet = false
+	Game.cool_heat(delta, Police.is_hidden(player.global_position), chased, unseen, player.crouching, Game.in_closet)
 	if busted:
 		player.exit_car()
 		var r := Game.arrest()
@@ -366,6 +368,12 @@ func _build_interiors() -> void:
 		drawer.interact_radius = 1.5
 		inside["root"].add_child(drawer)
 		Buildings.solid_box(drawer, Vector3(1.0, 0.9, 0.5), Vector3(0, 0.45, 0), Art.WOOD.darkened(0.2))
+		var closet := Closet.new()
+		closet.name = "Closet_%d" % i
+		closet.position = Vector3(3.0, 0, -1.8)
+		closet.interact_radius = 1.5
+		inside["root"].add_child(closet)
+		Buildings.solid_box(closet, Vector3(1.0, 2.0, 0.6), Vector3(0, 1.0, 0), Art.WOOD.lightened(0.1))
 		var npc := Npc.new()
 		npc.name = "Npc_%d" % i
 		add_child(npc)
@@ -377,6 +385,13 @@ func _build_interiors() -> void:
 		npc.npc_name = h["name"]
 		npc.global_position = npc.home_spot
 		_npcs.append(npc)
+
+
+func _near_closet() -> bool:
+	for c in get_tree().get_nodes_in_group("closet"):
+		if not Closet.out_of_reach(player.global_position, (c as Node3D).global_position):
+			return true
+	return false
 
 
 func _build_police_car() -> void:

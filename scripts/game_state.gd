@@ -280,14 +280,16 @@ func add_heat(amount: float) -> void:
 ## `unseen` = in the open but out of every cop's line of sight: cools, slowly.
 ## `lying_low` is true while heat is actually cooling (HUD shows a hint).
 var lying_low := false
+var in_closet := false   ## hiding in a wardrobe (not saved)
+const CLOSET_COOL_MULT := 3.0
 
-func cool_heat(delta: float, hidden: bool, chased: bool, unseen: bool = false, crouched: bool = false) -> void:
+func cool_heat(delta: float, hidden: bool, chased: bool, unseen: bool = false, crouched: bool = false, closet: bool = false) -> void:
 	lying_low = false
 	if chased or heat <= 0.0:
 		return
 	lying_low = hidden or unseen
 	if hidden:
-		heat = maxf(0.0, heat - HIDE_COOL_PER_SEC * delta)
+		heat = maxf(0.0, heat - HIDE_COOL_PER_SEC * (CLOSET_COOL_MULT if closet else 1.0) * delta)
 	elif unseen:
 		heat = maxf(0.0, heat - (CROUCH_COOL_PER_SEC if crouched else OUT_COOL_PER_SEC) * delta)
 	if heat <= 0.0:

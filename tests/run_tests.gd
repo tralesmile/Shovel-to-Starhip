@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -806,4 +806,21 @@ func test_input_prompts() -> bool:
 		check(not "{" in InputPrompts.format(InputPrompts.HELP_TEMPLATE, dev), "help tokens resolve")
 	check("Left stick" in InputPrompts.format(InputPrompts.HELP_TEMPLATE, true), "help shows pad move label")
 	check("WASD" in InputPrompts.format(InputPrompts.HELP_TEMPLATE, false), "help shows key move label")
+	return true
+
+
+func test_closet() -> bool:
+	var c := Closet.new()
+	check(not game.in_closet, "not hiding at start")
+	c.interact(game)
+	check(game.in_closet, "E climbs into the wardrobe")
+	check(c.get_prompt(game).contains("Climb out"), "prompt offers climbing out")
+	c.interact(game)
+	check(not game.in_closet, "E again climbs out")
+	check(not Closet.out_of_reach(Vector3(1, 0, 0), Vector3.ZERO), "close player stays hidden")
+	check(Closet.out_of_reach(Vector3(5, 0, 0), Vector3.ZERO), "far player auto-exits")
+	game.heat = 2.0
+	game.cool_heat(10.0, true, false, false, false, true)
+	check(absf(game.heat - 1.25) < 0.001, "closet cools heat 3x faster than plain hiding")
+	c.free()
 	return true
