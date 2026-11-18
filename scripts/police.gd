@@ -26,8 +26,18 @@ const CATCH_DIST := 1.3
 const PATROL_SPEED := 2.6
 const CHASE_SPEED := 6.4      ## slower than sprinting (8.5), faster than walking (5.0)
 const LOSE_DIST := 24.0
-const SEARCH_TIME := 5.0  ## seconds he pokes around where he last saw you
+const SEARCH_TIME := 12.0  ## seconds he pokes around where he last saw you
 const SEARCH_SPEED := 3.6
+const SEARCH_RADIUS := 4.5  ## after checking the last spot he sweeps a ring this wide
+const SEARCH_POINTS := 4
+
+## Point `i` of the sweep around where the player was last seen (i=0 is the spot itself).
+static func search_point(center: Vector3, i: int) -> Vector3:
+	if i <= 0:
+		return center
+	var a := float(i - 1) / float(SEARCH_POINTS) * TAU
+	return center + Vector3(cos(a), 0.0, sin(a)) * SEARCH_RADIUS
+var search_i: int = 0
 
 var search_t: float = 0.0
 var last_seen := Vector3.ZERO
@@ -88,6 +98,7 @@ func update_police(delta: float, player_pos: Vector3, heat: float, crouched: boo
 	if prev == State.CHASE and state == State.PATROL:
 		state = State.SEARCH  # lost you: go check the last spot before resuming the beat
 		search_t = SEARCH_TIME
+		search_i = 0
 		last_seen = player_pos
 	if state == State.OFF:
 		visible = false
@@ -106,10 +117,12 @@ func update_police(delta: float, player_pos: Vector3, heat: float, crouched: boo
 			return true
 	elif state == State.SEARCH:
 		search_t -= delta
-		var s := last_seen - global_position
+		var s := search_point(last_seen, search_i) - global_position
 		s.y = 0.0
 		if s.length() > 1.0:
 			_move(s, SEARCH_SPEED * delta)
+		elif search_i < SEARCH_POINTS:
+			search_i += 1  # next spot on the sweep
 		else:
 			rotation.y += delta * 2.0  # look around
 		if search_t <= 0.0:

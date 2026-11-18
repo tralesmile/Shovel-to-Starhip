@@ -456,6 +456,10 @@ func test_police() -> bool:
 	check(Police.sight_range(true) < Police.sight_range(false), "crouching shortens police sight")
 	check(Police.sight_range(false, 0.95) < Police.sight_range(false, 0.5), "night shortens police sight")
 	check(is_equal_approx(Police.sight_range(true, 0.0), Police.SIGHT_RANGE * 0.25), "night + crouch stack")
+	var c0 := Vector3(10, 0, 5)
+	check(Police.search_point(c0, 0) == c0, "search starts at last seen spot")
+	check(is_equal_approx(Police.search_point(c0, 2).distance_to(c0), Police.SEARCH_RADIUS), "sweep points ring the last seen spot")
+	check(Police.search_point(c0, 1) != Police.search_point(c0, 3), "sweep points differ")
 	check(Police.is_night(0.9) and not Police.is_night(0.5), "night window")
 	check(InputMap.has_action("crouch"), "crouch action bound")
 	var cop := Police.new()
@@ -465,7 +469,7 @@ func test_police() -> bool:
 	cop.update_police(0.1, Vector3(60, 0, 0), 3.0)
 	check(cop.state == P.SEARCH, "losing you -> search last known spot")
 	check(cop.last_seen == Vector3(60, 0, 0), "remembers where he lost you")
-	for i in 60:
+	for i in 130:
 		cop.update_police(0.1, Vector3(60, 0, 0), 3.0)
 	check(cop.state == P.PATROL, "search times out -> back to patrol")
 	cop.state = P.SEARCH

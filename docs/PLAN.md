@@ -51,6 +51,7 @@ Mark each item [x] when done and tested.
 - Heat consequences: police NPC patrol at heat 3, shop price penalty at heat 2
 - Fence price should drop when heat is high (DONE v1: -20%/heat level above 1; daily cap DONE: 3 items/day) (fences get nervous) and fence stock/daily cap to avoid dumping (research: stolen-goods design threads)
 - Reputation effects: Lawful gets shop discount, Outlaw gets fence bonus + townsfolk barks
+- Cop search follow-ups (2026-11-18, links only: mosfetarium MaskedDetective devblog #2 on guard searching): check closets/hiding spots near last seen spot, search points chosen by nav reachability, give-up barks
 - Police heat cooling: heat should only decay once you are out of sight of police (search-and-lose, as in modern wanted-system write-ups), not just by day count
 - Police: add a second constable / car patrol once Sprint 3 cars land; crouch + shadows hiding still to do
 - Car follow-ups: speed-sensitive FOV/camera lag, tyre-screech dust particles, headlights at night, fuel (optional), traffic AI with lane waypoints, cops chase by car at heat 3 (Sprint 3 part 2)
