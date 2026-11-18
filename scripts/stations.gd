@@ -15,7 +15,7 @@ const ROCKET_PRICE := 1000000
 func get_prompt(game: GameState) -> String:
 	match kind:
 		Kind.SHOP:
-			var price: int = GameState.ITEMS[game.crop_seed_id()]["buy"] * SEED_PACK
+			var price: int = game.shop_price(game.crop_seed_id(), SEED_PACK)
 			return "[E] Buy %d %s seeds ($%d)  - [2] with seeds out switches type" % [SEED_PACK, game.selected_crop, price]
 		Kind.SELL_BIN:
 			var value := 0

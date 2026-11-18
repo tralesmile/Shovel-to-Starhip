@@ -51,7 +51,7 @@ Mark each item [x] when done and tested.
 - Hiding: crouch/shadow reduces witness fill rate; closets in homes (follow-up to witness meter)
 - Heat consequences: police NPC patrol at heat 3, shop price penalty at heat 2
 - Fence price should drop when heat is high (DONE v1: -20%/heat level above 1; daily cap DONE: 3 items/day) (fences get nervous) and fence stock/daily cap to avoid dumping (research: stolen-goods design threads)
-- Reputation effects: Lawful gets shop discount, Outlaw gets fence bonus + townsfolk barks
+- Reputation effects: Lawful shop discount DONE v1 (2%/pt, max 20%) + heat surcharge 10%/level above 1 (2026-11-18); still:  Outlaw gets fence bonus + townsfolk barks
 - Cop search follow-ups (2026-11-18, links only: mosfetarium MaskedDetective devblog #2 on guard searching): check closets/hiding spots near last seen spot, search points chosen by nav reachability, give-up barks (give-up barks DONE)
 - Police heat cooling: heat should only decay once you are out of sight of police (search-and-lose, as in modern wanted-system write-ups), not just by day count
 - Police: add a second constable / car patrol once Sprint 3 cars land; crouch + shadows hiding still to do

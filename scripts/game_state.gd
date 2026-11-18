@@ -159,8 +159,18 @@ func item_name(item_id: String) -> String:
 	return ITEMS.get(item_id, {}).get("name", item_id)
 
 
+## Shop price multiplier: Lawful folks get 2% off per point (max 20%), shopkeepers
+## add 10% per heat level above 1 ("hot goods surcharge").
+func shop_multiplier() -> float:
+	return 1.0 - 0.02 * maxf(0.0, reputation) + 0.1 * maxf(0.0, heat - 1.0)
+
+
+func shop_price(item_id: String, amount: int = 1) -> int:
+	return int(round(float(ITEMS[item_id]["buy"] * amount) * shop_multiplier()))
+
+
 func buy(item_id: String, amount: int = 1) -> bool:
-	var price: int = ITEMS[item_id]["buy"] * amount
+	var price: int = shop_price(item_id, amount)
 	if not spend(price):
 		return false
 	add_item(item_id, amount)
