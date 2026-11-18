@@ -44,6 +44,12 @@ static func surface_at(pos: Vector3) -> String:
 	return "grass"
 
 
+## Footstep loudness (linear): crouched sneaking is a quarter as loud.
+const CROUCH_STEP_VOL := 0.25
+static func step_volume(crouched: bool) -> float:
+	return CROUCH_STEP_VOL if crouched else 1.0
+
+
 static func step_kind(surface: String) -> String:
 	match surface:
 		"wood":
@@ -121,7 +127,7 @@ func _process(delta: float) -> void:
 		var r := step_progress(_step_dist, flat * delta)
 		_step_dist = r[0]
 		if r[1]:
-			play(step_kind(surface_at(pl.global_position)))
+			play(step_kind(surface_at(pl.global_position)), step_volume(bool(pl.get("crouching"))))
 
 
 ## Builds a 16-bit mono WAV for a named effect. Pure function, deterministic.
@@ -170,12 +176,13 @@ static func pitch_jitter(r: float) -> float:
 	return 0.95 + clampf(r, 0.0, 1.0) * 0.10
 
 
-func play(kind: String) -> void:
+func play(kind: String, volume: float = 1.0) -> void:
 	if not _cache.has(kind):
 		_cache[kind] = make(kind)
 	for pl in _players:
 		if not pl.playing:
 			pl.stream = _cache[kind]
 			pl.pitch_scale = pitch_jitter(randf())
+			pl.volume_db = linear_to_db(maxf(volume, 0.0001))
 			pl.play()
 			return

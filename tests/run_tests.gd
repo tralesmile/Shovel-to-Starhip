@@ -631,6 +631,7 @@ func test_steps() -> bool:
 	check(r[1] and r[0] < Sfx.STEP_LENGTH, "step due after stride")
 	check(Sfx.surface_at(Vector3(0, 0, 0)) == "grass" and Sfx.surface_at(Vector3(10, 0, 16)) == "road" and Sfx.surface_at(Vector3(405, 0, 3)) == "wood", "surface lookup")
 	check(Sfx.step_kind("wood") == "step_wood" and Sfx.step_kind("road") == "step_road" and Sfx.step_kind("grass") == "step" and Sfx.step_kind("?") == "step", "step kinds")
+	check(Sfx.step_volume(true) < Sfx.step_volume(false) and is_equal_approx(Sfx.step_volume(false), 1.0), "crouch steps quieter")
 	check(Sfx.KINDS.has("chop") and Sfx.KINDS.has("splash") and Sfx.KINDS.has("step"), "new kinds exist")
 	return true
 
