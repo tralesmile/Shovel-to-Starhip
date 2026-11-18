@@ -99,6 +99,8 @@ func _ready() -> void:
 
 var _creak_t := 0.0
 var _creak_n := 0
+var _bark_t := 0.0
+var _bark_n := 0
 
 
 func _process(delta: float) -> void:
@@ -110,6 +112,7 @@ func _process(delta: float) -> void:
 	for n in _npcs:
 		n.update_routine(Game.time_of_day, delta)
 	_update_witnesses(delta)
+	_update_barks(delta)
 	var busted := false
 	if _police and _police.update_police(delta, player.global_position, Game.heat, player.crouching, Game.time_of_day):
 		busted = true
@@ -840,3 +843,16 @@ func _build_bounds() -> void:
 	for p in [Vector3(-78, -5, 0), Vector3(78, -5, 0)]:
 		var w := Art.solid_box(self, p, Vector3(1, 40, 160), Color(0, 0, 0, 0))
 		w.get_child(1).visible = false
+
+
+func _update_barks(delta: float) -> void:
+	var near_npc: Npc = null
+	for n in _npcs:
+		if not n.indoors and n.global_position.distance_to(player.global_position) < 4.0:
+			near_npc = n
+			break
+	var r := Npc.bark_tick(_bark_t, delta, near_npc != null and player.vehicle == null)
+	_bark_t = r["timer"]
+	if r["fire"]:
+		_bark_n += 1
+		Game.say("%s: \"%s\"" % [near_npc.npc_name, Npc.bark(Game.reputation, _bark_n)])

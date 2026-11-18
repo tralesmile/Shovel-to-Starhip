@@ -65,3 +65,26 @@ func can_witness() -> bool:
 func _play(anim: String) -> void:
 	if _anim and _anim.has_animation(anim) and _anim.current_animation != anim:
 		_anim.play(anim)
+
+
+const BARKS_LAWFUL := ["Ah, our favourite upstanding turnip enthusiast!", "Morning! Your halo is looking freshly polished.", "If everyone were like you, I could retire my door lock."]
+const BARKS_NEUTRAL := ["Lovely weather for minding my own business.", "Hello there. Nothing suspicious here. Or there.", "Nice shovel. Very... shovel-y."]
+const BARKS_OUTLAW := ["I'm watching my spoons. All of them.", "Oh no, it's *you*. Hide the good cutlery!", "Nice night for a stroll. Please stay out of my drawers."]
+
+
+## Reputation-flavoured greeting; idx wraps so callers can rotate lines.
+static func bark(reputation: float, idx: int) -> String:
+	var pool: Array = BARKS_NEUTRAL
+	if reputation >= 3.0:
+		pool = BARKS_LAWFUL
+	elif reputation <= -3.0:
+		pool = BARKS_OUTLAW
+	return pool[posmod(idx, pool.size())]
+
+
+## Pure cooldown: returns {"timer", "fire"}; fires when near and the timer has run out.
+static func bark_tick(timer: float, delta: float, near: bool, cooldown: float = 25.0) -> Dictionary:
+	var t := maxf(0.0, timer - delta)
+	if near and t <= 0.0:
+		return {"timer": cooldown, "fire": true}
+	return {"timer": t, "fire": false}

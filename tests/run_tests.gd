@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -893,4 +893,15 @@ func test_shop_rep() -> bool:
 	g.money = 1000
 	g.buy(g.crop_seed_id(), 5)
 	check(g.money == 1000 - g.shop_price(g.crop_seed_id(), 5), "buy charges discounted price")
+	return true
+
+
+func test_npc_barks() -> bool:
+	check(Npc.bark(5.0, 0) == Npc.BARKS_LAWFUL[0], "Lawful gets friendly barks")
+	check(Npc.bark(-5.0, 1) == Npc.BARKS_OUTLAW[1], "Outlaw gets wary barks")
+	check(Npc.bark(0.0, 3) == Npc.BARKS_NEUTRAL[0] and Npc.bark(0.0, -1) != "", "neutral wraps index safely")
+	var t := Npc.bark_tick(0.0, 1.0, true)
+	check(t["fire"] and t["timer"] == 25.0, "fires when near with no cooldown")
+	check(not Npc.bark_tick(10.0, 1.0, true)["fire"], "cooldown suppresses barks")
+	check(not Npc.bark_tick(0.0, 1.0, false)["fire"], "no bark when nobody is near")
 	return true
