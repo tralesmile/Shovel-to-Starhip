@@ -133,7 +133,7 @@ func _update_witnesses(delta: float) -> void:
 	for n in _npcs:
 		var seen := crime and n.can_witness() and Witness.can_see(n.global_position, n.rotation.y, player.global_position)
 		var d := n.global_position.distance_to(player.global_position)
-		if n.witness.update(delta, seen, d):
+		if n.witness.update(delta, seen, d, player.crouching):
 			Game.add_heat(1.0)
 			Game.say("%s: \"HEY! Is that MY spoon?!\"  Heat: %s" % [n.npc_name, Game.heat_name()])
 		Game.crime_suspicion = maxf(Game.crime_suspicion, n.witness.suspicion)

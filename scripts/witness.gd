@@ -8,6 +8,7 @@ const RANGE := 9.0
 const FOV_DEG := 120.0
 const FILL_PER_SEC := 0.9       ## at point blank
 const DRAIN_PER_SEC := 0.35
+const CROUCH_FILL_MULT := 0.5   ## crouching halves how fast watchers get suspicious
 
 var suspicion: float = 0.0
 
@@ -28,10 +29,10 @@ static func can_see(pos: Vector3, facing_y: float, target: Vector3, view_range: 
 
 
 ## Advance the meter. Returns true on the tick it reaches full (alarm), then resets.
-func update(delta: float, seen: bool, distance: float = 0.0) -> bool:
+func update(delta: float, seen: bool, distance: float = 0.0, crouched: bool = false) -> bool:
 	if seen:
 		var close := clampf(1.0 - distance / RANGE, 0.15, 1.0)
-		suspicion += FILL_PER_SEC * close * delta
+		suspicion += FILL_PER_SEC * close * (CROUCH_FILL_MULT if crouched else 1.0) * delta
 	else:
 		suspicion -= DRAIN_PER_SEC * delta
 	suspicion = clampf(suspicion, 0.0, 1.0)

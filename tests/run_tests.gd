@@ -328,6 +328,11 @@ func test_witness_meter() -> bool:
 	far.update(0.5, true, 8.0)
 	near.update(0.5, true, 1.0)
 	check(near.suspicion > far.suspicion, "closer fills faster")
+	var stand := Witness.new()
+	var sneak := Witness.new()
+	stand.update(0.5, true, 3.0)
+	sneak.update(0.5, true, 3.0, true)
+	check(is_equal_approx(sneak.suspicion, stand.suspicion * Witness.CROUCH_FILL_MULT), "crouching halves suspicion fill")
 	var alarm := false
 	for i in 100:
 		alarm = alarm or w.update(0.1, true, 1.0)
