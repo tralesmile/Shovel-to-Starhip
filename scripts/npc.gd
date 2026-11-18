@@ -75,11 +75,31 @@ const BARKS_OUTLAW := ["I'm watching my spoons. All of them.", "Oh no, it's *you
 const BARKS_LOOT := ["Is that a gnome in your pocket, or are you just happy to see me?", "That bulge in your coat is clinking. Suspiciously.", "Lovely loot... I mean, lovely day!"]
 
 
+## Per-NPC personality lines, used every other bark so each townsperson feels distinct.
+const BARKS_PERSONAL := {
+	"Pip": ["Did you know turnips have feelings? Mine told me.", "I'm not short, I'm aerodynamic!"],
+	"Dame Gertrude": ["In my day we stole turnips uphill both ways.", "Back, citizen! ...Oh, it's you. Carry on."],
+	"Bork": ["Bork. That is all. That is the bark.", "I sniffed a mystery today. It was soup."],
+}
+
+
+## Name-specific line; empty for unknown names. Wraps idx.
+static func personal_bark(npc_name: String, idx: int) -> String:
+	if not BARKS_PERSONAL.has(npc_name):
+		return ""
+	var pool: Array = BARKS_PERSONAL[npc_name]
+	return pool[posmod(idx, pool.size())]
+
+
 ## Reputation-flavoured greeting; idx wraps so callers can rotate lines.
 ## Carrying stolen goods overrides the reputation pool (everyone notices the clinking).
-static func bark(reputation: float, idx: int, carrying_loot: bool = false) -> String:
+static func bark(reputation: float, idx: int, carrying_loot: bool = false, npc_name: String = "") -> String:
 	if carrying_loot:
 		return BARKS_LOOT[posmod(idx, BARKS_LOOT.size())]
+	if idx % 2 == 1:
+		var own := personal_bark(npc_name, idx / 2)
+		if own != "":
+			return own
 	var pool: Array = BARKS_NEUTRAL
 	if reputation >= 3.0:
 		pool = BARKS_LAWFUL
