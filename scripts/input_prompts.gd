@@ -3,12 +3,12 @@ extends Node
 ## Tracks the last used input device and turns {action} tokens in text into key or pad labels.
 
 const KEY_LABELS := {
-	"interact": "E", "jump": "Space", "sprint": "Shift", "help": "H", "save": "F5", "pause": "Esc",
+	"interact": "E", "jump": "Space", "sprint": "Shift", "crouch": "C", "help": "H", "save": "F5", "pause": "Esc",
 	"tool_1": "1", "tool_2": "2", "tool_3": "3", "tool_4": "4", "interact_click": "Click",
 	"move": "WASD", "look": "Mouse", "tools": "1-4", "use": "E / Left click",
 }
 const PAD_LABELS := {
-	"interact": "X", "jump": "A", "sprint": "L3", "help": "Y", "save": "F5", "pause": "Start",
+	"interact": "X", "jump": "A", "sprint": "L3", "crouch": "B", "help": "Y", "save": "F5", "pause": "Start",
 	"tool_1": "D-pad Up", "tool_2": "D-pad Right", "tool_3": "D-pad Down", "tool_4": "D-pad Left",
 	"interact_click": "RB",
 	"move": "Left stick", "look": "Right stick", "tools": "D-pad", "use": "X / RB",
@@ -16,7 +16,7 @@ const PAD_LABELS := {
 
 const HELP_TEMPLATE := """SHOVEL TO STARSHIP  —  prototype 0.3
 
-{move}  walk      {sprint}  run      {jump}  jump
+{move}  walk      {sprint}  run      {crouch}  sneak      {jump}  jump
 {look}  look     Wheel  zoom
 {tools}  pick tool  {use}  use it
 

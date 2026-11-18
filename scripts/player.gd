@@ -5,6 +5,8 @@ extends CharacterBody3D
 
 const WALK_SPEED := 5.0
 const RUN_SPEED := 8.5
+const CROUCH_SPEED := 2.6
+var crouching: bool = false
 const JUMP_VELOCITY := 5.0
 const MOUSE_SENS := 0.0035
 
@@ -239,7 +241,9 @@ func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var basis_yaw := Basis(Vector3.UP, _yaw)
 	var dir := (basis_yaw * Vector3(input.x, 0, input.y))
-	var speed := RUN_SPEED if Input.is_action_pressed("sprint") else WALK_SPEED
+	crouching = Input.is_action_pressed("crouch") and is_on_floor()
+	var speed := CROUCH_SPEED if crouching else (RUN_SPEED if Input.is_action_pressed("sprint") else WALK_SPEED)
+	_model.scale.y = lerpf(_model.scale.y, 0.7 if crouching else 1.0, 12.0 * delta)
 	if global_position.y < Terrain.WATER_LEVEL + 0.2:
 		speed *= 0.45   # wading through the pond
 	if dir.length() > 0.01:

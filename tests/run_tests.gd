@@ -382,6 +382,11 @@ func test_fence_reputation() -> bool:
 	check(absf(game.heat - 1.75) < 0.001, "hiding indoors cools heat")
 	game.cool_heat(10.0, false, false, true)
 	check(absf(game.heat - 1.67) < 0.001, "out of sight in the open cools slowly")
+	game.cool_heat(10.0, false, false, true, true)
+	check(absf(game.heat - 1.53) < 0.001, "crouching out of sight cools faster than standing")
+	game.cool_heat(10.0, true, false, true, true)
+	check(absf(game.heat - 1.28) < 0.001, "indoors cooling ignores crouch")
+	game.heat = 1.67
 	game.cool_heat(10.0, false, true, true)
 	check(absf(game.heat - 1.67) < 0.001, "no outdoor cooling while chased")
 	check(game.lying_low == false, "chased is not lying low")
@@ -422,6 +427,8 @@ func test_police() -> bool:
 	check(Police.next_state(P.CHASE, 1.0, true, false, 5.0) == P.OFF, "heat cooled -> police go home")
 	check(Police.is_hidden(Buildings.interior_origin(0)), "interior counts as hiding")
 	check(not Police.is_hidden(Vector3(0, 0, 8)), "outside is not hiding")
+	check(Police.sight_range(true) < Police.sight_range(false), "crouching shortens police sight")
+	check(InputMap.has_action("crouch"), "crouch action bound")
 	game.money = 200
 	game.add_loot("gold_spoon")
 	game.add_heat(3.0)

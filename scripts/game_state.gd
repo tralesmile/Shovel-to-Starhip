@@ -80,6 +80,7 @@ const FENCE_HEAT_PENALTY := 0.2  ## price cut per heat level above 1
 const MAX_HEAT := 3.0
 const HEAT_DECAY_PER_DAY := 1.0
 const OUT_COOL_PER_SEC := 0.008  ## slower cooling in the open while no cop has line of sight (125s per level)
+const CROUCH_COOL_PER_SEC := 0.014  ## out-of-sight cooling while crouched in the open (~70s per level)
 const HIDE_COOL_PER_SEC := 0.025  ## heat shed per second while out of sight (40s per level)
 const HEAT_NAMES := ["Clean as a turnip", "Raised eyebrows", "Angry whispers", "Pitchforks (pending)"]
 
@@ -280,7 +281,7 @@ func add_heat(amount: float) -> void:
 ## `lying_low` is true while heat is actually cooling (HUD shows a hint).
 var lying_low := false
 
-func cool_heat(delta: float, hidden: bool, chased: bool, unseen: bool = false) -> void:
+func cool_heat(delta: float, hidden: bool, chased: bool, unseen: bool = false, crouched: bool = false) -> void:
 	lying_low = false
 	if chased or heat <= 0.0:
 		return
@@ -288,7 +289,7 @@ func cool_heat(delta: float, hidden: bool, chased: bool, unseen: bool = false) -
 	if hidden:
 		heat = maxf(0.0, heat - HIDE_COOL_PER_SEC * delta)
 	elif unseen:
-		heat = maxf(0.0, heat - OUT_COOL_PER_SEC * delta)
+		heat = maxf(0.0, heat - (CROUCH_COOL_PER_SEC if crouched else OUT_COOL_PER_SEC) * delta)
 	if heat <= 0.0:
 		lying_low = false
 
@@ -435,6 +436,7 @@ func setup_input() -> void:
 	_key_action("move_right", [KEY_D, KEY_RIGHT])
 	_key_action("jump", [KEY_SPACE])
 	_key_action("sprint", [KEY_SHIFT])
+	_key_action("crouch", [KEY_C, KEY_CTRL])
 	_key_action("interact", [KEY_E])
 	_key_action("tool_1", [KEY_1])
 	_key_action("tool_2", [KEY_2])
@@ -454,7 +456,7 @@ func setup_input() -> void:
 ## Gamepad bindings (Xbox layout; Godot maps other pads to it). Adds to existing actions.
 const PAD_BUTTONS := {
 	"jump": [JOY_BUTTON_A], "interact": [JOY_BUTTON_X], "interact_click": [JOY_BUTTON_RIGHT_SHOULDER],
-	"sprint": [JOY_BUTTON_LEFT_STICK], "help": [JOY_BUTTON_Y], "pause": [JOY_BUTTON_START],
+	"sprint": [JOY_BUTTON_LEFT_STICK], "crouch": [JOY_BUTTON_B], "help": [JOY_BUTTON_Y], "pause": [JOY_BUTTON_START],
 	"tool_1": [JOY_BUTTON_DPAD_UP], "tool_2": [JOY_BUTTON_DPAD_RIGHT],
 	"tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT],
 }

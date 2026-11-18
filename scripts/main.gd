@@ -107,15 +107,15 @@ func _process(delta: float) -> void:
 		n.update_routine(Game.time_of_day, delta)
 	_update_witnesses(delta)
 	var busted := false
-	if _police and _police.update_police(delta, player.global_position, Game.heat):
+	if _police and _police.update_police(delta, player.global_position, Game.heat, player.crouching):
 		busted = true
 	if _police_car and _police_car.update_chase(delta, player.global_position, Game.heat, player.vehicle != null):
 		busted = true
 		Game.say("Squad car: \"Pull over! Your tyres look suspiciously stolen!\"")
 	var chased: bool = _police != null and _police.state == Police.State.CHASE
 	var unseen := not chased and not (_police_car != null and _police_car.active) \
-		and not (_police != null and _police.sees_player(player.global_position))
-	Game.cool_heat(delta, Police.is_hidden(player.global_position), chased, unseen)
+		and not (_police != null and _police.sees_player(player.global_position, player.crouching))
+	Game.cool_heat(delta, Police.is_hidden(player.global_position), chased, unseen, player.crouching)
 	if busted:
 		player.exit_car()
 		var r := Game.arrest()
