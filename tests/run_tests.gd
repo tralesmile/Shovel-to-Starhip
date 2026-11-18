@@ -857,5 +857,8 @@ func test_closet() -> bool:
 	check(Closet.model_visible(false, false), "model drawn in the open")
 	check(not Closet.model_visible(true, false), "model hidden in wardrobe")
 	check(not Closet.model_visible(false, true), "model hidden while driving")
+	check(Closet.camera_zoom(true, 7.0) == Closet.PEEK_ZOOM, "closet pulls camera in tight")
+	check(Closet.camera_zoom(false, 7.0) == 7.0, "normal zoom outside closet")
+	check(Closet.camera_zoom(true, 1.5) == 1.5, "closet never zooms out past a tight zoom")
 	c.free()
 	return true

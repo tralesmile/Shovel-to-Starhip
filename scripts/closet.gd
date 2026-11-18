@@ -31,3 +31,10 @@ static func out_of_reach(player_pos: Vector3, closet_pos: Vector3) -> bool:
 ## The player model is only drawn when walking about in the open (not driving, not in a wardrobe).
 static func model_visible(in_closet: bool, driving: bool) -> bool:
 	return not in_closet and not driving
+
+
+## Camera arm length: peeks out from the coats (tight) while hiding, normal zoom otherwise.
+const PEEK_ZOOM := 2.2
+
+static func camera_zoom(in_closet: bool, normal_zoom: float) -> float:
+	return minf(PEEK_ZOOM, normal_zoom) if in_closet else normal_zoom

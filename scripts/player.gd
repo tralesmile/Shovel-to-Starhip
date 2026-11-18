@@ -280,7 +280,7 @@ func _physics_process(delta: float) -> void:
 func _update_camera(delta: float) -> void:
 	_pivot.global_position = _pivot.global_position.lerp(global_position + Vector3(0, 1.4, 0), 12.0 * delta)
 	_pivot.rotation = Vector3(_pitch, _yaw, 0)
-	_arm.spring_length = lerp(_arm.spring_length, _zoom, 8.0 * delta)
+	_arm.spring_length = lerp(_arm.spring_length, Closet.camera_zoom(Game.in_closet, _zoom), 8.0 * delta)
 	_trauma = max(0.0, _trauma - delta * 1.5)
 	var k := _trauma * _trauma
 	camera.h_offset = randf_range(-1, 1) * 0.25 * k
