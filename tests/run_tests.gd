@@ -843,5 +843,8 @@ func test_closet() -> bool:
 	game.heat = 2.0
 	game.cool_heat(10.0, true, false, false, false, true)
 	check(absf(game.heat - 1.25) < 0.001, "closet cools heat 3x faster than plain hiding")
+	check(Closet.model_visible(false, false), "model drawn in the open")
+	check(not Closet.model_visible(true, false), "model hidden in wardrobe")
+	check(not Closet.model_visible(false, true), "model hidden while driving")
 	c.free()
 	return true

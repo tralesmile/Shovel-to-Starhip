@@ -117,6 +117,7 @@ func _process(delta: float) -> void:
 		and not (_police != null and _police.sees_player(player.global_position, player.crouching, Game.time_of_day))
 	if Game.in_closet and not _near_closet():
 		Game.in_closet = false
+	player.set_model_shown(Closet.model_visible(Game.in_closet, player.vehicle != null))
 	Game.cool_heat(delta, Police.is_hidden(player.global_position), chased, unseen, player.crouching, Game.in_closet)
 	if busted:
 		player.exit_car()

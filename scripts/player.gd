@@ -154,6 +154,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			Game.set_tool(i)
 
 
+## Show/hide the character model (hidden while in a wardrobe or driving).
+func set_model_shown(shown: bool) -> void:
+	if _model != null:
+		_model.visible = shown
+
+
 func enter_car(car: Car) -> void:
 	if vehicle != null:
 		return

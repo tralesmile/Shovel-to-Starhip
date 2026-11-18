@@ -26,3 +26,8 @@ func interact(game: GameState) -> void:
 ## True when the player has wandered too far from the closet to still be inside.
 static func out_of_reach(player_pos: Vector3, closet_pos: Vector3) -> bool:
 	return player_pos.distance_to(closet_pos) > EXIT_DIST
+
+
+## The player model is only drawn when walking about in the open (not driving, not in a wardrobe).
+static func model_visible(in_closet: bool, driving: bool) -> bool:
+	return not in_closet and not driving
