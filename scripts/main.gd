@@ -101,6 +101,7 @@ var _creak_t := 0.0
 var _creak_n := 0
 var _bark_t := 0.0
 var _bark_n := 0
+var _bark_last := ""
 
 
 func _process(delta: float) -> void:
@@ -855,4 +856,7 @@ func _update_barks(delta: float) -> void:
 	_bark_t = r["timer"]
 	if r["fire"]:
 		_bark_n += 1
-		Game.say("%s: \"%s\"" % [near_npc.npc_name, Npc.bark(Game.reputation, _bark_n, Game.loot_count() > 0, near_npc.npc_name, Police.is_night(Game.time_of_day))])
+		var fb := Npc.fresh_bark(Game.reputation, _bark_n, _bark_last, Game.loot_count() > 0, near_npc.npc_name, Police.is_night(Game.time_of_day))
+		_bark_n = fb["idx"]
+		_bark_last = fb["line"]
+		Game.say("%s: \"%s\"" % [near_npc.npc_name, fb["line"]])

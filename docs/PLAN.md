@@ -41,7 +41,7 @@ Mark each item [x] when done and tested.
 - Surface-aware footsteps (grass/wood floor/road) via ground raycast group lookup (Godot 4 reactive footsteps idea, itch.io blog); car engine pitch from speed
 - Audio: sfxr-style parameter presets (GodotSfxr/gdfxr exist) for chop, splash, lockpick click, car engine pitch via AudioStreamGenerator; randomise pitch +-5% per play to avoid repetition
 - Performance profiling pass for High mode
-- Funny writing: NPC barks (night barks DONE), item descriptions, news ticker; still: no-repeat bark memory
+- Funny writing: NPC barks (night barks DONE), item descriptions, news ticker; no-repeat bark memory DONE (Npc.fresh_bark)
 - Accessibility options (colour-blind, subtitles, key rebinding)
 - Data-driven NPC schedules (list of {from_hour, to_hour, place}) so each NPC can have custom routines, shop hours and events (idea from Godot forum schedule threads)
 - Interior polish: furniture props from KayKit packs, door open animation, fade-to-black on enter/exit
@@ -88,3 +88,4 @@ Mark each item [x] when done and tested.
 - Townsfolk barks DONE v1 (2026-11-18): reputation-flavoured greetings from nearby outdoor NPCs (Npc.bark). Next: Outlaw-only dialogue, NPC-specific lines.
 - Loot barks DONE (2026-11-18): townsfolk comment on your clinking pockets when you carry stolen goods (Npc.BARKS_LOOT overrides rep pool). Next: NPC-specific lines, Outlaw-only dialogue choices.
 - Personal barks DONE (2026-11-18): Pip/Dame Gertrude/Bork each have own lines on odd barks (Npc.BARKS_PERSONAL). Research: Game Developer 'Adding life to worlds with dialogue barks' (links only) -> idea: avoid repeating last-used line per NPC, context barks by time of day/weather. Next: Outlaw-only dialogue choices, no-repeat bark memory.
+- No-repeat barks DONE (2026-11-18): Npc.fresh_bark skips ahead so the same line never plays twice running. Next: Outlaw-only dialogue options, per-NPC last-line memory.

@@ -113,6 +113,18 @@ static func bark(reputation: float, idx: int, carrying_loot: bool = false, npc_n
 	return pool[posmod(idx, pool.size())]
 
 
+## Like bark(), but skips ahead so the same line never plays twice in a row.
+## Returns {"idx": index actually used, "line": text}.
+static func fresh_bark(reputation: float, idx: int, last_line: String, carrying_loot: bool = false, npc_name: String = "", night: bool = false) -> Dictionary:
+	var line := bark(reputation, idx, carrying_loot, npc_name, night)
+	var tries := 0
+	while line == last_line and tries < 8:
+		idx += 1
+		tries += 1
+		line = bark(reputation, idx, carrying_loot, npc_name, night)
+	return {"idx": idx, "line": line}
+
+
 ## Pure cooldown: returns {"timer", "fire"}; fires when near and the timer has run out.
 static func bark_tick(timer: float, delta: float, near: bool, cooldown: float = 25.0) -> Dictionary:
 	var t := maxf(0.0, timer - delta)
