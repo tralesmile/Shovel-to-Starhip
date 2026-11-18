@@ -30,6 +30,36 @@ Mark each item [x] when done and tested.
 - [ ] Main menu, settings, tutorial, controller basic support (settings DONE via ESC menu; v1 tutorial hints DONE: 5 event-driven tips on new games; controller basic support DONE (gamepad bindings + right-stick camera, 0.2 deadzone); v1 main menu DONE (title screen: Continue/New Game/Quit, pauses tree, pad-focusable); v1 pad/key prompts DONE (InputPrompts tracks last device, tutorial tips use {action} tokens); HUD interact prompts DONE ([E] tag swaps to pad label); help panel prompts DONE (live-swapping tokens))
 - [ ] Demo-ready build (v1 groundwork DONE: boot smoke test tests/smoke_boot.gd, Windows export verified working with 4.7.1 templates (116MB exe), docs/DEMO_CHECKLIST.md; demo-shell Send Feedback button DONE (opens GitHub issues; wishlist link once a Steam page exists); still to do: owner manual smoke pass, release zip + READ_ME)
 
+## Phase 1.6 - Depth, feel and story (owner request 2026-11-18; keep ALL core ideas, this adds to them)
+Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Keeper, Terraria, Palworld, GTA-lite, Cassette Beasts) while keeping the lighthearted shovel-to-starship idea. Every run: at least one item from "Feel" and one from "Graphics/Physics", plus one from "Make things".
+### Gather and break (physics-based)
+- [ ] Tree felling: chopping hits fill a damage meter, then the tree FALLS as a rigid body in the chop direction, splits into logs (RigidBody3D), logs can be chopped again into planks/firewood, stump remains and regrows over days
+- [ ] Pick up anything from the ground (E / auto-magnet when close): logs, stones, ore, herbs, dropped items with bounce, pop and a small pickup arc
+- [ ] Mining: ore rocks with hit stages that crack and break into chunks/ore pieces (rigid bodies), pickaxe tiers, small caves/mine area, gems
+- [ ] Carry system: heavy items (logs, rocks) slow you; wheelbarrow/cart/car trunk to haul
+### Animals and riding
+- [ ] Hunting (simple wildlife that flees, drops meat/hide; bow or slingshot), cooking
+- [ ] Taming: feed/befriend wild animals, pets that follow and help (find loot, carry), farm animals with products
+- [ ] Riding: horse/ostrich/goat mount (walk/run/gallop, stamina, jump), later dinosaur on the jungle planet
+### Movement feel
+- [ ] Walk/run/sprint with stamina, acceleration curves, jump + coyote time, slopes, camera shake/FOV on sprint, footstep dust
+- [ ] Better car physics (suspension, drifting, damage), boat, bike
+### Make things (creative core)
+- [ ] Workbench + crafting recipes (tools, furniture, fences), blueprint unlocks
+- [ ] Build mode: place walls/floors/roofs on a grid, build your own house, decorate; snap, rotate, demolish refund
+- [ ] Vehicle builder: attach parts (wheels, engine, body, thrusters) to make cars -> boats -> the starship (ties to the rocket goal)
+- [ ] Tool upgrades and invention bench (combine parts into funny gadgets)
+### World and story
+- [ ] Bigger world: chunked/streamed terrain, biomes (meadow, forest, quarry, beach, desert), landmarks, day/night + weather
+- [ ] Story spine: "Gran's busted rocket": 5 acts (farm money -> town trust or infamy -> parts quests -> build the starship -> Moon). Quest log, memorable funny NPC arcs, 2 endings (Lawful hero / Notorious legend)
+- [ ] Jobs and side activities: delivery, fishing contests, racing, treasure maps
+### Graphics and physics polish (every run, pick one)
+- [ ] Lighting: SSAO/SSIL, soft shadows, fog, bloom, colour grading per time of day
+- [ ] Better vegetation (wind sway shader, grass density), water shader with foam, particles (dust, leaves, sparks)
+- [ ] Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
+- [ ] Ragdoll or physics props for crates, barrels, fences; destructible small props
+- [ ] LOD/occlusion and performance budget (60 fps Low mode)
+
 ## Phase 2 - Earth Early Access: larger town, building your own house, animals (catch/keep/resources), clothes, weapons/combat, car building, more jobs, racing.
 ## Phase 3 - Rocket + Moon open world.
 ## Phase 4 - Jungle planet with dinosaurs, catchable and usable.
