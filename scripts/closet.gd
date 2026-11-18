@@ -38,3 +38,26 @@ const PEEK_ZOOM := 2.2
 
 static func camera_zoom(in_closet: bool, normal_zoom: float) -> float:
 	return minf(PEEK_ZOOM, normal_zoom) if in_closet else normal_zoom
+
+
+## Funny wardrobe creaks while you hide (the constable never enters homes, so these are flavour, not risk).
+const CREAK_EVERY := 9.0
+const CREAK_LINES := [
+	"*creeeak* The wardrobe has opinions about your weight.",
+	"*creak* A coat hanger whispers: 'you could have just gone home.'",
+	"*thump* You have sat on a shoe. The shoe forgives you. Mostly.",
+	"*creeeak* Somewhere a moth clears its throat.",
+]
+
+static func creak_line(i: int) -> String:
+	return CREAK_LINES[posmod(i, CREAK_LINES.size())]
+
+
+## Advances the creak timer while hiding; returns the new timer and whether to creak now.
+static func creak_tick(timer: float, delta: float, in_closet: bool) -> Dictionary:
+	if not in_closet:
+		return {"timer": 0.0, "creak": false}
+	timer += delta
+	if timer >= CREAK_EVERY:
+		return {"timer": 0.0, "creak": true}
+	return {"timer": timer, "creak": false}

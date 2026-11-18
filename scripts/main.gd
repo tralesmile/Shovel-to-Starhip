@@ -97,6 +97,10 @@ func _ready() -> void:
 		add_child(title_menu)
 
 
+var _creak_t := 0.0
+var _creak_n := 0
+
+
 func _process(delta: float) -> void:
 	for c in _clouds:
 		c.position.x += delta * 0.8
@@ -117,6 +121,11 @@ func _process(delta: float) -> void:
 		and not (_police != null and _police.sees_player(player.global_position, player.crouching, Game.time_of_day))
 	if Game.in_closet and not _near_closet():
 		Game.in_closet = false
+	var ck := Closet.creak_tick(_creak_t, delta, Game.in_closet)
+	_creak_t = ck["timer"]
+	if ck["creak"]:
+		_creak_n += 1
+		Game.say(Closet.creak_line(_creak_n))
 	player.set_model_shown(Closet.model_visible(Game.in_closet, player.vehicle != null))
 	Game.cool_heat(delta, Police.is_hidden(player.global_position), chased, unseen, player.crouching, Game.in_closet)
 	if busted:

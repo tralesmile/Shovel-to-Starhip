@@ -860,5 +860,11 @@ func test_closet() -> bool:
 	check(Closet.camera_zoom(true, 7.0) == Closet.PEEK_ZOOM, "closet pulls camera in tight")
 	check(Closet.camera_zoom(false, 7.0) == 7.0, "normal zoom outside closet")
 	check(Closet.camera_zoom(true, 1.5) == 1.5, "closet never zooms out past a tight zoom")
+	var t := Closet.creak_tick(0.0, 5.0, true)
+	check(not t["creak"] and t["timer"] == 5.0, "no creak before the interval")
+	t = Closet.creak_tick(t["timer"], 5.0, true)
+	check(t["creak"] and t["timer"] == 0.0, "creaks after the interval and resets")
+	check(Closet.creak_tick(4.0, 1.0, false)["timer"] == 0.0, "timer resets when not hiding")
+	check(Closet.creak_line(1) != Closet.creak_line(2) and Closet.creak_line(-1) != "", "creak lines vary and wrap")
 	c.free()
 	return true
