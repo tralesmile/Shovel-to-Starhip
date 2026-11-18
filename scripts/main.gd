@@ -179,6 +179,9 @@ func _update_daylight() -> void:
 		l.light_energy = 4.5 * dark
 	_lamp_mat.set_shader_parameter("emission_energy", 2.5 * dark)
 	Toon.set_night(dark)
+	for c in get_tree().get_nodes_in_group("car"):
+		if c.has_method("set_dark"):
+			c.set_dark(dark)
 	for f in _fireflies:
 		f.emitting = night > 0.5
 	for c in _day_critters:

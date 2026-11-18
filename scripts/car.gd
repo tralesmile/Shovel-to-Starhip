@@ -18,6 +18,7 @@ var speed: float = 0.0
 var heading: float = 0.0
 var driven: bool = false
 var seat: CarSeat
+var _lamps: Array[SpotLight3D] = []
 
 
 ## Next forward speed given throttle (-1 reverse .. 1 forward) and handbrake.
@@ -33,6 +34,32 @@ static func step_speed(current: float, throttle: float, handbrake: bool, delta: 
 	else:
 		s = move_toward(s, 0.0, DRAG * delta)
 	return clampf(s, -MAX_REVERSE, MAX_SPEED)
+
+
+## Headlights come on once it is properly dusky (0 = bright day .. 1 = dark night).
+static func headlights_on(dark: float) -> bool:
+	return dark > 0.35
+
+
+func set_dark(dark: float) -> void:
+	var on := headlights_on(dark)
+	for l in _lamps:
+		l.visible = on
+
+
+func _add_headlights() -> void:
+	for x in [-0.7, 0.7]:
+		var l := SpotLight3D.new()
+		l.position = Vector3(x, 0.8, 2.0)
+		l.rotation.x = deg_to_rad(-6.0)   # -Z is forward for lights; car forward is +Z
+		l.rotation.y = PI
+		l.spot_range = 22.0
+		l.spot_angle = 32.0
+		l.light_energy = 2.5
+		l.light_color = Color(1.0, 0.95, 0.75)
+		l.visible = false
+		add_child(l)
+		_lamps.append(l)
 
 
 ## Steering gets tighter-limited at speed so the car does not spin like a top.
@@ -58,6 +85,7 @@ func setup() -> void:
 	seat.car = self
 	seat.interact_radius = 3.2
 	add_child(seat)
+	_add_headlights()
 	add_to_group("car")
 
 

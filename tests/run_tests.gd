@@ -542,6 +542,7 @@ func test_car() -> bool:
 	check(Car.turn_delta(0.0, 1.0, dt) == 0.0, "parked car cannot turn")
 	check(Car.turn_delta(8.0, 1.0, dt) * Car.turn_delta(-8.0, 1.0, dt) < 0.0, "reversing flips turn direction")
 	check(Car.turn_delta(8.0, 1.0, dt) < 0.0 and Car.turn_delta(8.0, -1.0, dt) > 0.0, "steer sign matches input")
+	check(not Car.headlights_on(0.0) and Car.headlights_on(1.0), "headlights on at night only")
 	game.money = 100
 	check(not game.buy_car() and not game.car_owned and game.money == 100, "cannot afford car")
 	game.money = 500

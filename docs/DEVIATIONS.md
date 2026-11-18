@@ -43,3 +43,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-18 | Godot re-downloaded (fresh session); detached HEAD, fetched+reset to origin/main; search returned links only; no release cut (owner smoke pass pending) | added cop give-up barks | cut release after owner playtest
 - 2026-11-18 | Godot re-downloaded (fresh session); clone was 10 commits behind, pulled; search returned links only; no release cut (owner smoke pass pending) | closet camera tweak | cut release after owner playtest
 - 2026-11-18 | Godot re-downloaded (fresh session); search returned links only; no release cut (owner smoke pass pending) | closet creak risk became flavour-only since constable never enters interiors | cut release after owner playtest
+- 2026-11-18 | Godot re-downloaded (fresh session); search returned links only; no release cut (owner smoke pass pending) | added car headlights | cut release after owner playtest
