@@ -113,7 +113,9 @@ func _process(delta: float) -> void:
 		busted = true
 		Game.say("Squad car: \"Pull over! Your tyres look suspiciously stolen!\"")
 	var chased: bool = _police != null and _police.state == Police.State.CHASE
-	Game.cool_heat(delta, Police.is_hidden(player.global_position), chased)
+	var unseen := not chased and not (_police_car != null and _police_car.active) \
+		and not (_police != null and _police.sees_player(player.global_position))
+	Game.cool_heat(delta, Police.is_hidden(player.global_position), chased, unseen)
 	if busted:
 		player.exit_car()
 		var r := Game.arrest()

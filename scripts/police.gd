@@ -52,6 +52,13 @@ func setup() -> void:
 
 
 ## Returns true on the tick the player is arrested.
+## True when this constable has the player in his view cone (used for outdoor heat cooling).
+func sees_player(player_pos: Vector3) -> bool:
+	if is_hidden(player_pos):
+		return false
+	return Witness.can_see(global_position, rotation.y, player_pos, SIGHT_RANGE, SIGHT_FOV)
+
+
 func update_police(delta: float, player_pos: Vector3, heat: float) -> bool:
 	var hidden := is_hidden(player_pos)
 	var to := player_pos - global_position

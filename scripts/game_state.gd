@@ -79,6 +79,7 @@ const FENCE_CUT := 0.5          ## fence pays this share of an item's value
 const FENCE_HEAT_PENALTY := 0.2  ## price cut per heat level above 1
 const MAX_HEAT := 3.0
 const HEAT_DECAY_PER_DAY := 1.0
+const OUT_COOL_PER_SEC := 0.008  ## slower cooling in the open while no cop has line of sight (125s per level)
 const HIDE_COOL_PER_SEC := 0.025  ## heat shed per second while out of sight (40s per level)
 const HEAT_NAMES := ["Clean as a turnip", "Raised eyebrows", "Angry whispers", "Pitchforks (pending)"]
 
@@ -275,9 +276,14 @@ func add_heat(amount: float) -> void:
 
 
 ## Lie low: heat cools while you are hidden indoors and nobody is chasing you.
-func cool_heat(delta: float, hidden: bool, chased: bool) -> void:
-	if hidden and not chased and heat > 0.0:
+## `unseen` = in the open but out of every cop's line of sight: cools, slowly.
+func cool_heat(delta: float, hidden: bool, chased: bool, unseen: bool = false) -> void:
+	if chased or heat <= 0.0:
+		return
+	if hidden:
 		heat = maxf(0.0, heat - HIDE_COOL_PER_SEC * delta)
+	elif unseen:
+		heat = maxf(0.0, heat - OUT_COOL_PER_SEC * delta)
 
 
 ## Constable Bumble caught you. Loot is confiscated, a quarter of your cash

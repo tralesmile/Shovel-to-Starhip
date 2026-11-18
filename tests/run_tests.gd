@@ -380,6 +380,10 @@ func test_fence_reputation() -> bool:
 	check(game.heat == 2.0, "no cooling while chased")
 	game.cool_heat(10.0, true, false)
 	check(absf(game.heat - 1.75) < 0.001, "hiding indoors cools heat")
+	game.cool_heat(10.0, false, false, true)
+	check(absf(game.heat - 1.67) < 0.001, "out of sight in the open cools slowly")
+	game.cool_heat(10.0, false, true, true)
+	check(absf(game.heat - 1.67) < 0.001, "no outdoor cooling while chased")
 	game.cool_heat(1000.0, true, false)
 	check(game.heat == 0.0, "heat never goes below 0")
 	game.heat = 0.0
