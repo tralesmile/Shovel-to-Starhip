@@ -40,3 +40,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-18 | Godot re-downloaded (fresh session); WebSearch not run (unattended, small item); no release cut (owner smoke pass pending) | added fence daily cap from backlog | cut release after owner playtest
 - 2026-11-18 | Godot re-downloaded (fresh session); detached HEAD, checked out main; WebSearch not run (unattended, small item); no release cut (owner smoke pass pending) | hide player model in closet | cut release after owner playtest
 - 2026-11-18 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only; no release cut (owner smoke pass pending) | widened cop search | cut release after owner playtest
+- 2026-11-18 | Godot re-downloaded (fresh session); detached HEAD, fetched+reset to origin/main; search returned links only; no release cut (owner smoke pass pending) | added cop give-up barks | cut release after owner playtest

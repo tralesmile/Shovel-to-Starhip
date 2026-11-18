@@ -5,6 +5,19 @@ extends Node3D
 ## lose interest. State logic is static/pure so it is unit testable.
 
 signal spotted
+signal gave_up  ## search timed out with nothing found
+
+const GIVE_UP_LINES := [
+	"Constable Bumble: \"Must have been the wind. A very sneaky, player-shaped wind.\"",
+	"Constable Bumble: \"Nobody here but us turnips. Back to my beat.\"",
+	"Constable Bumble: \"Hmm. Gone. I'll just write 'mystery' in my notebook.\"",
+	"Constable Bumble: \"I'm not tired, I'm just resting my eyes. On duty. Carry on.\"",
+]
+
+
+## Funny give-up line; `i` picks deterministically (tests), any int works.
+static func give_up_line(i: int) -> String:
+	return GIVE_UP_LINES[posmod(i, GIVE_UP_LINES.size())]
 
 enum State { OFF, PATROL, CHASE, SEARCH }
 
@@ -127,6 +140,7 @@ func update_police(delta: float, player_pos: Vector3, heat: float, crouched: boo
 			rotation.y += delta * 2.0  # look around
 		if search_t <= 0.0:
 			state = State.PATROL
+			gave_up.emit()
 	else:
 		if waypoints.is_empty():
 			return false

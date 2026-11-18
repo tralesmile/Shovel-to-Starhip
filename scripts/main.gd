@@ -408,6 +408,7 @@ func _build_police() -> void:
 	add_child(_police)
 	_police.setup()
 	_police.spotted.connect(func(): Game.say("Constable Bumble: \"STOP! In the name of the turnip!\""))
+	_police.gave_up.connect(func(): Game.say(Police.give_up_line(randi())))
 	_police.waypoints = [Vector3(-30, 0, 18), Vector3(-10, 0, 18), Vector3(-10, 0, 8), Vector3(-30, 0, 8)]
 
 

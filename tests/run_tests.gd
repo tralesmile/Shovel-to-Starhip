@@ -472,6 +472,13 @@ func test_police() -> bool:
 	for i in 130:
 		cop.update_police(0.1, Vector3(60, 0, 0), 3.0)
 	check(cop.state == P.PATROL, "search times out -> back to patrol")
+	check(Police.give_up_line(0) != Police.give_up_line(1) and Police.give_up_line(-1) != "", "give-up barks vary and handle any index")
+	var gu := [0]
+	cop.gave_up.connect(func(): gu[0] += 1)
+	cop.state = P.SEARCH
+	cop.search_t = 0.05
+	cop.update_police(0.1, Vector3(60, 0, 0), 3.0)
+	check(gu[0] == 1 and cop.state == P.PATROL, "search timeout emits gave_up once")
 	cop.state = P.SEARCH
 	cop.search_t = 3.0
 	cop.update_police(0.1, Vector3(60, 0, 0), 1.0)
