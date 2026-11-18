@@ -56,7 +56,7 @@ func interact(game: GameState) -> void:
 		Kind.FENCE:
 			var paid := game.fence_sell_all()
 			if paid > 0:
-				game.say("Shady Sal: \"Never seen it before in my life.\" +$%d  (%s)" % [paid, game.reputation_title()])
+				game.say("Shady Sal: \"%s\" +$%d  (%s)" % [sal_sale_line(game.reputation, paid), paid, game.reputation_title()])
 				FX.burst(self, global_position + Vector3(0, 1.2, 0), Color(0.6, 0.9, 0.5), 14, 0.14, 4.0)
 			elif game.loot_count() > 0:
 				game.say("Shady Sal: \"My coat is full. Come back tomorrow, champ.\"")
@@ -73,6 +73,16 @@ func interact(game: GameState) -> void:
 				game.say("Honest Hank: \"That's $%d. You have... lint.\"" % Car.PRICE)
 		Kind.ROCKET:
 			game.say("One day, little rocket. One day.")
+
+
+## Shady Sal's reaction line to a sale, flavoured by your Outlaw standing (rep <= -3 respect, <= -7 awe).
+static func sal_sale_line(reputation: float, idx: int = 0) -> String:
+	var pool := ["Never seen it before in my life."]
+	if reputation <= -7.0:
+		pool = ["Boss! Take the good chair. Also the bonus is real.", "Whole town is whispering your name. Bad for them, great for margins."]
+	elif reputation <= -3.0:
+		pool = ["A professional! I'm rounding up. Don't tell my accountant.", "You're getting good at this. Slightly alarming."]
+	return pool[posmod(idx, pool.size())]
 
 
 static func _pretty(n: int) -> String:
