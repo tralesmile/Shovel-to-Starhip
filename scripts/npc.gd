@@ -72,8 +72,14 @@ const BARKS_NEUTRAL := ["Lovely weather for minding my own business.", "Hello th
 const BARKS_OUTLAW := ["I'm watching my spoons. All of them.", "Oh no, it's *you*. Hide the good cutlery!", "Nice night for a stroll. Please stay out of my drawers."]
 
 
+const BARKS_LOOT := ["Is that a gnome in your pocket, or are you just happy to see me?", "That bulge in your coat is clinking. Suspiciously.", "Lovely loot... I mean, lovely day!"]
+
+
 ## Reputation-flavoured greeting; idx wraps so callers can rotate lines.
-static func bark(reputation: float, idx: int) -> String:
+## Carrying stolen goods overrides the reputation pool (everyone notices the clinking).
+static func bark(reputation: float, idx: int, carrying_loot: bool = false) -> String:
+	if carrying_loot:
+		return BARKS_LOOT[posmod(idx, BARKS_LOOT.size())]
 	var pool: Array = BARKS_NEUTRAL
 	if reputation >= 3.0:
 		pool = BARKS_LAWFUL

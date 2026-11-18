@@ -900,6 +900,7 @@ func test_npc_barks() -> bool:
 	check(Npc.bark(5.0, 0) == Npc.BARKS_LAWFUL[0], "Lawful gets friendly barks")
 	check(Npc.bark(-5.0, 1) == Npc.BARKS_OUTLAW[1], "Outlaw gets wary barks")
 	check(Npc.bark(0.0, 3) == Npc.BARKS_NEUTRAL[0] and Npc.bark(0.0, -1) != "", "neutral wraps index safely")
+	check(Npc.bark(5.0, 1, true) == Npc.BARKS_LOOT[1], "carrying loot overrides reputation barks")
 	var t := Npc.bark_tick(0.0, 1.0, true)
 	check(t["fire"] and t["timer"] == 25.0, "fires when near with no cooldown")
 	check(not Npc.bark_tick(10.0, 1.0, true)["fire"], "cooldown suppresses barks")
