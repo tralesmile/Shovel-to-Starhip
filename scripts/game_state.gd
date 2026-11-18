@@ -277,13 +277,20 @@ func add_heat(amount: float) -> void:
 
 ## Lie low: heat cools while you are hidden indoors and nobody is chasing you.
 ## `unseen` = in the open but out of every cop's line of sight: cools, slowly.
+## `lying_low` is true while heat is actually cooling (HUD shows a hint).
+var lying_low := false
+
 func cool_heat(delta: float, hidden: bool, chased: bool, unseen: bool = false) -> void:
+	lying_low = false
 	if chased or heat <= 0.0:
 		return
+	lying_low = hidden or unseen
 	if hidden:
 		heat = maxf(0.0, heat - HIDE_COOL_PER_SEC * delta)
 	elif unseen:
 		heat = maxf(0.0, heat - OUT_COOL_PER_SEC * delta)
+	if heat <= 0.0:
+		lying_low = false
 
 
 ## Constable Bumble caught you. Loot is confiscated, a quarter of your cash

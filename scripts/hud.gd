@@ -226,7 +226,7 @@ func _process(_delta: float) -> void:
 	if Game.crime_suspicion > 0.02:
 		_heat.text = "Someone is watching... [%s%s]" % ["#".repeat(int(Game.crime_suspicion * 10)), "-".repeat(10 - int(Game.crime_suspicion * 10))]
 	elif Game.heat_level() > 0:
-		_heat.text = "Heat: %s  [%s]" % [Game.heat_name(), Game.reputation_title()]
+		_heat.text = "Heat: %s  [%s]%s" % [Game.heat_name(), Game.reputation_title(), "  (lying low...)" if Game.lying_low else ""]
 	else:
 		_heat.text = ""
 	_click_hint.visible = Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
