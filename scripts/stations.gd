@@ -58,6 +58,8 @@ func interact(game: GameState) -> void:
 			if paid > 0:
 				game.say("Shady Sal: \"Never seen it before in my life.\" +$%d  (%s)" % [paid, game.reputation_title()])
 				FX.burst(self, global_position + Vector3(0, 1.2, 0), Color(0.6, 0.9, 0.5), 14, 0.14, 4.0)
+			elif game.loot_count() > 0:
+				game.say("Shady Sal: \"My coat is full. Come back tomorrow, champ.\"")
 			else:
 				game.say("Shady Sal: \"Come back when your pockets are interesting.\"")
 		Kind.CAR_DEALER:

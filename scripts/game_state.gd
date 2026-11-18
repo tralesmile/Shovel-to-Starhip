@@ -67,6 +67,7 @@ var selected_crop: String = "turnip"   ## which seed the Seeds tool plants
 var clock_running: bool = true
 var total_earned: int = 0
 var crime_suspicion: float = 0.0   ## highest witness meter right now (HUD only)
+var fence_sold_today: int = 0   ## items fenced today (resets each morning)
 var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the alarm
 
 var car_owned: bool = false
@@ -75,6 +76,7 @@ var car_pos: Array = [8.0, 0.0, 14.0, 1.5708]   ## x, y, z, heading of the parke
 var reputation: float = 0.0     ## -MAX_REP (Outlaw) .. +MAX_REP (Lawful)
 
 const MAX_REP := 10.0
+const FENCE_DAILY_ITEMS := 3    ## Shady Sal only has room for this many items per day
 const FENCE_CUT := 0.5          ## fence pays this share of an item's value
 const FENCE_HEAT_PENALTY := 0.2  ## price cut per heat level above 1
 const MAX_HEAT := 3.0
@@ -182,10 +184,16 @@ func sell_all() -> int:
 
 ## What the fence would pay right now for everything stolen in your pockets.
 func fence_offer() -> int:
-	var total := 0
+	var prices: Array = []
 	for id in inventory.keys():
 		if ITEMS.get(id, {}).get("loot", false):
-			total += fence_price(id) * count(id)
+			for n in count(id):
+				prices.append(fence_price(id))
+	prices.sort()
+	prices.reverse()
+	var total := 0
+	for k in mini(prices.size(), fence_room()):
+		total += prices[k]
 	return total
 
 
@@ -201,16 +209,30 @@ func fence_nerves() -> float:
 	return 1.0 - FENCE_HEAT_PENALTY * maxf(0.0, float(heat_level() - 1))
 
 
-## Sells all stolen goods to the fence. Returns money earned; turns you more Outlaw.
+## How many more items the fence will take today.
+func fence_room() -> int:
+	return maxi(0, FENCE_DAILY_ITEMS - fence_sold_today)
+
+
+## Sells stolen goods to the fence (up to the daily cap, priciest first). Returns money earned;
+## turns you more Outlaw.
 func fence_sell_all() -> int:
 	var total := 0
 	var items := 0
+	var ids: Array = []
 	for id in inventory.keys():
 		if ITEMS.get(id, {}).get("loot", false):
-			total += fence_price(id) * count(id)
-			items += count(id)
-			inventory.erase(id)
+			ids.append(id)
+	ids.sort_custom(func(a, b): return fence_price(a) > fence_price(b))
+	for id in ids:
+		while count(id) > 0 and items < fence_room():
+			total += fence_price(id)
+			items += 1
+			inventory[id] -= 1
+			if inventory[id] <= 0:
+				inventory.erase(id)
 	if items > 0:
+		fence_sold_today += items
 		inventory_changed.emit()
 		earn(total)
 		add_reputation(-1.0 * items)
@@ -318,6 +340,7 @@ func arrest() -> Dictionary:
 func advance_day() -> void:
 	day += 1
 	heat = maxf(0.0, heat - HEAT_DECAY_PER_DAY)
+	fence_sold_today = 0
 	for node in get_tree().get_nodes_in_group("daily"):
 		node.on_new_day(self)
 	day_changed.emit(day)
@@ -366,6 +389,7 @@ func to_dict() -> Dictionary:
 		"selected_crop": selected_crop,
 		"total_earned": total_earned,
 		"heat": heat,
+		"fence_sold_today": fence_sold_today,
 		"reputation": reputation,
 		"car_owned": car_owned,
 		"car_pos": car_pos,
@@ -388,6 +412,7 @@ func from_dict(data: Dictionary) -> void:
 	total_earned = int(data.get("total_earned", 0))
 	heat = float(data.get("heat", 0.0))
 	reputation = float(data.get("reputation", 0.0))
+	fence_sold_today = int(data.get("fence_sold_today", 0))
 	car_owned = bool(data.get("car_owned", false))
 	car_pos = data.get("car_pos", [8.0, 0.0, 14.0, 1.5708])
 	var world: Dictionary = data.get("world", {})

@@ -37,3 +37,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-18 | Godot re-downloaded (fresh session); WebSearch not run (unattended, small item); no release cut (owner smoke pass pending) | night halves constable sight | cut release after owner playtest
 - 2026-11-18 | Godot re-downloaded (fresh session); WebSearch not run (unattended, small item); no release cut (owner smoke pass pending) | cop search state | cut release after owner playtest
 - 2026-11-18 | Godot re-downloaded (fresh session, templates skipped, no export needed); repo already present, checked out main; search returned links only; no release cut (owner smoke pass pending) | added home closets | cut release after owner playtest
+- 2026-11-18 | Godot re-downloaded (fresh session); WebSearch not run (unattended, small item); no release cut (owner smoke pass pending) | added fence daily cap from backlog | cut release after owner playtest

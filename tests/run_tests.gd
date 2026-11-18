@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -353,6 +353,27 @@ func test_heat() -> bool:
 	check(game.heat == GameState.MAX_HEAT, "heat survives save")
 	game.advance_day()
 	check(game.heat == GameState.MAX_HEAT - 1.0, "heat cools by a level each day")
+	return true
+
+
+func test_fence_cap() -> bool:
+	game.fence_sold_today = 0
+	game.reputation = 0.0
+	game.heat = 0.0
+	for i in 4:
+		game.add_loot("gold_spoon")
+	check(game.fence_room() == 3, "fence has room for 3 a day")
+	check(game.fence_offer() == 3 * 30, "offer counts only what fence will take")
+	check(game.fence_sell_all() > 0 and game.count("gold_spoon") == 1, "one item left over")
+	check(game.fence_room() == 0 and game.fence_offer() == 0, "fence full for today")
+	check(game.fence_sell_all() == 0 and game.count("gold_spoon") == 1, "full fence buys nothing")
+	game.advance_day()
+	check(game.fence_room() == 3, "fence room resets next day")
+	var d := game.to_dict()
+	game.fence_sold_today = 2
+	game.from_dict(d)
+	check(game.fence_sold_today == 0, "cap saved and restored")
+	game.inventory.clear()
 	return true
 
 
