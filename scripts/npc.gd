@@ -69,6 +69,8 @@ func _play(anim: String) -> void:
 
 const BARKS_LAWFUL := ["Ah, our favourite upstanding turnip enthusiast!", "Morning! Your halo is looking freshly polished.", "If everyone were like you, I could retire my door lock."]
 const BARKS_NEUTRAL := ["Lovely weather for minding my own business.", "Hello there. Nothing suspicious here. Or there.", "Nice shovel. Very... shovel-y."]
+## Notorious tier (reputation <= -7): townsfolk are openly terrified or oddly impressed.
+const BARKS_NOTORIOUS := ["Please, take the spoons, just leave the kettle!", "Is it true you stole a lighthouse? Asking for a very nervous friend.", "I've put 'Do Not Rob' on my fridge. It's a start.", "Autograph? No? Please don't rob me."]
 const BARKS_OUTLAW := ["I'm watching my spoons. All of them.", "Oh no, it's *you*. Hide the good cutlery!", "Nice night for a stroll. Please stay out of my drawers."]
 
 
@@ -96,6 +98,9 @@ static func personal_bark(npc_name: String, idx: int) -> String:
 
 ## Reputation-flavoured greeting; idx wraps so callers can rotate lines.
 ## Carrying stolen goods overrides the reputation pool (everyone notices the clinking).
+const NOTORIOUS_REP := -7.0
+
+
 static func bark(reputation: float, idx: int, carrying_loot: bool = false, npc_name: String = "", night: bool = false) -> String:
 	if carrying_loot:
 		return BARKS_LOOT[posmod(idx, BARKS_LOOT.size())]
@@ -108,6 +113,8 @@ static func bark(reputation: float, idx: int, carrying_loot: bool = false, npc_n
 	var pool: Array = BARKS_NEUTRAL
 	if reputation >= 3.0:
 		pool = BARKS_LAWFUL
+	elif reputation <= NOTORIOUS_REP:
+		pool = BARKS_NOTORIOUS
 	elif reputation <= -3.0:
 		pool = BARKS_OUTLAW
 	return pool[posmod(idx, pool.size())]
