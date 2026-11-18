@@ -60,6 +60,47 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
 
+## Phase 1.7 - Features borrowed from similar games (owner request 2026-11-18; all kept, ordered by value)
+Priority order for runs: weapons/hunting, friendship, odd jobs, pets with jobs, disguises, staged rocket, then the rest.
+### Weapons, hunting and fighting (keep it funny: silly weapons, cartoon hits, no gore)
+- [ ] Weapon system: equip slot, swing/aim/shoot, damage, cooldown, ammo, hit-stop + knockback + impact particles
+- [ ] Melee: shovel (starter, funny bonk), axe, pickaxe, frying pan, baseball bat, fishing-rod whip
+- [ ] Ranged: slingshot, bow and arrows, throwable turnips/pies, later a toy blaster and rocket-launcher gag
+- [ ] Wildlife to hunt: rabbits, deer, boars, birds (flee/alert AI), drops meat/hide/feathers; hunting skill + tracks
+- [ ] Hostile or grumpy fauna to fight: angry goose boss, wolves/bandit raccoons at night, cave critters, later jungle dinosaurs
+- [ ] Combat feel: dodge roll, block, health + stamina bars, enemy telegraphs, downed-and-wake-up penalty (lose a little cash, not the game)
+- [ ] Weapon crafting and upgrades at the workbench; hunting trophies for the house
+- [ ] Police/law interaction: weapons raise heat, can be holstered, silly non-lethal tools (bonk, net, pie)
+### Stardew-style life
+- [ ] Friendship hearts for each NPC, gifts (loved/liked/hated), birthdays, heart events, arcs beyond barks
+- [ ] Seasons (crops, weather, festivals); funny festivals (best-turnip contest, robbery-free day)
+- [ ] Skill levels (farming, fishing, mining, hunting, stealth, driving) with perks
+- [ ] Community-centre-style collection goal whose rewards unlock rocket parts
+### Valheim / Core Keeper style
+- [ ] Cooking with recipes and food buffs
+- [ ] Weather and temperature (rain, storms, cold nights, clothing)
+- [ ] Bosses with a funny twist (giant angry goose etc.)
+- [ ] Underground caves/dungeons with loot
+### GTA / Wobbly Life style
+- [ ] Odd jobs with a mini-game each: courier, taxi, builder, chef, fisherman
+- [ ] Disguises and masks that lower heat; burglary tools; getaway-car upgrades; crew heists
+- [ ] Phone with contacts, map and missions
+- [ ] Ragdoll physics for crashes and falls
+- [ ] Cosmetics: hats, outfits, car paint
+### Palworld / Cassette Beasts style
+- [ ] Pets with jobs (water crops, carry loot, lookout) and traits
+- [ ] Pet evolutions, collection book, pet races instead of battles
+### Kerbal / Besiege / Terraria style
+- [ ] Staged rocket: each part earned from a different activity (farm, heist, mine, hunt)
+- [ ] Test flights where crashing is part of the joke
+- [ ] Planet-by-planet progression with a unique gimmick each
+- [ ] Achievements and a journal tracking everything done
+### General polish
+- [ ] Photo mode
+- [ ] Town mini-games (fishing contests, races, card games)
+- [ ] Radio using the procedural day/night music, with silly DJ chatter
+- [ ] Accessibility: subtitles, colour-blind mode, key remapping
+
 ## Phase 2 - Earth Early Access: larger town, building your own house, animals (catch/keep/resources), clothes, weapons/combat, car building, more jobs, racing.
 ## Phase 3 - Rocket + Moon open world.
 ## Phase 4 - Jungle planet with dinosaurs, catchable and usable.
