@@ -11,11 +11,17 @@ enum State { OFF, PATROL, CHASE }
 const SIGHT_RANGE := 14.0
 const SIGHT_FOV := 140.0
 const CROUCH_SIGHT_MULT := 0.5  ## crouching halves how far he can spot you
+const NIGHT_SIGHT_MULT := 0.5  ## darkness halves it again
 
 
 ## Effective sight range for a player who may be crouching.
-static func sight_range(crouched: bool) -> float:
-	return SIGHT_RANGE * (CROUCH_SIGHT_MULT if crouched else 1.0)
+static func sight_range(crouched: bool, tod: float = 0.5) -> float:
+	return SIGHT_RANGE * (CROUCH_SIGHT_MULT if crouched else 1.0) * (NIGHT_SIGHT_MULT if is_night(tod) else 1.0)
+
+
+## Night = before 6:00 or from 20:00 (time_of_day is 0..1 of a day).
+static func is_night(tod: float) -> bool:
+	return tod < 0.25 or tod >= 0.8333
 const CATCH_DIST := 1.3
 const PATROL_SPEED := 2.6
 const CHASE_SPEED := 6.4      ## slower than sprinting (8.5), faster than walking (5.0)
@@ -59,17 +65,17 @@ func setup() -> void:
 
 ## Returns true on the tick the player is arrested.
 ## True when this constable has the player in his view cone (used for outdoor heat cooling).
-func sees_player(player_pos: Vector3, crouched: bool = false) -> bool:
+func sees_player(player_pos: Vector3, crouched: bool = false, tod: float = 0.5) -> bool:
 	if is_hidden(player_pos):
 		return false
-	return Witness.can_see(global_position, rotation.y, player_pos, sight_range(crouched), SIGHT_FOV)
+	return Witness.can_see(global_position, rotation.y, player_pos, sight_range(crouched, tod), SIGHT_FOV)
 
 
-func update_police(delta: float, player_pos: Vector3, heat: float, crouched: bool = false) -> bool:
+func update_police(delta: float, player_pos: Vector3, heat: float, crouched: bool = false, tod: float = 0.5) -> bool:
 	var hidden := is_hidden(player_pos)
 	var to := player_pos - global_position
 	to.y = 0.0
-	var sees := Witness.can_see(global_position, rotation.y, player_pos, sight_range(crouched), SIGHT_FOV) and not hidden
+	var sees := Witness.can_see(global_position, rotation.y, player_pos, sight_range(crouched, tod), SIGHT_FOV) and not hidden
 	var prev := state
 	state = next_state(state, heat, sees, hidden, to.length())
 	if state == State.OFF:

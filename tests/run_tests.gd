@@ -433,6 +433,9 @@ func test_police() -> bool:
 	check(Police.is_hidden(Buildings.interior_origin(0)), "interior counts as hiding")
 	check(not Police.is_hidden(Vector3(0, 0, 8)), "outside is not hiding")
 	check(Police.sight_range(true) < Police.sight_range(false), "crouching shortens police sight")
+	check(Police.sight_range(false, 0.95) < Police.sight_range(false, 0.5), "night shortens police sight")
+	check(is_equal_approx(Police.sight_range(true, 0.0), Police.SIGHT_RANGE * 0.25), "night + crouch stack")
+	check(Police.is_night(0.9) and not Police.is_night(0.5), "night window")
 	check(InputMap.has_action("crouch"), "crouch action bound")
 	game.money = 200
 	game.add_loot("gold_spoon")
