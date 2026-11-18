@@ -6,7 +6,7 @@ extends Node3D
 
 signal spotted
 
-enum State { OFF, PATROL, CHASE }
+enum State { OFF, PATROL, CHASE, SEARCH }
 
 const SIGHT_RANGE := 14.0
 const SIGHT_FOV := 140.0
@@ -26,6 +26,11 @@ const CATCH_DIST := 1.3
 const PATROL_SPEED := 2.6
 const CHASE_SPEED := 6.4      ## slower than sprinting (8.5), faster than walking (5.0)
 const LOSE_DIST := 24.0
+const SEARCH_TIME := 5.0  ## seconds he pokes around where he last saw you
+const SEARCH_SPEED := 3.6
+
+var search_t: float = 0.0
+var last_seen := Vector3.ZERO
 
 var state: int = State.OFF
 var waypoints: Array[Vector3] = []
@@ -77,7 +82,13 @@ func update_police(delta: float, player_pos: Vector3, heat: float, crouched: boo
 	to.y = 0.0
 	var sees := Witness.can_see(global_position, rotation.y, player_pos, sight_range(crouched, tod), SIGHT_FOV) and not hidden
 	var prev := state
-	state = next_state(state, heat, sees, hidden, to.length())
+	state = next_state(State.PATROL if state == State.SEARCH else state, heat, sees, hidden, to.length())
+	if prev == State.SEARCH and state == State.PATROL:
+		state = State.SEARCH if search_t > 0.0 else State.PATROL
+	if prev == State.CHASE and state == State.PATROL:
+		state = State.SEARCH  # lost you: go check the last spot before resuming the beat
+		search_t = SEARCH_TIME
+		last_seen = player_pos
 	if state == State.OFF:
 		visible = false
 		return false
@@ -91,7 +102,18 @@ func update_police(delta: float, player_pos: Vector3, heat: float, crouched: boo
 		_move(to, CHASE_SPEED * delta)
 		if to.length() <= CATCH_DIST:
 			state = State.PATROL
+			search_t = 0.0
 			return true
+	elif state == State.SEARCH:
+		search_t -= delta
+		var s := last_seen - global_position
+		s.y = 0.0
+		if s.length() > 1.0:
+			_move(s, SEARCH_SPEED * delta)
+		else:
+			rotation.y += delta * 2.0  # look around
+		if search_t <= 0.0:
+			state = State.PATROL
 	else:
 		if waypoints.is_empty():
 			return false

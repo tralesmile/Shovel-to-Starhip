@@ -35,3 +35,4 @@ Format: `- YYYY-MM-DD HH:MM | what happened | what was done instead | follow-up 
 - 2026-11-18 | Godot re-downloaded (fresh session); WebSearch not run (unattended, small item); no release cut (owner smoke pass pending) | crouch halves witness fill rate | cut release after owner playtest
 - 2026-11-18 | Godot re-downloaded (fresh session); detached HEAD, checked out main; search returned links only; no release cut (owner smoke pass pending) | quieter crouch footsteps | cut release after owner playtest
 - 2026-11-18 | Godot re-downloaded (fresh session); WebSearch not run (unattended, small item); no release cut (owner smoke pass pending) | night halves constable sight | cut release after owner playtest
+- 2026-11-18 | Godot re-downloaded (fresh session); WebSearch not run (unattended, small item); no release cut (owner smoke pass pending) | cop search state | cut release after owner playtest

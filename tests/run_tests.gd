@@ -437,6 +437,21 @@ func test_police() -> bool:
 	check(is_equal_approx(Police.sight_range(true, 0.0), Police.SIGHT_RANGE * 0.25), "night + crouch stack")
 	check(Police.is_night(0.9) and not Police.is_night(0.5), "night window")
 	check(InputMap.has_action("crouch"), "crouch action bound")
+	var cop := Police.new()
+	root.add_child(cop)
+	cop.waypoints = [Vector3(0, 0, 0), Vector3(5, 0, 0)]
+	cop.state = P.CHASE
+	cop.update_police(0.1, Vector3(60, 0, 0), 3.0)
+	check(cop.state == P.SEARCH, "losing you -> search last known spot")
+	check(cop.last_seen == Vector3(60, 0, 0), "remembers where he lost you")
+	for i in 60:
+		cop.update_police(0.1, Vector3(60, 0, 0), 3.0)
+	check(cop.state == P.PATROL, "search times out -> back to patrol")
+	cop.state = P.SEARCH
+	cop.search_t = 3.0
+	cop.update_police(0.1, Vector3(60, 0, 0), 1.0)
+	check(cop.state == P.OFF, "heat cooled during search -> police go home")
+	cop.queue_free()
 	game.money = 200
 	game.add_loot("gold_spoon")
 	game.add_heat(3.0)
