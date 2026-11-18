@@ -855,4 +855,4 @@ func _update_barks(delta: float) -> void:
 	_bark_t = r["timer"]
 	if r["fire"]:
 		_bark_n += 1
-		Game.say("%s: \"%s\"" % [near_npc.npc_name, Npc.bark(Game.reputation, _bark_n, Game.loot_count() > 0, near_npc.npc_name)])
+		Game.say("%s: \"%s\"" % [near_npc.npc_name, Npc.bark(Game.reputation, _bark_n, Game.loot_count() > 0, near_npc.npc_name, Police.is_night(Game.time_of_day))])

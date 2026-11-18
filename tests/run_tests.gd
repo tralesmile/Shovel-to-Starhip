@@ -904,6 +904,8 @@ func test_npc_barks() -> bool:
 	check(Npc.bark(0.0, 1, false, "Bork") == Npc.BARKS_PERSONAL["Bork"][0], "odd barks use the NPC's personal line")
 	check(Npc.bark(0.0, 0, false, "Bork") == Npc.BARKS_NEUTRAL[0] and Npc.bark(0.0, 1, false, "Nobody") == Npc.BARKS_NEUTRAL[1], "even idx / unknown name use rep pool")
 	check(Npc.bark(0.0, 1, true, "Bork") == Npc.BARKS_LOOT[1], "loot still overrides personal lines")
+	check(Npc.bark(0.0, 2, false, "", true) == Npc.BARKS_NIGHT[0] and Npc.bark(0.0, 2, false, "", false) == Npc.BARKS_NEUTRAL[2], "night swaps in night barks on idx 2 mod 4")
+	check(Npc.bark(0.0, 2, true, "", true) == Npc.BARKS_LOOT[2], "loot beats night barks")
 	var t := Npc.bark_tick(0.0, 1.0, true)
 	check(t["fire"] and t["timer"] == 25.0, "fires when near with no cooldown")
 	check(not Npc.bark_tick(10.0, 1.0, true)["fire"], "cooldown suppresses barks")
