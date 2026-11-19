@@ -93,3 +93,31 @@ static func emitter(parent: Node, color: Color, amount: int, lifetime: float, si
 	p.scale_amount_curve = curve
 	parent.add_child(p)
 	return p
+
+
+## Hit-stop (pure helper, tested): time scale to use `t` seconds after an impact of `strength` 0..1.
+static func hit_stop_scale(t: float, strength: float) -> float:
+	var dur := 0.04 + 0.06 * clampf(strength, 0.0, 1.0)
+	return 0.05 if t < dur else 1.0
+
+
+## Freeze the game for a few frames on impact (real-time timer so it always recovers).
+static func hit_stop(tree: SceneTree, strength: float = 0.5) -> void:
+	if tree == null or DisplayServer.get_name() == "headless":
+		return
+	var dur := 0.04 + 0.06 * clampf(strength, 0.0, 1.0)
+	Engine.time_scale = 0.05
+	tree.create_timer(dur, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
+
+
+## Colour grading per time of day (pure, tested): warm punchy sunset, cool muted night.
+static func grade_for(day: float, sunset: float, night: float) -> Dictionary:
+	var total: float = maxf(day + sunset + night, 0.001)
+	var d := day / total
+	var s := sunset / total
+	var n := night / total
+	return {
+		"saturation": 1.08 * d + 1.2 * s + 0.82 * n,
+		"contrast": 1.04 * d + 1.1 * s + 1.0 * n,
+		"brightness": 1.0 * d + 1.0 * s + 1.04 * n,
+	}

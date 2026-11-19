@@ -9,6 +9,7 @@ const ARM_TIME := 0.7   ## seconds before it can be picked up (lets it pop and l
 const LIFETIME := 240.0
 
 var item_id := "wood"
+var chunk_color := Color(0, 0, 0, 0)   ## alpha 0 = a wooden log; otherwise a small rock chunk of this colour
 var amount := 1
 var age := 0.0
 var game: GameState
@@ -36,6 +37,9 @@ func _ready() -> void:
 	phys.bounce = 0.35
 	phys.friction = 0.8
 	physics_material_override = phys
+	if chunk_color.a > 0.0:
+		_build_chunk()
+		return
 	var cs := CollisionShape3D.new()
 	var cyl := CylinderShape3D.new()
 	cyl.radius = 0.16
@@ -68,6 +72,25 @@ func _ready() -> void:
 		cap.mesh = d
 		cap.position.y = 0.4 * s
 		add_child(cap)
+
+
+## Stone / ore / gem chunk: a small tumbling rock.
+func _build_chunk() -> void:
+	mass = 1.0
+	var sz := 0.3 if item_id == "stone" else 0.22
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3.ONE * sz
+	cs.shape = bx
+	add_child(cs)
+	var mi := Art.box(Vector3.ONE * sz, chunk_color)
+	add_child(mi)
+	if item_id == "gem":
+		var glow := OmniLight3D.new()
+		glow.light_color = chunk_color
+		glow.light_energy = 0.8
+		glow.omni_range = 2.5
+		add_child(glow)
 
 
 ## Pop out with a small random hop.
@@ -107,5 +130,5 @@ func collect() -> void:
 	if game != null:
 		game.add_item(item_id, amount)
 	Sfx.play_on(self, "blip")
-	FX.burst(self, global_position, Art.WOOD.lightened(0.3), 5, 0.07, 2.0, -4.0)
+	FX.burst(self, global_position, (Art.WOOD.lightened(0.3) if chunk_color.a == 0.0 else chunk_color.lightened(0.3)), 5, 0.07, 2.0, -4.0)
 	queue_free()

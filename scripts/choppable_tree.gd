@@ -67,6 +67,7 @@ func interact(game: GameState) -> void:
 	_wobble = 1.0
 	Sfx.play_on(self, "chop")
 	FX.burst(self, global_position + Vector3(0, 0.8, 0), Art.WOOD.lightened(0.25), 10, 0.1, 3.5)
+	FX.hit_stop(get_tree(), 0.3 if hits < HITS_TO_FELL else 0.8)
 	if hits >= HITS_TO_FELL:
 		felled = true
 		hits = 0

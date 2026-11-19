@@ -35,7 +35,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 ### Gather and break (physics-based)
 - [ ] (v1 DONE 2026-11-19: 3 real RigidBody3D logs tumble out when the trunk lands, bounce, magnet to you within 2.6m and add wood; still to do: fall as rigid body, chop logs into planks, stump regrow already works) Tree felling: chopping hits fill a damage meter, then the tree FALLS as a rigid body in the chop direction, splits into logs (RigidBody3D), logs can be chopped again into planks/firewood, stump remains and regrows over days
 - [ ] (v1 DONE: WoodLog pickup w/ arm delay, magnet, collect pop; reuse for stone/ore/herbs) Pick up anything from the ground (E / auto-magnet when close): logs, stones, ore, herbs, dropped items with bounce, pop and a small pickup arc
-- [ ] Mining: ore rocks with hit stages that crack and break into chunks/ore pieces (rigid bodies), pickaxe tiers, small caves/mine area, gems
+- [ ] (v1 DONE 2026-11-19: Pickaxe tool [5], 5 MineRock rocks, 4 hits with shake/shrink/sparks/hit-stop, break into rigid-body stone/copper/gem chunks, regrow 3 days; still to do: pickaxe tiers, mine area/caves, selling/using ore) Mining: ore rocks with hit stages that crack and break into chunks/ore pieces (rigid bodies), pickaxe tiers, small caves/mine area, gems
 - [ ] Carry system: heavy items (logs, rocks) slow you; wheelbarrow/cart/car trunk to haul
 ### Animals and riding
 - [ ] Hunting (simple wildlife that flees, drops meat/hide; bow or slingshot), cooking
@@ -54,9 +54,9 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] Story spine: "Gran's busted rocket": 5 acts (farm money -> town trust or infamy -> parts quests -> build the starship -> Moon). Quest log, memorable funny NPC arcs, 2 endings (Lawful hero / Notorious legend)
 - [ ] Jobs and side activities: delivery, fishing contests, racing, treasure maps
 ### Graphics and physics polish (every run, pick one)
-- [ ] Lighting: SSAO/SSIL, soft shadows, fog, bloom, colour grading per time of day
+- [ ] (colour grading per time of day DONE v1 2026-11-19 via FX.grade_for; SSAO/glow/fog already High mode) Lighting: SSAO/SSIL, soft shadows, fog, bloom, colour grading per time of day
 - [ ] Better vegetation (wind sway shader, grass density), water shader with foam, particles (dust, leaves, sparks)
-- [ ] Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
+- [ ] (hit-stop DONE v1 on chop + mining; camera shake DONE) Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
 - [ ] Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
 
@@ -107,6 +107,7 @@ Priority order for runs: weapons/hunting, friendship, odd jobs, pets with jobs, 
 ## Phase 5 - Beyond: more planets, endgame, Steam launch.
 
 ## Improvement backlog (research-driven; append ideas here, pick 1 small one per run)
+- Mining/feel (2026-11-19 search, links only: Core Keeper mining guide https://supercraft.host/wiki/core-keeper/mining-guide , Godot forum game-feel checklist https://forum.godotengine.org/t/game-feel-checklist-for-godot-4-hit-stop-trauma-shake-coyote-time-and-more/145340 , hit-stop+trauma shake https://forum.godotengine.org/t/tutorial-hit-stop-and-screen-shake-in-godot-4-autoload-trauma-camera-mit/145240 , gdquest juicy attack https://gdquest.com/library/juicy_attack). Weakest part vs Core Keeper/Terraria: mining has no progression (tiers, ore->bars->tools) and no sense of depth. APPLIED: hit-stop with real-time timer. Next: trauma-based stacking camera shake, coyote time/jump buffer, pickaxe tiers needing copper bars, fall-damage-free cave area, ShatterKit-style fracture meshes.
 - Physics drops (2026-11-19 search, links only: Godot forum RigidBody3D crate/pickup threads https://forum.godotengine.org/t/pick-up-and-drop-item-code-help/130851 , Valheim/Minecraft tree-physics mods e.g. https://www.curseforge.com/minecraft/mc-mods/physics-tree-drop). Weakest part vs Valheim/Terraria: gathering felt abstract (wood teleported into the bag). APPLIED: logs are rigid bodies with delayed magnet pickup. Next: whole trunk as a rigid body toppling away from the player, log->plank chopping, drop merging/despawn cap for perf, stone/ore reuse of WoodLog, pickup pop sfx pitch ramp.
 - Tyre dust follow-ups (2026-11-18 search: links only; Godot docs/forum: GPUParticles3D vs CPUParticles3D, local_coords off so trails stay in world): swap to GPUParticles3D + skid-mark decals in High mode, per-wheel emitters
 - Focus Audit style pass: check every menu is keyboard/pad navigable and ESC menu returns focus; on-screen pad glyph prompts swapping by last input device

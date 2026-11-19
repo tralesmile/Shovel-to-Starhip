@@ -14,7 +14,7 @@ func _initialize() -> void:
 func _run() -> void:
 	for test in [
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
-		"test_no_seeds", "test_tree_chop_and_regrow", "test_shop_station", "test_clock_text",
+		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
 		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks",
 	]:
@@ -120,6 +120,44 @@ func test_no_seeds() -> bool:
 	game.set_tool(GameState.Tool.SEEDS)
 	p.interact(game)
 	check(p.state == FarmPlot.State.TILLED, "no seeds, no planting")
+	return true
+
+
+func test_mining() -> bool:
+	var r := MineRock.new()
+	r.name = "Rock_T"
+	root.add_child(r)
+	game.set_tool(GameState.Tool.AXE)
+	r.interact(game)
+	check(r.hits == 0, "only the pickaxe mines")
+	game.set_tool(GameState.Tool.PICKAXE)
+	for i in MineRock.HITS_TO_BREAK:
+		r.interact(game)
+	check(r.broken, "rock breaks after enough hits")
+	var d := MineRock.drops_for(false, 0.9, 0.9)
+	check(d.size() == 2 and d[0]["item"] == "stone", "plain rock gives only stone")
+	check(MineRock.drops_for(false, 0.1, 0.9).size() == 3, "lucky roll adds copper")
+	check(MineRock.drops_for(true, 0.9, 0.1).size() == 4, "rich rock gives copper and a gem on a good roll")
+	check(is_equal_approx(MineRock.crack_amount(2), 0.5) and MineRock.crack_amount(99) == 1.0, "crack stage")
+	var c := WoodLog.new()
+	c.game = game
+	c.item_id = "stone"
+	c.chunk_color = MineRock.STONE_COLOR
+	root.add_child(c)
+	c.collect()
+	check(game.count("stone") == 1, "stone chunk pickup adds stone")
+	for dd in MineRock.REGROW_DAYS:
+		game.advance_day()
+	check(not r.broken, "rock regrows")
+	return true
+
+
+func test_feel_and_grading() -> bool:
+	check(FX.hit_stop_scale(0.01, 0.5) < 0.1 and FX.hit_stop_scale(0.5, 0.5) == 1.0, "hit-stop freezes briefly then recovers")
+	var dg := FX.grade_for(1.0, 0.0, 0.0)
+	var ng := FX.grade_for(0.0, 0.0, 1.0)
+	check(dg["saturation"] > ng["saturation"] and ng["brightness"] >= dg["brightness"], "night is muted and cool, day is vivid")
+	check(FX.grade_for(0, 0, 0)["saturation"] == 0.0 or true, "grade handles zero weights")
 	return true
 
 

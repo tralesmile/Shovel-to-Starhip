@@ -37,6 +37,7 @@ func _ready() -> void:
 	_build_police()
 	_build_police_car()
 	_build_trees()
+	_build_rocks()
 	_build_road_and_signs()
 	_build_interiors()
 	_build_spaceport()
@@ -177,6 +178,11 @@ func _update_daylight() -> void:
 	env.ambient_light_color = Color(0.75, 0.8, 0.95) * day + Color(0.8, 0.6, 0.6) * sunset + Color(0.3, 0.36, 0.6) * night
 	env.ambient_light_energy = 0.45 * day + 0.4 * sunset + 0.32 * night
 	env.fog_light_color = Color(0.72, 0.82, 0.93) * day + Color(0.95, 0.65, 0.5) * sunset + Color(0.07, 0.09, 0.18) * night
+	var grade := FX.grade_for(day, sunset, night)
+	env.adjustment_enabled = true
+	env.adjustment_saturation = grade["saturation"]
+	env.adjustment_contrast = grade["contrast"]
+	env.adjustment_brightness = grade["brightness"]
 	var dark: float = night + sunset * 0.5
 	for l in _lamps:
 		l.visible = dark > 0.3
@@ -524,6 +530,21 @@ func _build_fence() -> void:
 	var l := Art.label("SHADY SAL\nno questions", 44, Color(0.8, 1.0, 0.8))
 	l.position.y = 2.4
 	fence.add_child(l)
+
+
+const ROCK_SPOTS := [Vector3(-8, 0, -14), Vector3(-11.5, 0, -12), Vector3(9, 0, -16), Vector3(12, 0, -13.5), Vector3(-3, 0, -19)]
+
+
+func _build_rocks() -> void:
+	var rocks := Node3D.new()
+	rocks.name = "Rocks"
+	add_child(rocks)
+	for i in ROCK_SPOTS.size():
+		var r := MineRock.new()
+		r.name = "Rock_%02d" % i
+		r.position = ROCK_SPOTS[i]
+		r.position.y = Terrain.height_at(r.position.x, r.position.z)
+		rocks.add_child(r)
 
 
 func _build_trees() -> void:

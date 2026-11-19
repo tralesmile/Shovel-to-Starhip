@@ -83,8 +83,21 @@ func _build_model() -> void:
 	_hand = body.find_child("handslot_r", true, false)
 	_hand_items[GameState.Tool.AXE] = body.find_child("1H_Axe", true, false)
 	_hand_items[GameState.Tool.HOE] = _make_hoe()
+	_hand_items[GameState.Tool.PICKAXE] = _make_pickaxe()
 	_hand_items[GameState.Tool.WATER] = Models.put(_hand, Models.MED + "bucket_water.gltf", Vector3(0, -0.05, 0), 3.2)
 	_hand_items[GameState.Tool.SEEDS] = Models.put(_hand, Models.MED + "sack.gltf", Vector3(0, 0, 0), 3.0)
+
+
+func _make_pickaxe() -> Node3D:
+	var pick := Node3D.new()
+	_hand.add_child(pick)
+	var handle := Art.cylinder(0.035, 0.035, 1.2, Art.WOOD, 6)
+	handle.position.y = 0.3
+	pick.add_child(handle)
+	var head := Art.box(Vector3(0.07, 0.09, 0.7), Color(0.62, 0.64, 0.7))
+	head.position = Vector3(0, 0.9, 0)
+	pick.add_child(head)
+	return pick
 
 
 func _make_hoe() -> Node3D:
@@ -149,7 +162,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_use()
 	elif event.is_action_pressed("pause"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	for i in 4:
+	for i in 5:
 		if event.is_action_pressed("tool_%d" % (i + 1)):
 			Game.set_tool(i)
 
@@ -199,7 +212,7 @@ func _use() -> void:
 	if target == null or _action_time > 0.0:
 		return
 	var anim := "Interact"
-	if target is ChoppableTree and Game.current_tool == GameState.Tool.AXE:
+	if (target is ChoppableTree and Game.current_tool == GameState.Tool.AXE) or (target is MineRock and Game.current_tool == GameState.Tool.PICKAXE):
 		anim = "1H_Melee_Attack_Chop"
 	elif target is FarmPlot:
 		if (target as FarmPlot).is_ripe():

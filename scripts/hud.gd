@@ -53,10 +53,10 @@ func _ready() -> void:
 	bar.add_theme_constant_override("separation", 12)
 	bar.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(bar)
-	_place(bar, 0.5, 1, 0.5, 1, -400, -100, 400, -24)
+	_place(bar, 0.5, 1, 0.5, 1, -420, -100, 420, -24)
 	for i in GameState.TOOL_NAMES.size():
 		var p := PanelContainer.new()
-		p.custom_minimum_size = Vector2(170, 68)
+		p.custom_minimum_size = Vector2(140, 68)
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -120,6 +120,7 @@ func _build_icons() -> void:
 		Models.put(Node3D.new(), Models.MED + "sack.gltf", Vector3.ZERO, 1.0),
 		Models.put(Node3D.new(), Models.MED + "bucket_water.gltf", Vector3.ZERO, 1.0),
 		Models.put(Node3D.new(), Models.CHAR + "axe_1handed.gltf", Vector3.ZERO, 1.0),
+		_pickaxe_model(),
 	]
 	for m in models:
 		var root3d: Node3D = m.get_parent() if m.get_parent() else m
@@ -150,6 +151,19 @@ func _build_icons() -> void:
 		we.environment = e
 		vp.add_child(we)
 		_icons.append(vp.get_texture())
+
+
+func _pickaxe_model() -> Node3D:
+	var pick := Node3D.new()
+	var handle := Art.cylinder(0.035, 0.035, 1.2, Art.WOOD, 6)
+	handle.position.y = 0.3
+	handle.rotation.z = 0.5
+	pick.add_child(handle)
+	var head := Art.box(Vector3(0.07, 0.09, 0.7), Color(0.62, 0.64, 0.7))
+	head.position = Vector3(-0.2, 0.85, 0)
+	head.rotation.z = 0.5
+	pick.add_child(head)
+	return pick
 
 
 func _hoe_model() -> Node3D:

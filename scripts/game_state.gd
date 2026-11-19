@@ -15,8 +15,8 @@ const DAY_LENGTH := 120.0          ## real seconds per in-game day
 const START_TIME := 0.25           ## 0..1 of a day; 0.25 = 6:00
 const SAVE_PATH := "user://save.json"
 
-enum Tool { HOE, SEEDS, WATER, AXE }
-const TOOL_NAMES := ["Hoe", "Turnip Seeds", "Watering Can", "Axe"]
+enum Tool { HOE, SEEDS, WATER, AXE, PICKAXE }
+const TOOL_NAMES := ["Hoe", "Turnip Seeds", "Watering Can", "Axe", "Pickaxe"]
 
 ## Crop table: seed item, harvest item, watered nights to ripen, ripe model.
 const CROPS := {
@@ -34,6 +34,10 @@ const ITEMS := {
 	"tomato_seed": {"name": "Tomato Seeds", "buy": 30, "sell": 0},
 	"tomato": {"name": "Tomato", "buy": 0, "sell": 125},
 	"wood": {"name": "Wood", "buy": 0, "sell": 5},
+	# Mining drops.
+	"stone": {"name": "Stone", "buy": 0, "sell": 4},
+	"copper_ore": {"name": "Copper Ore", "buy": 0, "sell": 18},
+	"gem": {"name": "Shiny Gem", "buy": 0, "sell": 90},
 	# Fish: sell at the bin.
 	"boot": {"name": "Old Boot", "buy": 0, "sell": 2},
 	"minnow": {"name": "Minnow", "buy": 0, "sell": 8},
@@ -479,6 +483,7 @@ func setup_input() -> void:
 	_key_action("tool_2", [KEY_2])
 	_key_action("tool_3", [KEY_3])
 	_key_action("tool_4", [KEY_4])
+	_key_action("tool_5", [KEY_5])
 	_key_action("help", [KEY_H, KEY_F1])
 	_key_action("save", [KEY_F5])
 	_key_action("pause", [KEY_ESCAPE])
@@ -495,7 +500,7 @@ const PAD_BUTTONS := {
 	"jump": [JOY_BUTTON_A], "interact": [JOY_BUTTON_X], "interact_click": [JOY_BUTTON_RIGHT_SHOULDER],
 	"sprint": [JOY_BUTTON_LEFT_STICK], "crouch": [JOY_BUTTON_B], "help": [JOY_BUTTON_Y], "pause": [JOY_BUTTON_START],
 	"tool_1": [JOY_BUTTON_DPAD_UP], "tool_2": [JOY_BUTTON_DPAD_RIGHT],
-	"tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT],
+	"tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER],
 }
 const PAD_AXES := {
 	"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],
