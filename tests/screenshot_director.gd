@@ -68,6 +68,20 @@ func _run() -> void:
 	p._zoom = 8.0
 	p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
 	Game.say("Welcome to Bumpkin Bay! Press H for help.")
+	if _wanted("99_logs.png") and OS.get_cmdline_user_args().has("--only=99"):
+		var tree: ChoppableTree = main.get_node("Trees/Tree_00")
+		Game.set_tool(GameState.Tool.AXE)
+		p.global_position = tree.global_position + Vector3(0, 0.1, 3.5)
+		p._yaw = 0.0
+		p._pitch = -0.3
+		p._zoom = 8.0
+		for i in 3:
+			tree.interact(Game)
+		await _wait(110)
+		await _shot("99_logs.png")
+		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
+		get_tree().quit()
+		return
 	await _shot("01_farm.png")
 	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
 

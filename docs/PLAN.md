@@ -33,8 +33,8 @@ Mark each item [x] when done and tested.
 ## Phase 1.6 - Depth, feel and story (owner request 2026-11-18; keep ALL core ideas, this adds to them)
 Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Keeper, Terraria, Palworld, GTA-lite, Cassette Beasts) while keeping the lighthearted shovel-to-starship idea. Every run: at least one item from "Feel" and one from "Graphics/Physics", plus one from "Make things".
 ### Gather and break (physics-based)
-- [ ] Tree felling: chopping hits fill a damage meter, then the tree FALLS as a rigid body in the chop direction, splits into logs (RigidBody3D), logs can be chopped again into planks/firewood, stump remains and regrows over days
-- [ ] Pick up anything from the ground (E / auto-magnet when close): logs, stones, ore, herbs, dropped items with bounce, pop and a small pickup arc
+- [ ] (v1 DONE 2026-11-19: 3 real RigidBody3D logs tumble out when the trunk lands, bounce, magnet to you within 2.6m and add wood; still to do: fall as rigid body, chop logs into planks, stump regrow already works) Tree felling: chopping hits fill a damage meter, then the tree FALLS as a rigid body in the chop direction, splits into logs (RigidBody3D), logs can be chopped again into planks/firewood, stump remains and regrows over days
+- [ ] (v1 DONE: WoodLog pickup w/ arm delay, magnet, collect pop; reuse for stone/ore/herbs) Pick up anything from the ground (E / auto-magnet when close): logs, stones, ore, herbs, dropped items with bounce, pop and a small pickup arc
 - [ ] Mining: ore rocks with hit stages that crack and break into chunks/ore pieces (rigid bodies), pickaxe tiers, small caves/mine area, gems
 - [ ] Carry system: heavy items (logs, rocks) slow you; wheelbarrow/cart/car trunk to haul
 ### Animals and riding
@@ -107,6 +107,7 @@ Priority order for runs: weapons/hunting, friendship, odd jobs, pets with jobs, 
 ## Phase 5 - Beyond: more planets, endgame, Steam launch.
 
 ## Improvement backlog (research-driven; append ideas here, pick 1 small one per run)
+- Physics drops (2026-11-19 search, links only: Godot forum RigidBody3D crate/pickup threads https://forum.godotengine.org/t/pick-up-and-drop-item-code-help/130851 , Valheim/Minecraft tree-physics mods e.g. https://www.curseforge.com/minecraft/mc-mods/physics-tree-drop). Weakest part vs Valheim/Terraria: gathering felt abstract (wood teleported into the bag). APPLIED: logs are rigid bodies with delayed magnet pickup. Next: whole trunk as a rigid body toppling away from the player, log->plank chopping, drop merging/despawn cap for perf, stone/ore reuse of WoodLog, pickup pop sfx pitch ramp.
 - Tyre dust follow-ups (2026-11-18 search: links only; Godot docs/forum: GPUParticles3D vs CPUParticles3D, local_coords off so trails stay in world): swap to GPUParticles3D + skid-mark decals in High mode, per-wheel emitters
 - Focus Audit style pass: check every menu is keyboard/pad navigable and ESC menu returns focus; on-screen pad glyph prompts swapping by last input device
 - Surface-aware footsteps (grass/wood floor/road) via ground raycast group lookup (Godot 4 reactive footsteps idea, itch.io blog); car engine pitch from speed

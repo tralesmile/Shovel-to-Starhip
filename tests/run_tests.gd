@@ -133,9 +133,17 @@ func test_tree_chop_and_regrow() -> bool:
 	game.set_tool(GameState.Tool.AXE)
 	for i in ChoppableTree.HITS_TO_FELL:
 		t.interact(game)
-	check(t.felled and game.count("wood") == ChoppableTree.WOOD_DROP, "tree falls and drops wood")
+	check(t.felled, "tree falls")
+	check(WoodLog.state_for(5.0, 1.0) == "idle" and WoodLog.state_for(2.0, 1.0) == "magnet", "pickup magnet range")
+	check(WoodLog.state_for(0.5, 1.0) == "collect" and WoodLog.state_for(0.5, 0.1) == "wait", "pickup collect + arm delay")
+	var lg := WoodLog.new()
+	lg.game = game
+	root.add_child(lg)
+	lg.collect()
+	lg.collect()
+	check(game.count("wood") == 1, "log pickup adds one wood, only once")
 	t.interact(game)
-	check(game.count("wood") == ChoppableTree.WOOD_DROP, "stump gives no more wood")
+	check(game.count("wood") == 1, "stump gives no more wood")
 	for d in ChoppableTree.REGROW_DAYS:
 		game.advance_day()
 	check(not t.felled, "tree regrows")

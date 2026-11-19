@@ -71,8 +71,7 @@ func interact(game: GameState) -> void:
 		felled = true
 		hits = 0
 		days_felled = 0
-		game.add_item("wood", WOOD_DROP)
-		game.say("TIMBER! +%d wood" % WOOD_DROP)
+		game.say("TIMBER! Grab the logs!")
 		_fall(game)
 	_refresh()
 
@@ -85,6 +84,7 @@ func _fall(game: GameState) -> void:
 	var tw := create_tween()
 	tw.tween_property(_trunk, "rotation:z", side * PI * 0.5, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func():
+		_spawn_logs(game, side)
 		game.shake.emit(0.45)
 		FX.burst(self, global_position + Vector3(side * 2.5, 0.3, 0), Color(0.45, 0.62, 0.25), 24, 0.16, 4.0, -6.0)
 		FX.burst(self, global_position + Vector3(side * 2.5, 0.2, 0), Color(0.75, 0.68, 0.55), 16, 0.2, 2.0, -2.0, "sphere"))
@@ -94,6 +94,19 @@ func _fall(game: GameState) -> void:
 		_trunk.rotation.z = 0.0
 		_trunk.scale = Vector3.ONE
 		_refresh())
+
+
+## Logs are real rigid bodies that tumble out where the trunk lands.
+func _spawn_logs(game: GameState, side: float) -> void:
+	var host: Node = get_parent()
+	if host == null:
+		return
+	for i in WOOD_DROP:
+		var lg := WoodLog.new()
+		lg.game = game
+		host.add_child(lg)
+		lg.global_position = global_position + Vector3(side * (1.2 + i * 0.9), 0.6 + i * 0.2, randf_range(-0.3, 0.3))
+		lg.pop(Vector3(side * 1.5, 0, 0))
 
 
 func on_new_day(_game: GameState) -> void:
