@@ -114,6 +114,35 @@ func _run() -> void:
 		await _shot("95_build_mode.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=94"):
+		var bw4: BuildWorld = main.get_node("BuildWorld")
+		Game.time_of_day = 15.5
+		Game.add_item("wood_floor", 6)
+		Game.add_item("wood_wall", 6)
+		p.global_position = Vector3(4, Terrain.height_at(4, -2), -2)
+		p._yaw = 0.3
+		p._pitch = -0.4
+		p._zoom = 8.0
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(10)
+		for fx in 2:
+			for fz in 2:
+				bw4.place("wood_floor", Vector3(fx * 2, 0, -8 + fz * 2), 0, Game)
+		bw4.place("wood_wall", Vector3(0, 0, -9), 0, Game)
+		bw4.place("wood_wall", Vector3(2, 0, -9), 0, Game)
+		bw4.place("wood_wall", Vector3(-1, 0, -8), 1, Game)
+		bw4.place("wood_wall", Vector3(-1, 0, -6), 1, Game)
+		var lg4 := WoodLog.new()
+		lg4.game = Game
+		main.add_child(lg4)
+		lg4.global_position = Vector3(5, Terrain.height_at(5, -4) + 0.6, -4)
+		await _wait(40)
+		lg4.chop_into_planks()
+		await _wait(8)
+		await _shot("94_wood_build.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=96"):
 		Game.time_of_day = 0.45
 		p.global_position = Vector3(Terrain.POND_CENTER.x + 8.0, 0.1, Terrain.POND_CENTER.y + 1.0)

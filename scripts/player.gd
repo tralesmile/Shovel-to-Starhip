@@ -237,6 +237,16 @@ func _use() -> void:
 			if a != "":
 				play_action(a, 0.45)
 		return
+	if target == null and Game.current_tool == GameState.Tool.AXE and _action_time <= 0.0:
+		var lg := _log_ahead()
+		if lg != null:
+			var tl := lg.global_position - global_position
+			_model.rotation.y = atan2(tl.x, tl.z)
+			play_action("1H_Melee_Attack_Chop", 0.55)
+			lg.chop_into_planks()
+			Game.shake.emit(0.1)
+			FX.hit_stop(get_tree(), 0.4)
+		return
 	if target == null or _action_time > 0.0:
 		return
 	var anim := "Interact"
@@ -256,6 +266,23 @@ func _use() -> void:
 	_model.rotation.y = atan2(to.x, to.z)
 	play_action(anim, 0.55)
 	target.interact(Game)
+
+
+## Nearest loose log in front of you (axe chops it into planks).
+func _log_ahead() -> WoodLog:
+	var forward := Vector3(sin(_model.rotation.y), 0, cos(_model.rotation.y))
+	var probe := global_position + forward * 0.9
+	var best: WoodLog = null
+	var best_d := 1.6
+	for n in get_tree().get_nodes_in_group("pickup"):
+		var l := n as WoodLog
+		if l == null or l.item_id != "wood" or l.chunk_color.a > 0.0 or l.age < WoodLog.ARM_TIME:
+			continue
+		var d := Vector2(probe.x - l.global_position.x, probe.z - l.global_position.z).length()
+		if d < best_d:
+			best = l
+			best_d = d
+	return best
 
 
 func _drive(delta: float) -> void:

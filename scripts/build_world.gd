@@ -10,8 +10,10 @@ const REACH := 2.6
 const PIECES := {
 	"fence_panel": {"name": "Fence Panel", "size": Vector3(1.9, 0.9, 0.16), "color": Color(0.72, 0.5, 0.3), "style": "fence"},
 	"stone_wall": {"name": "Stone Wall", "size": Vector3(1.95, 1.3, 0.4), "color": Color(0.6, 0.61, 0.66), "style": "block"},
+	"wood_floor": {"name": "Wood Floor", "size": Vector3(1.96, 0.14, 1.96), "color": Color(0.8, 0.6, 0.38), "style": "floor"},
+	"wood_wall": {"name": "Wood Wall", "size": Vector3(1.96, 2.2, 0.2), "color": Color(0.74, 0.52, 0.32), "style": "plank_wall"},
 }
-const PIECE_ORDER := ["fence_panel", "stone_wall"]
+const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall"]
 
 var pieces := {}   ## cell key -> BuildPiece
 var piece_id := "fence_panel"
@@ -39,6 +41,13 @@ static func target_pos(player: Vector3, yaw: float) -> Vector3:
 ## Unique key for a piece slot: grid cell plus rotation step (0..3, only 0 and 1 matter for a wall).
 static func cell_key(p: Vector3, r: int) -> String:
 	return "%d,%d,%d" % [int(roundf(p.x / GRID)), int(roundf(p.z / GRID)), r % 2]
+
+
+## Pure: floors ignore rotation (one per cell, own key space) so a wall can stand on a floor cell.
+static func key_for(id: String, p: Vector3, r: int) -> String:
+	if PIECES.has(id) and PIECES[id]["style"] == "floor":
+		return "f,%d,%d" % [int(roundf(p.x / GRID)), int(roundf(p.z / GRID))]
+	return cell_key(p, r)
 
 
 static func yaw_of(r: int) -> float:
@@ -131,7 +140,7 @@ func _spawn(id: String, x: float, z: float, r: int, animate: bool) -> BuildPiece
 	p.rot = r
 	p.position = Vector3(x, Terrain.height_at(x, z), z)
 	add_child(p)
-	pieces[cell_key(p.position, r)] = p
+	pieces[key_for(id, p.position, r)] = p
 	if animate:
 		p.pop_in()
 	return p
@@ -139,7 +148,7 @@ func _spawn(id: String, x: float, z: float, r: int, animate: bool) -> BuildPiece
 
 ## Place a piece directly (no reach/collision checks). Used by use() and tests.
 func place(id: String, pos: Vector3, r: int, g: GameState) -> bool:
-	var key := cell_key(pos, r)
+	var key := key_for(id, pos, r)
 	if not can_place(key, pieces, false, g.count(id)):
 		return false
 	g.remove_item(id, 1)
@@ -156,7 +165,7 @@ func demolish(key: String, g: GameState) -> bool:
 	pieces.erase(key)
 	for i in g.built.size():
 		var d: Dictionary = g.built[i]
-		if cell_key(Vector3(d["x"], 0, d["z"]), int(d["r"])) == key:
+		if key_for(str(d["id"]), Vector3(d["x"], 0, d["z"]), int(d["r"])) == key:
 			g.built.remove_at(i)
 			break
 	g.add_item(p.piece_id, 1)
@@ -179,7 +188,7 @@ func _update_ghost(g: GameState, pl: Node3D) -> void:
 	var p := target_pos(pl.global_position, yaw)
 	p.y = Terrain.height_at(p.x, p.z)
 	_ghost_pos = p
-	var key := cell_key(p, rot)
+	var key := key_for(piece_id, p, rot)
 	var ok := can_place(key, pieces, Terrain.is_water(p.x, p.z), g.count(piece_id)) and _space_free(p)
 	_ghost_ok = ok
 	_ghost.visible = true
@@ -221,7 +230,7 @@ func _space_free(p: Vector3) -> bool:
 
 
 func aiming_key() -> String:
-	var key := cell_key(_ghost_pos, rot)
+	var key := key_for(piece_id, _ghost_pos, rot)
 	return key if pieces.has(key) else ""
 
 

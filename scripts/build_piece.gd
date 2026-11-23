@@ -29,6 +29,23 @@ func _ready() -> void:
 			var rail := Art.box(Vector3(sz.x, 0.12, 0.08), c)
 			rail.position = Vector3(0, ry, 0)
 			_mesh.add_child(rail)
+	elif def["style"] == "floor":
+		# Planks laid side by side with a darker gap + a pale edge: reads as boards, not a slab.
+		for k in 5:
+			var shade := c.lightened(0.05) if k % 2 == 0 else c.darkened(0.06)
+			var b := Art.box(Vector3(sz.x / 5.0 - 0.02, sz.y, sz.z - 0.02), shade)
+			b.position = Vector3(-sz.x * 0.4 + k * sz.x * 0.2, sz.y * 0.5, 0)
+			_mesh.add_child(b)
+	elif def["style"] == "plank_wall":
+		for k in 6:
+			var shade2 := c.lightened(0.05) if k % 2 == 0 else c.darkened(0.07)
+			var b2 := Art.box(Vector3(sz.x / 6.0 - 0.02, sz.y, sz.z), shade2)
+			b2.position = Vector3(-sz.x * 0.417 + k * sz.x / 6.0, sz.y * 0.5, 0)
+			_mesh.add_child(b2)
+		for ry2 in [0.3, sz.y - 0.3]:
+			var brace := Art.box(Vector3(sz.x, 0.14, sz.z + 0.06), c.darkened(0.25))
+			brace.position = Vector3(0, ry2, 0)
+			_mesh.add_child(brace)
 	else:
 		for row in 3:
 			var off := 0.0 if row % 2 == 0 else 0.25

@@ -31,6 +31,11 @@ static func state_for(dist: float, age_s: float) -> String:
 	return "idle"
 
 
+## Pure (tested): with the axe equipped a plain log waits to be chopped instead of flying to you.
+static func wants_chop(id: String, tool: int) -> bool:
+	return id == "wood" and tool == GameState.Tool.AXE
+
+
 func _ready() -> void:
 	add_to_group("pickup")
 	mass = 2.0
@@ -42,6 +47,9 @@ func _ready() -> void:
 	physics_material_override = phys
 	if chunk_color.a > 0.0:
 		_build_chunk()
+		return
+	if item_id == "plank":
+		_build_plank()
 		return
 	var cs := CollisionShape3D.new()
 	var cyl := CylinderShape3D.new()
@@ -75,6 +83,42 @@ func _ready() -> void:
 		cap.mesh = d
 		cap.position.y = 0.4 * s
 		add_child(cap)
+
+
+## A pale board that tumbles out when a log is chopped.
+func _build_plank() -> void:
+	mass = 0.8
+	var sz := Vector3(0.7, 0.07, 0.2)
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = sz
+	cs.shape = bx
+	add_child(cs)
+	add_child(Art.box(sz, Art.WOOD.lightened(0.35)))
+
+
+## Pure (tested): how many planks a chopped log yields, and the pickup item.
+const PLANKS_PER_LOG := 2
+
+
+## Splits this log into plank pickups with sawdust + chop juice. Returns planks spawned.
+func chop_into_planks() -> int:
+	if _collected or item_id != "wood" or chunk_color.a > 0.0:
+		return 0
+	_collected = true
+	var host := get_parent()
+	var pos := global_position
+	FX.burst(host, pos + Vector3(0, 0.2, 0), Color(0.9, 0.78, 0.5), 14, 0.06, 2.6, -5.0, "sphere", 120.0)
+	Sfx.play_on(self, "chop", 1.15)
+	for i in PLANKS_PER_LOG:
+		var pl := WoodLog.new()
+		pl.item_id = "plank"
+		pl.game = game
+		host.add_child(pl)
+		pl.global_position = pos + Vector3(randf_range(-0.2, 0.2), 0.3 + i * 0.1, randf_range(-0.2, 0.2))
+		pl.pop()
+	queue_free()
+	return PLANKS_PER_LOG
 
 
 ## Stone / ore / gem chunk: a small tumbling rock.
@@ -122,7 +166,11 @@ func _physics_process(delta: float) -> void:
 	if pl == null:
 		return
 	var to := pl.global_position + Vector3(0, 0.8, 0) - global_position
-	match state_for(to.length(), age):
+	var st := state_for(to.length(), age)
+	# Axe in hand: loose logs stay put so you can chop them into planks (walk over one to take it whole).
+	if st == "magnet" and wants_chop(item_id, game.current_tool if game != null else -1):
+		st = "idle"
+	match st:
 		"collect":
 			collect()
 		"magnet":

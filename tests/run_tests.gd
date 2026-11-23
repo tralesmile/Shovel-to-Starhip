@@ -1128,8 +1128,38 @@ func test_build_mode() -> bool:
 	check(saved["built"].size() == 1, "built pieces saved")
 	check(bw.demolish(BuildWorld.cell_key(pos, 0), game) and game.count("fence_panel") == 2 and game.built.is_empty(), "demolish refunds fully")
 	game.add_item("stone", 4)
-	check(game.craft(game.RECIPES.size() - 2) and game.count("stone_wall") == 1, "stone wall recipe")
+	check(game.craft(_recipe_index("stone_wall")) and game.count("stone_wall") == 1, "stone wall recipe")
 	game.from_dict(saved)
 	check(game.built.size() == 1 and game.built[0]["id"] == "fence_panel", "built survives load")
+	# Floors and wooden walls (run 7).
+	check(BuildWorld.key_for("wood_floor", Vector3(2, 0, 4), 0) == BuildWorld.key_for("wood_floor", Vector3(2, 0, 4), 1), "floor ignores rotation")
+	check(BuildWorld.key_for("wood_floor", Vector3(2, 0, 4), 0) != BuildWorld.key_for("wood_wall", Vector3(2, 0, 4), 0), "wall can stand on a floor cell")
+	game.add_item("plank", 7)
+	check(game.craft(_recipe_index("wood_floor")) and game.count("wood_floor") == 1 and game.count("plank") == 4, "wood floor recipe")
+	check(game.craft(_recipe_index("wood_wall")) and game.count("wood_wall") == 1 and game.count("plank") == 0, "wood wall recipe")
+	var fp := Vector3(8, 0, 8)
+	check(bw.place("wood_floor", fp, 0, game) and bw.place("wood_wall", fp, 1, game), "floor then wall in the same cell")
+	check(not bw.place("wood_floor", fp, 1, game), "no second floor in a cell")
+	check(bw.demolish(BuildWorld.key_for("wood_floor", fp, 0), game) and game.count("wood_floor") == 1, "demolish floor refunds")
+	check(BuildWorld.PIECE_ORDER.size() == 4 and GameState.ITEM_WEIGHT.has("wood_floor"), "floor/wall registered")
+	# Log chopping.
+	check(WoodLog.wants_chop("wood", GameState.Tool.AXE) and not WoodLog.wants_chop("stone", GameState.Tool.AXE) and not WoodLog.wants_chop("wood", GameState.Tool.HOE), "axe keeps logs for chopping")
+	var lgc := WoodLog.new()
+	root.add_child(lgc)
+	lgc.game = game
+	check(lgc.chop_into_planks() == WoodLog.PLANKS_PER_LOG, "chopping a log yields planks")
+	var pl_found := 0
+	for n in root.get_children():
+		if n is WoodLog and (n as WoodLog).item_id == "plank":
+			pl_found += 1
+			n.queue_free()
+	check(pl_found == WoodLog.PLANKS_PER_LOG, "plank pickups spawned")
 	bw.queue_free()
 	return true
+
+
+func _recipe_index(id: String) -> int:
+	for i in GameState.RECIPES.size():
+		if GameState.RECIPES[i]["id"] == id:
+			return i
+	return -1
