@@ -36,7 +36,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (v1 DONE 2026-11-19: 3 real RigidBody3D logs tumble out when the trunk lands, bounce, magnet to you within 2.6m and add wood; still to do: fall as rigid body, chop logs into planks, stump regrow already works) Tree felling (v2 DONE 2026-11-23: trunk topples AWAY from the player on its own axis, thud rebound, logs spawn along the fall line, shake scales with distance): chopping hits fill a damage meter, then the tree FALLS as a rigid body in the chop direction, splits into logs (RigidBody3D), logs can be chopped again into planks/firewood, stump remains and regrows over days
 - [ ] (v1 DONE: WoodLog pickup w/ arm delay, magnet, collect pop; reuse for stone/ore/herbs) Pick up anything from the ground (E / auto-magnet when close): logs, stones, ore, herbs, dropped items with bounce, pop and a small pickup arc
 - [ ] (v1 DONE 2026-11-19: Pickaxe tool [5], 5 MineRock rocks, 4 hits with shake/shrink/sparks/hit-stop, break into rigid-body stone/copper/gem chunks, regrow 3 days; still to do: pickaxe tiers, mine area/caves, selling/using ore) Mining: ore rocks with hit stages that crack and break into chunks/ore pieces (rigid bodies), pickaxe tiers, small caves/mine area, gems
-- [ ] Carry system: heavy items (logs, rocks) slow you; wheelbarrow/cart/car trunk to haul
+- [ ] (v1 DONE 2026-11-23: per-item weights, free capacity 30kg, speed drops to min 55% when overloaded, HUD load line, Wheelbarrow recipe (+40kg free, one-off); still to do: push-able wheelbarrow prop, car trunk, drop items on the ground) Carry system: heavy items (logs, rocks) slow you; wheelbarrow/cart/car trunk to haul
 ### Animals and riding
 - [ ] Hunting (simple wildlife that flees, drops meat/hide; bow or slingshot), cooking
 - [ ] Taming: feed/befriend wild animals, pets that follow and help (find loot, carry), farm animals with products
@@ -59,6 +59,11 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (hit-stop DONE v1 on chop + mining; camera shake DONE) Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
 - [ ] Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
+
+### Research backlog 2026-11-23 (run 6; searches returned links only)
+- Weakest part vs comparables: mined/chopped stuff has weight in no way, so hauling is a non-decision (Valheim encumbrance, Core Keeper digging loop). APPLIED: encumbrance + wheelbarrow. Next: push-able physical wheelbarrow prop, drop-on-ground.
+- Core Keeper/Terraria digging juice: https://www.thegamer.com/core-keeper-and-the-endless-craving-for-digging-holes/ (idea: tunnelling toward ore, ore veins visible through walls)
+- Godot RigidBody carry/hold physics: https://forum.godotengine.org/t/hl2-amnesia-style-physics-object-manipulation/133886 (idea: grab + carry a crate/log in hands with joint/force, not teleport)
 
 ## Phase 1.7 - Features borrowed from similar games (owner request 2026-11-18; all kept, ordered by value)
 Priority order for runs: weapons/hunting, friendship, odd jobs, pets with jobs, disguises, staged rocket, then the rest.

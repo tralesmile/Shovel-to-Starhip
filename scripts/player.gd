@@ -298,6 +298,7 @@ func _physics_process(delta: float) -> void:
 		Game.say("Huff... puff... turnips are heavy.")
 	winded = sr["winded"]
 	var speed := CROUCH_SPEED if crouching else (RUN_SPEED if sr["sprinting"] else WALK_SPEED)
+	speed *= FX.carry_speed_mult(Game.carry_weight(), Game.carry_free())
 	_squash = lerpf(_squash, 1.0, 10.0 * delta)
 	_model.scale.y = lerpf(_model.scale.y, (0.7 if crouching else 1.0) * _squash, 12.0 * delta)
 	if global_position.y < Terrain.WATER_LEVEL + 0.2:

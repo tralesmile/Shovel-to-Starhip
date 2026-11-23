@@ -15,6 +15,7 @@ var age := 0.0
 var game: GameState
 var _collected := false
 var _magnet := false
+var _prev_vy := 0.0
 static var combo := 0
 static var last_pick := -10.0
 
@@ -113,6 +114,10 @@ func _physics_process(delta: float) -> void:
 	if age > LIFETIME:
 		queue_free()
 		return
+	if FX.is_hard_landing(_prev_vy, linear_velocity.y) and not _magnet:
+		FX.burst(self, global_position + Vector3(0, 0.05, 0), Color(0.72, 0.64, 0.5), 5, 0.14, 1.4, -1.0, "sphere", 80.0)
+		Sfx.play_on(self, "thud", 0.9 + randf() * 0.3)
+	_prev_vy = linear_velocity.y
 	var pl := get_tree().get_first_node_in_group("player") as Node3D
 	if pl == null:
 		return

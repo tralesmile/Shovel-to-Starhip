@@ -48,6 +48,7 @@ const ITEMS := {
 	"rocket_plate": {"name": "Rocket Hull Plate", "buy": 0, "sell": 0},
 	"copper_pickaxe": {"name": "Copper Pickaxe", "buy": 0, "sell": 0},
 	"copper_axe": {"name": "Copper Axe", "buy": 0, "sell": 0},
+	"wheelbarrow": {"name": "Wheelbarrow", "buy": 0, "sell": 0},
 	# Fish: sell at the bin.
 	"boot": {"name": "Old Boot", "buy": 0, "sell": 2},
 	"minnow": {"name": "Minnow", "buy": 0, "sell": 8},
@@ -72,7 +73,15 @@ const RECIPES := [
 	{"id": "copper_axe", "name": "Copper Axe", "in": {"copper_ingot": 2, "plank": 2}, "out": {"copper_axe": 1}, "once": true},
 	{"id": "rocket_plate", "name": "Rocket Hull Plate", "in": {"copper_ingot": 3, "plank": 2}, "out": {"rocket_plate": 1}},
 	{"id": "stone_wall", "name": "Stone Wall", "in": {"stone": 4}, "out": {"stone_wall": 1}},
+	{"id": "wheelbarrow", "name": "Wheelbarrow", "in": {"plank": 4, "copper_ingot": 1}, "out": {"wheelbarrow": 1}, "once": true},
 ]
+
+## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
+const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
+	"stone_wall": 6.0, "fence_panel": 3.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
+	"copper_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0}
+const CARRY_FREE := 30.0       ## below this you move at full speed
+const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
 const CARRY_LIMIT := 4   ## max stolen items in your pockets
 
@@ -223,6 +232,18 @@ static func recipe_text(idx: int) -> String:
 
 func count(item_id: String) -> int:
 	return int(inventory.get(item_id, 0))
+
+
+## Total weight of everything in the pockets (tested).
+func carry_weight() -> float:
+	var w := 0.0
+	for id in inventory.keys():
+		w += float(inventory[id]) * float(ITEM_WEIGHT.get(id, 0.2))
+	return w
+
+
+func carry_free() -> float:
+	return CARRY_FREE + (CARRY_WHEELBARROW if count("wheelbarrow") > 0 else 0.0)
 
 
 func add_item(item_id: String, amount: int = 1) -> void:

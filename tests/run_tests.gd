@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1028,6 +1028,26 @@ func test_stamina() -> bool:
 	return true
 
 
+func test_carry_weight() -> bool:
+	var game := GameState.new()
+	check(game.carry_weight() < 2.0, "fresh pockets are light")
+	game.add_item("stone", 10)
+	check(is_equal_approx(game.carry_weight(), 30.0 + game.count("turnip_seed") * 0.2), "stone weighs 3 each")
+	check(FX.carry_speed_mult(10.0, 30.0) == 1.0, "light load = full speed")
+	check(FX.carry_speed_mult(80.0, 30.0) < 1.0 and FX.carry_speed_mult(80.0, 30.0) > 0.55, "heavy load slows")
+	check(FX.carry_speed_mult(9999.0, 30.0) == 0.55, "slowdown floors at 0.55")
+	var free0 := game.carry_free()
+	game.add_item("wheelbarrow", 1)
+	check(game.carry_free() > free0, "wheelbarrow raises free capacity")
+	check(FX.is_hard_landing(-6.0, 0.5) and not FX.is_hard_landing(-1.0, 0.0), "hard landing detect")
+	var found := false
+	for r in GameState.RECIPES:
+		if r["id"] == "wheelbarrow":
+			found = true
+	check(found, "wheelbarrow recipe exists")
+	return true
+
+
 func test_pickaxe_upgrade() -> bool:
 	var game := GameState.new()
 	var idx := -1
@@ -1108,7 +1128,7 @@ func test_build_mode() -> bool:
 	check(saved["built"].size() == 1, "built pieces saved")
 	check(bw.demolish(BuildWorld.cell_key(pos, 0), game) and game.count("fence_panel") == 2 and game.built.is_empty(), "demolish refunds fully")
 	game.add_item("stone", 4)
-	check(game.craft(game.RECIPES.size() - 1) and game.count("stone_wall") == 1, "stone wall recipe")
+	check(game.craft(game.RECIPES.size() - 2) and game.count("stone_wall") == 1, "stone wall recipe")
 	game.from_dict(saved)
 	check(game.built.size() == 1 and game.built[0]["id"] == "fence_panel", "built survives load")
 	bw.queue_free()

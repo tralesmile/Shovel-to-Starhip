@@ -169,6 +169,18 @@ static func stamina_step(stamina: float, want_sprint: bool, moving: bool, winded
 	return {"stamina": stamina, "sprinting": sprinting, "winded": winded}
 
 
+## Encumbrance (pure, tested): speed multiplier for a carried weight over the free capacity. Never below 0.55.
+static func carry_speed_mult(weight: float, free: float) -> float:
+	if weight <= free:
+		return 1.0
+	return clampf(1.0 - (weight - free) * 0.006, 0.55, 1.0)
+
+
+## Pure (tested): should a landing at `fall_speed` kick up dust / thud (a hard ground hit)?
+static func is_hard_landing(prev_vy: float, vy: float) -> bool:
+	return prev_vy < -3.0 and vy > prev_vy + 2.0
+
+
 ## Landing squash (pure, tested): vertical scale dips with the fall speed, clamped.
 static func landing_squash(fall_speed: float) -> float:
 	return clampf(1.0 - maxf(0.0, fall_speed - 3.0) * 0.06, 0.7, 1.0)

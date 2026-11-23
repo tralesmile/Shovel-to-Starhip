@@ -293,6 +293,9 @@ func _refresh() -> void:
 	for id in Game.inventory.keys():
 		parts.append("%s ×%d" % [Game.item_name(id), Game.count(id)])
 	_inv.text = "  ·  ".join(parts) if parts.size() > 0 else "Pockets: empty (and a bit of lint)"
+	var load_w := Game.carry_weight()
+	if load_w > Game.carry_free():
+		_inv.text += "\nLoad %d/%d kg - you waddle. A wheelbarrow would help." % [int(load_w), int(Game.carry_free())] if Game.count("wheelbarrow") == 0 else "\nLoad %d/%d kg - heavy!" % [int(load_w), int(Game.carry_free())]
 	for i in _slots.size():
 		var sb := StyleBoxFlat.new()
 		sb.set_corner_radius_all(10)

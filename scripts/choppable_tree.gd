@@ -105,7 +105,9 @@ func _fall(game: GameState) -> void:
 		_spawn_logs(game, dir)
 		game.shake.emit(FX.fall_shake(dist))
 		FX.burst(self, global_position + dir * 2.5 + Vector3(0, 0.3, 0), Color(0.45, 0.62, 0.25), 24, 0.16, 4.0, -6.0)
-		FX.burst(self, global_position + dir * 2.5 + Vector3(0, 0.2, 0), Color(0.75, 0.68, 0.55), 16, 0.2, 2.0, -2.0, "sphere"))
+		FX.burst(self, global_position + dir * 2.5 + Vector3(0, 0.2, 0), Color(0.75, 0.68, 0.55), 16, 0.2, 2.0, -2.0, "sphere")
+		# Leaves flutter down slowly (low gravity, wide spread) for a long moment.
+		FX.burst(self, global_position + Vector3(0, 3.2, 0) + dir * 1.2, Color(0.5, 0.72, 0.28), 30, 0.12, 2.2, -0.9, "box", 180.0))
 	# Thud rebound: bounces back a few degrees and settles.
 	tw.tween_method(func(a: float): _trunk.basis = Basis(axis, a), PI * 0.5, PI * 0.46, 0.09).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tw.tween_method(func(a: float): _trunk.basis = Basis(axis, a), PI * 0.46, PI * 0.5, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
