@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1042,4 +1042,23 @@ func test_pickaxe_upgrade() -> bool:
 	game.add_item("plank", 2)
 	check(not game.can_craft(idx), "pickaxe is one-off")
 	check(MineRock.hits_needed(true) == MineRock.hits_needed(false) - 1, "copper pickaxe breaks rocks a hit sooner")
+	return true
+
+
+func test_axe_combo() -> bool:
+	var game := GameState.new()
+	var idx := -1
+	for i in GameState.RECIPES.size():
+		if GameState.RECIPES[i]["id"] == "copper_axe":
+			idx = i
+	check(idx >= 0, "axe recipe exists")
+	game.add_item("copper_ingot", 2)
+	game.add_item("plank", 2)
+	check(game.craft(idx) and game.count("copper_axe") == 1, "craft copper axe")
+	game.add_item("copper_ingot", 2)
+	game.add_item("plank", 2)
+	check(not game.can_craft(idx), "axe is one-off")
+	check(ChoppableTree.hits_needed(true) == 2 and ChoppableTree.hits_needed(false) == 3, "copper axe fells in 2")
+	check(FX.pickup_combo(0, 99.0) == 1 and FX.pickup_combo(1, 0.5) == 2 and FX.pickup_combo(3, 5.0) == 1 and FX.pickup_combo(8, 0.1) == 8, "combo steps, resets, caps")
+	check(is_equal_approx(FX.combo_pitch(1), 1.0) and is_equal_approx(FX.combo_pitch(13), 2.0), "combo pitch is semitones")
 	return true

@@ -109,12 +109,12 @@ func _update_engine(pl: Node) -> void:
 
 
 ## Play a named effect from anywhere (finds the Sfx node via its group).
-static func play_on(node: Node, kind: String) -> void:
+static func play_on(node: Node, kind: String, pitch_mult: float = 1.0) -> void:
 	if node == null or not node.is_inside_tree():
 		return
 	var s := node.get_tree().get_first_node_in_group("sfx")
 	if s != null:
-		s.play(kind)
+		s.play(kind, 1.0, pitch_mult)
 
 
 func _process(delta: float) -> void:
@@ -176,13 +176,13 @@ static func pitch_jitter(r: float) -> float:
 	return 0.95 + clampf(r, 0.0, 1.0) * 0.10
 
 
-func play(kind: String, volume: float = 1.0) -> void:
+func play(kind: String, volume: float = 1.0, pitch_mult: float = 1.0) -> void:
 	if not _cache.has(kind):
 		_cache[kind] = make(kind)
 	for pl in _players:
 		if not pl.playing:
 			pl.stream = _cache[kind]
-			pl.pitch_scale = pitch_jitter(randf())
+			pl.pitch_scale = pitch_jitter(randf()) * pitch_mult
 			pl.volume_db = linear_to_db(maxf(volume, 0.0001))
 			pl.play()
 			return

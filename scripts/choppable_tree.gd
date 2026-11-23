@@ -1,9 +1,15 @@
 class_name ChoppableTree
 extends Interactable
-## A tree. Three axe hits drop 3 wood; the stump regrows after REGROW_DAYS.
+## A tree. Three axe hits (two with the copper axe) drop 3 wood; the stump regrows after REGROW_DAYS.
 
 const HITS_TO_FELL := 3
 const WOOD_DROP := 3
+
+
+## Pure (tested): hits to fell; the copper axe saves a swing.
+static func hits_needed(upgraded: bool) -> int:
+	return HITS_TO_FELL - 1 if upgraded else HITS_TO_FELL
+
 const REGROW_DAYS := 2
 
 var hits: int = 0
@@ -57,7 +63,7 @@ func get_prompt(game: GameState) -> String:
 	if felled:
 		return "A stump. It'll regrow in %d day(s)." % (REGROW_DAYS - days_felled)
 	if game.current_tool == GameState.Tool.AXE:
-		return "[E] Chop tree (%d/%d)" % [hits, HITS_TO_FELL]
+		return "[E] Chop tree (%d/%d)" % [hits, hits_needed(game.count("copper_axe") > 0)]
 	return "A tree. Use the Axe [4] for wood."
 
 
@@ -69,11 +75,12 @@ func interact(game: GameState) -> void:
 		game.say("You hug the tree. It doesn't hug back.")
 		return
 	hits += 1
+	var need := hits_needed(game.count("copper_axe") > 0)
 	_wobble = 1.0
 	Sfx.play_on(self, "chop")
 	FX.burst(self, global_position + Vector3(0, 0.8, 0), Art.WOOD.lightened(0.25), 10, 0.1, 3.5)
-	FX.hit_stop(get_tree(), 0.3 if hits < HITS_TO_FELL else 0.8)
-	if hits >= HITS_TO_FELL:
+	FX.hit_stop(get_tree(), 0.3 if hits < need else 0.8)
+	if hits >= need:
 		felled = true
 		hits = 0
 		days_felled = 0

@@ -15,6 +15,8 @@ var age := 0.0
 var game: GameState
 var _collected := false
 var _magnet := false
+static var combo := 0
+static var last_pick := -10.0
 
 
 ## Pure helper (tested): should a pickup at `dist` and `age` be magnetised / collected?
@@ -84,7 +86,12 @@ func _build_chunk() -> void:
 	cs.shape = bx
 	add_child(cs)
 	var mi := Art.box(Vector3.ONE * sz, chunk_color)
+	if item_id != "stone":
+		mi.material_override = Art.mat(chunk_color, true)   # ore and gems shimmer
 	add_child(mi)
+	if item_id != "stone":
+		var sp := FX.emitter(self, chunk_color.lightened(0.5), 4, 0.9, 0.05, Vector3(0.15, 0.1, 0.15), Vector3(0, 0.4, 0), true, "sphere")
+		sp.emitting = true
 	if item_id == "gem":
 		var glow := OmniLight3D.new()
 		glow.light_color = chunk_color
@@ -129,6 +136,9 @@ func collect() -> void:
 	_collected = true
 	if game != null:
 		game.add_item(item_id, amount)
-	Sfx.play_on(self, "blip")
+	var now := Time.get_ticks_msec() / 1000.0
+	combo = FX.pickup_combo(combo, now - last_pick)
+	last_pick = now
+	Sfx.play_on(self, "blip", FX.combo_pitch(combo))
 	FX.burst(self, global_position, (Art.WOOD.lightened(0.3) if chunk_color.a == 0.0 else chunk_color.lightened(0.3)), 5, 0.07, 2.0, -4.0)
 	queue_free()

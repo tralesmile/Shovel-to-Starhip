@@ -45,7 +45,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (coyote time + jump buffer DONE v1 2026-11-23 via FX.jump_step; tree wind sway DONE; sprint stamina bar + winded breather, landing squash + dust DONE v1 2026-11-23) Walk/run/sprint with stamina, acceleration curves, jump + coyote time, slopes, camera shake/FOV on sprint, footstep dust
 - [ ] Better car physics (suspension, drifting, damage), boat, bike
 ### Make things (creative core)
-- [ ] (v1 DONE 2026-11-23: Workbench station by the sell bin, 5 data-driven recipes in GameState.RECIPES, E crafts first affordable; Copper Pickaxe upgrade recipe DONE (2 ingots + 2 planks, one-off, rocks break a hit sooner); still to do: recipe picker UI, furniture recipes, blueprint unlocks, use fence panels/rocket plates) Workbench + crafting recipes (tools, furniture, fences), blueprint unlocks
+- [ ] (v1 DONE 2026-11-23: Workbench station by the sell bin, 5 data-driven recipes in GameState.RECIPES, E crafts first affordable; Copper Pickaxe upgrade recipe DONE (2 ingots + 2 planks, one-off, rocks break a hit sooner); Copper Axe DONE v1 2026-11-23 (trees fall in 2 hits); ore/gem chunks glow + sparkle DONE; still to do: recipe picker UI, furniture recipes, blueprint unlocks, use fence panels/rocket plates) Workbench + crafting recipes (tools, furniture, fences), blueprint unlocks
 - [ ] Build mode: place walls/floors/roofs on a grid, build your own house, decorate; snap, rotate, demolish refund
 - [ ] Vehicle builder: attach parts (wheels, engine, body, thrusters) to make cars -> boats -> the starship (ties to the rocket goal)
 - [ ] Tool upgrades and invention bench (combine parts into funny gadgets)
@@ -177,3 +177,9 @@ Weakest part vs comparables (Stardew/Core Keeper): sprint was free and tools nev
 - Core Keeper digging loop: https://www.thegamer.com/core-keeper-and-the-endless-craving-for-digging-holes/ and crafting that feels good: https://fictionhorizon.com/20-crafting-systems-that-actually-feel-good/
 - Godot 4 particles docs (GPUParticles3D vs CPU, sub-emitters): https://docs.godotengine.org/en/4.7/tutorials/3d/particles/index.html
 - Next: more tiers (iron/gem pickaxe), axe upgrade, stamina upgrades from food, speed lines on sprint, per-step dust bursts.
+
+## Research backlog (2026-11-23 run 3)
+Weakest part vs comparables (Core Keeper/Terraria): pickups were silent bookkeeping; those games make collecting itself rewarding (magnetised drops, rising pitch chains, shimmering ore). Applied: pickup combo pitch (+1 semitone per quick pickup, cap 8), glowing/sparkling ore and gem chunks, copper axe tier. Searches returned links only.
+- Core Keeper/Terraria similarities and digging craving: https://www.thegamer.com/core-keeper-terraria-similarities/
+- Godot particles progress report: https://godotengine.org/article/progress-report-state-of-particles/ and stylized water tool https://80.lv/articles/create-beautiful-stylized-water-easily-with-this-godot-tool/
+- Next: recipe picker UI (cycle recipes), iron tier, water foam shader, GPUParticles hit sparks, pet that picks up items for you.

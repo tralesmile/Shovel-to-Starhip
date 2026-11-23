@@ -123,6 +123,18 @@ static func grade_for(day: float, sunset: float, night: float) -> Dictionary:
 	}
 
 
+const COMBO_WINDOW := 1.2   ## seconds between pickups that keep a combo going
+
+
+## Pickup combo (pure, tested): grabbing items in quick succession raises the blip a semitone each time (cap 8).
+static func pickup_combo(combo: int, since_last: float) -> int:
+	return mini(combo + 1, 8) if since_last <= COMBO_WINDOW and combo > 0 else 1
+
+
+static func combo_pitch(combo: int) -> float:
+	return pow(2.0, float(maxi(combo - 1, 0)) / 12.0)
+
+
 const COYOTE_TIME := 0.12
 const JUMP_BUFFER := 0.12
 
