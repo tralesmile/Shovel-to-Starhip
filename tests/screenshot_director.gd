@@ -87,6 +87,33 @@ func _run() -> void:
 		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=95"):
+		var bw: BuildWorld = main.get_node("BuildWorld")
+		Game.time_of_day = 16.5
+		Game.add_item("fence_panel", 6)
+		Game.add_item("stone_wall", 3)
+		Game.set_tool(GameState.Tool.BUILD)
+		p.global_position = Vector3(4, Terrain.height_at(4, -4), -4)
+		p._yaw = 0.0
+		p._pitch = -0.35
+		p._zoom = 7.0
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(10)
+		for i in 4:
+			bw.place("fence_panel", Vector3(0 + i * 2, 0, -8), 0, Game)
+		bw.place("fence_panel", Vector3(6, 0, -6), 1, Game)
+		bw.place("stone_wall", Vector3(-2, 0, -6), 1, Game)
+		bw.place("stone_wall", Vector3(-2, 0, -4), 1, Game)
+		await _wait(30)
+		p._model.rotation.y = 0.0
+		p.global_position = Vector3(1, Terrain.height_at(1, -3.0), -3.0)
+		await _wait(3)
+		p._model.rotation.y = PI
+		await _wait(10)
+		await _shot("95_build_mode.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=96"):
 		Game.time_of_day = 0.45
 		p.global_position = Vector3(Terrain.POND_CENTER.x + 8.0, 0.1, Terrain.POND_CENTER.y + 1.0)

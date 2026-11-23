@@ -46,7 +46,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] Better car physics (suspension, drifting, damage), boat, bike
 ### Make things (creative core)
 - [ ] (v1 DONE 2026-11-23: Workbench station by the sell bin, 5 data-driven recipes in GameState.RECIPES, E crafts first affordable; Copper Pickaxe upgrade recipe DONE (2 ingots + 2 planks, one-off, rocks break a hit sooner); Copper Axe DONE v1 2026-11-23 (trees fall in 2 hits); ore/gem chunks glow + sparkle DONE; still to do: recipe picker UI, furniture recipes, blueprint unlocks, use fence panels/rocket plates) Workbench + crafting recipes (recipe picker DONE v1 2026-11-23: [Q]/Back cycles recipes, prompt shows what is missing) (tools, furniture, fences), blueprint unlocks
-- [ ] Build mode: place walls/floors/roofs on a grid, build your own house, decorate; snap, rotate, demolish refund
+- [ ] (v1 DONE 2026-11-23: Builder tool [6], translucent pulsing ghost on a 2m grid (green ok / red blocked / amber = demolish), place with pop-in squash + dust, Q rotates, F switches piece, full-refund demolish, fence panel + stone wall, saved in GameState.built; still to do: floors/roofs/doors, snap to neighbours, wall height stacking, structural look) Build mode: place walls/floors/roofs on a grid, build your own house, decorate; snap, rotate, demolish refund
 - [ ] Vehicle builder: attach parts (wheels, engine, body, thrusters) to make cars -> boats -> the starship (ties to the rocket goal)
 - [ ] Tool upgrades and invention bench (combine parts into funny gadgets)
 ### World and story
@@ -190,3 +190,9 @@ Weakest part vs comparables (Valheim/Terraria): felling a tree was a fixed sidew
 - Chopping as an adventure design write-up: https://www.gamepressure.com/editorials/reviews/chopping-trees-is-an-adventure-or-why-isnt-valheim-boring/ze3d7
 - Godot water foam: https://80.lv/articles/godot-tutorial-create-realistic-water-with-dynamic-foam and GPUParticles progress https://godotengine.org/article/progress-report-state-of-particles/
 - Next: fallen trunk that can be chopped into planks (Valheim logs), trees that can squash you (funny), real depth-texture foam when compat behaves, recipe picker as a proper menu with icons, iron tier, GPUParticles sparks, pet that fetches logs.
+
+### Research 2026-11-23 (run 5, links only)
+Weakest part vs comparables: gathered materials had nowhere to GO. Valheim/Core Keeper turn wood and stone into a visible base you shape; Shovel to Starship had crafted fence panels with no use. Applied: Builder tool with ghost preview, snap grid, demolish refund.
+- Valheim building (snap points, ghost preview, structural integrity colours, a good model for floors/roofs later): https://www.sportskeeda.com/esports/understanding-structural-integrity-valheim and https://www.pcgamesn.com/valheim/building-snapping-update
+- Godot 4 carry/hold RigidBody3D props (for the carry system: hold logs/rocks in front, throw): https://github.com/cptfurball/basic-first-person-prop-pickup and https://forum.godotengine.org/t/how-to-make-it-possible-to-grab-carry-throw-objects/42953
+- Idea: snap build pieces to neighbours and tint ghost by stability (green/yellow/red) when walls get stacked.

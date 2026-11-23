@@ -5,7 +5,7 @@ extends Node
 
 const STEPS := [
 	{"wait": "start", "tip": "Tip: WASD or the left stick to walk, {sprint} to sprint. The turnips will not plant themselves."},
-	{"wait": "move", "tip": "Switch tools with {tool_1}-{tool_5}. Hoe a patch, then plant seeds with {tool_2}."},
+	{"wait": "move", "tip": "Switch tools with {tool_1}-{tool_6}. Hoe a patch, then plant seeds with {tool_2}."},
 	{"wait": "tool", "tip": "Water your crops and wait a night. Sleeping in your bed skips to the next day."},
 	{"wait": "money", "tip": "Cha-ching! Sell goods at the bin, buy seeds at the store. Wallet goes up, shame goes down."},
 	{"wait": "day", "tip": "New day! Press {help} any time for help, {save} to save, {pause} to pause."},

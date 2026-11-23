@@ -92,6 +92,7 @@ func _build_model() -> void:
 	_hand_items[GameState.Tool.AXE] = body.find_child("1H_Axe", true, false)
 	_hand_items[GameState.Tool.HOE] = _make_hoe()
 	_hand_items[GameState.Tool.PICKAXE] = _make_pickaxe()
+	_hand_items[GameState.Tool.BUILD] = _make_hammer()
 	_hand_items[GameState.Tool.WATER] = Models.put(_hand, Models.MED + "bucket_water.gltf", Vector3(0, -0.05, 0), 3.2)
 	_hand_items[GameState.Tool.SEEDS] = Models.put(_hand, Models.MED + "sack.gltf", Vector3(0, 0, 0), 3.0)
 
@@ -106,6 +107,18 @@ func _make_pickaxe() -> Node3D:
 	head.position = Vector3(0, 0.9, 0)
 	pick.add_child(head)
 	return pick
+
+
+func _make_hammer() -> Node3D:
+	var h := Node3D.new()
+	_hand.add_child(h)
+	var handle := Art.cylinder(0.035, 0.035, 0.9, Art.WOOD, 6)
+	handle.position.y = 0.2
+	h.add_child(handle)
+	var head := Art.box(Vector3(0.12, 0.14, 0.34), Color(0.5, 0.52, 0.58))
+	head.position = Vector3(0, 0.68, 0)
+	h.add_child(head)
+	return h
 
 
 func _make_hoe() -> Node3D:
@@ -170,7 +183,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_use()
 	elif event.is_action_pressed("pause"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	for i in 5:
+	for i in 6:
 		if event.is_action_pressed("tool_%d" % (i + 1)):
 			Game.set_tool(i)
 
@@ -216,6 +229,13 @@ func exit_car() -> void:
 func _use() -> void:
 	if vehicle != null:
 		exit_car()
+		return
+	if Game.current_tool == GameState.Tool.BUILD:
+		var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+		if bw != null and _action_time <= 0.0:
+			var a := bw.use(self)
+			if a != "":
+				play_action(a, 0.45)
 		return
 	if target == null or _action_time > 0.0:
 		return
@@ -336,4 +356,4 @@ func _find_target() -> void:
 		if d < it.interact_radius and d < best_d:
 			best = it
 			best_d = d
-	target = best
+	target = best if Game.current_tool != GameState.Tool.BUILD else null

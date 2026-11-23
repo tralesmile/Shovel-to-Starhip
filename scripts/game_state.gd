@@ -9,14 +9,15 @@ signal toast(text: String)
 signal day_changed(day: int)
 signal tool_changed(index: int)
 signal shake(amount: float)
+signal built_loaded
 signal hint_event(name: String)  ## context events for one-time tutorial hints
 
 const DAY_LENGTH := 120.0          ## real seconds per in-game day
 const START_TIME := 0.25           ## 0..1 of a day; 0.25 = 6:00
 const SAVE_PATH := "user://save.json"
 
-enum Tool { HOE, SEEDS, WATER, AXE, PICKAXE }
-const TOOL_NAMES := ["Hoe", "Turnip Seeds", "Watering Can", "Axe", "Pickaxe"]
+enum Tool { HOE, SEEDS, WATER, AXE, PICKAXE, BUILD }
+const TOOL_NAMES := ["Hoe", "Turnip Seeds", "Watering Can", "Axe", "Pickaxe", "Builder"]
 
 ## Crop table: seed item, harvest item, watered nights to ripen, ripe model.
 const CROPS := {
@@ -43,6 +44,7 @@ const ITEMS := {
 	"copper_ingot": {"name": "Copper Ingot", "buy": 0, "sell": 50},
 	"polished_gem": {"name": "Polished Gem", "buy": 0, "sell": 220},
 	"fence_panel": {"name": "Fence Panel", "buy": 0, "sell": 28},
+	"stone_wall": {"name": "Stone Wall", "buy": 0, "sell": 20},
 	"rocket_plate": {"name": "Rocket Hull Plate", "buy": 0, "sell": 0},
 	"copper_pickaxe": {"name": "Copper Pickaxe", "buy": 0, "sell": 0},
 	"copper_axe": {"name": "Copper Axe", "buy": 0, "sell": 0},
@@ -69,6 +71,7 @@ const RECIPES := [
 	{"id": "copper_pickaxe", "name": "Copper Pickaxe", "in": {"copper_ingot": 2, "plank": 2}, "out": {"copper_pickaxe": 1}, "once": true},
 	{"id": "copper_axe", "name": "Copper Axe", "in": {"copper_ingot": 2, "plank": 2}, "out": {"copper_axe": 1}, "once": true},
 	{"id": "rocket_plate", "name": "Rocket Hull Plate", "in": {"copper_ingot": 3, "plank": 2}, "out": {"rocket_plate": 1}},
+	{"id": "stone_wall", "name": "Stone Wall", "in": {"stone": 4}, "out": {"stone_wall": 1}},
 ]
 
 const CARRY_LIMIT := 4   ## max stolen items in your pockets
@@ -83,6 +86,7 @@ const NEW_DAY_JOKES := [
 
 var money: int = 50
 var inventory: Dictionary = {"turnip_seed": 5}
+var built: Array = []   ## placed building pieces: {id, x, z, r}
 var day: int = 1
 var time_of_day: float = START_TIME
 var current_tool: int = Tool.HOE
@@ -494,6 +498,7 @@ func to_dict() -> Dictionary:
 		"version": 1,
 		"money": money,
 		"inventory": inventory,
+		"built": built.duplicate(true),
 		"day": day,
 		"time_of_day": time_of_day,
 		"current_tool": current_tool,
@@ -514,6 +519,10 @@ func from_dict(data: Dictionary) -> void:
 	var inv: Dictionary = data.get("inventory", {})
 	for k in inv.keys():
 		inventory[k] = int(inv[k])
+	built = []
+	for d in data.get("built", []):
+		if typeof(d) == TYPE_DICTIONARY:
+			built.append(d)
 	day = int(data.get("day", 1))
 	time_of_day = float(data.get("time_of_day", START_TIME))
 	current_tool = int(data.get("current_tool", 0))
@@ -534,6 +543,7 @@ func from_dict(data: Dictionary) -> void:
 	inventory_changed.emit()
 	tool_changed.emit(current_tool)
 	day_changed.emit(day)
+	built_loaded.emit()
 
 
 func save_game() -> void:
@@ -581,6 +591,8 @@ func setup_input() -> void:
 	_key_action("tool_3", [KEY_3])
 	_key_action("tool_4", [KEY_4])
 	_key_action("tool_5", [KEY_5])
+	_key_action("tool_6", [KEY_6])
+	_key_action("build_cycle", [KEY_F])
 	_key_action("craft_next", [KEY_Q])
 	_key_action("help", [KEY_H, KEY_F1])
 	_key_action("save", [KEY_F5])
@@ -598,7 +610,7 @@ const PAD_BUTTONS := {
 	"jump": [JOY_BUTTON_A], "interact": [JOY_BUTTON_X], "interact_click": [JOY_BUTTON_RIGHT_SHOULDER],
 	"sprint": [JOY_BUTTON_LEFT_STICK], "crouch": [JOY_BUTTON_B], "help": [JOY_BUTTON_Y], "pause": [JOY_BUTTON_START],
 	"tool_1": [JOY_BUTTON_DPAD_UP], "tool_2": [JOY_BUTTON_DPAD_RIGHT],
-	"craft_next": [JOY_BUTTON_BACK], "tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER],
+	"craft_next": [JOY_BUTTON_BACK], "tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER], "tool_6": [JOY_BUTTON_RIGHT_STICK], "build_cycle": [JOY_BUTTON_LEFT_STICK],
 }
 const PAD_AXES := {
 	"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],

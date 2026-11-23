@@ -39,6 +39,7 @@ func _ready() -> void:
 	_build_police_car()
 	_build_trees()
 	_build_rocks()
+	add_child(BuildWorld.new())
 	_build_road_and_signs()
 	_build_interiors()
 	_build_spaceport()

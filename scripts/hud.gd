@@ -69,10 +69,10 @@ func _ready() -> void:
 	bar.add_theme_constant_override("separation", 12)
 	bar.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(bar)
-	_place(bar, 0.5, 1, 0.5, 1, -420, -100, 420, -24)
+	_place(bar, 0.5, 1, 0.5, 1, -500, -100, 500, -24)
 	for i in GameState.TOOL_NAMES.size():
 		var p := PanelContainer.new()
-		p.custom_minimum_size = Vector2(140, 68)
+		p.custom_minimum_size = Vector2(150, 68)
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -137,6 +137,7 @@ func _build_icons() -> void:
 		Models.put(Node3D.new(), Models.MED + "bucket_water.gltf", Vector3.ZERO, 1.0),
 		Models.put(Node3D.new(), Models.CHAR + "axe_1handed.gltf", Vector3.ZERO, 1.0),
 		_pickaxe_model(),
+		_hammer_model(),
 	]
 	for m in models:
 		var root3d: Node3D = m.get_parent() if m.get_parent() else m
@@ -180,6 +181,19 @@ func _pickaxe_model() -> Node3D:
 	head.rotation.z = 0.5
 	pick.add_child(head)
 	return pick
+
+
+func _hammer_model() -> Node3D:
+	var h := Node3D.new()
+	var handle := Art.cylinder(0.035, 0.035, 0.9, Art.WOOD, 6)
+	handle.position.y = 0.2
+	handle.rotation.z = 0.5
+	h.add_child(handle)
+	var head := Art.box(Vector3(0.12, 0.14, 0.34), Color(0.5, 0.52, 0.58))
+	head.position = Vector3(-0.2, 0.62, 0)
+	head.rotation.z = 0.5
+	h.add_child(head)
+	return h
 
 
 func _hoe_model() -> Node3D:
@@ -264,7 +278,10 @@ func _process(_delta: float) -> void:
 		_stam.visible = player.stamina < FX.STAMINA_MAX - 0.5
 		(_stam.get_theme_stylebox("fill") as StyleBoxFlat).bg_color = Color(0.95, 0.55, 0.3) if player.winded else Color(0.5, 0.9, 0.4)
 	_click_hint.visible = Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
-	if player and player.target:
+	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+	if Game.current_tool == GameState.Tool.BUILD and bw != null and player and player.vehicle == null:
+		_prompt.text = InputPrompts.format(InputPrompts.prompt_text(bw.prompt(), InputPrompts.use_pad), InputPrompts.use_pad)
+	elif player and player.target:
 		_prompt.text = InputPrompts.prompt_text(player.target.get_prompt(Game), InputPrompts.use_pad)
 	else:
 		_prompt.text = ""

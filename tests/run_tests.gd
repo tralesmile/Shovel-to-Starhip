@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1081,4 +1081,35 @@ func test_axe_combo() -> bool:
 	var mid := sm.get_pixel(16, 16).r
 	check(sm.get_width() == 32 and mid <= 1.0, "shore map built")
 	check(Terrain.WATER_LEVEL - Terrain.height_at(Terrain.POND_CENTER.x, Terrain.POND_CENTER.y) > 0.9, "pond centre is deep (foam 0)")
+	return true
+
+
+func test_build_mode() -> bool:
+	check(BuildWorld.snap(Vector3(2.9, 1.0, -3.1)) == Vector3(2, 1.0, -4), "snap to 2m grid")
+	var tp := BuildWorld.target_pos(Vector3(0, 0, 0), 0.0)
+	check(is_equal_approx(tp.z, 2.0) and is_equal_approx(tp.x, 0.0), "ghost lands ahead of player, snapped")
+	check(BuildWorld.cell_key(Vector3(2, 0, 4), 0) != BuildWorld.cell_key(Vector3(2, 0, 4), 1), "rotation changes cell key")
+	check(BuildWorld.cell_key(Vector3(2, 0, 4), 0) == BuildWorld.cell_key(Vector3(2.4, 0, 3.7), 2), "180 degrees shares a slot")
+	check(BuildWorld.can_place("a", {}, false, 1) and not BuildWorld.can_place("a", {"a": 1}, false, 1), "no stacking on same slot")
+	check(not BuildWorld.can_place("a", {}, false, 0) and not BuildWorld.can_place("a", {}, true, 1), "needs stock and dry land")
+	check(BuildWorld.next_piece("fence_panel", 1, {"stone_wall": 2}) == "stone_wall", "cycle prefers owned piece")
+	check(BuildWorld.next_piece("fence_panel", 1, {}) == "stone_wall", "cycle still moves when nothing owned")
+	check(BuildWorld.prompt_for("fence_panel", 3, false).contains("3 left"), "prompt shows stock")
+	check(BuildWorld.prompt_for("fence_panel", 0, false).contains("workbench"), "prompt points to workbench")
+	check(BuildWorld.prompt_for("fence_panel", 3, true).contains("Demolish"), "prompt demolish when aiming at piece")
+	var bw := BuildWorld.new()
+	root.add_child(bw)
+	game.add_item("fence_panel", 2)
+	var pos := Vector3(4, 0, 4)
+	check(bw.place("fence_panel", pos, 0, game) and game.count("fence_panel") == 1, "place consumes a panel")
+	check(game.built.size() == 1 and bw.pieces.size() == 1, "placed piece is recorded")
+	check(not bw.place("fence_panel", pos, 0, game) and game.count("fence_panel") == 1, "cannot double-place")
+	var saved := game.to_dict()
+	check(saved["built"].size() == 1, "built pieces saved")
+	check(bw.demolish(BuildWorld.cell_key(pos, 0), game) and game.count("fence_panel") == 2 and game.built.is_empty(), "demolish refunds fully")
+	game.add_item("stone", 4)
+	check(game.craft(game.RECIPES.size() - 1) and game.count("stone_wall") == 1, "stone wall recipe")
+	game.from_dict(saved)
+	check(game.built.size() == 1 and game.built[0]["id"] == "fence_panel", "built survives load")
+	bw.queue_free()
 	return true
