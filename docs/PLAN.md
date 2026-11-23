@@ -42,10 +42,10 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] Taming: feed/befriend wild animals, pets that follow and help (find loot, carry), farm animals with products
 - [ ] Riding: horse/ostrich/goat mount (walk/run/gallop, stamina, jump), later dinosaur on the jungle planet
 ### Movement feel
-- [ ] Walk/run/sprint with stamina, acceleration curves, jump + coyote time, slopes, camera shake/FOV on sprint, footstep dust
+- [ ] (coyote time + jump buffer DONE v1 2026-11-23 via FX.jump_step; tree wind sway DONE) Walk/run/sprint with stamina, acceleration curves, jump + coyote time, slopes, camera shake/FOV on sprint, footstep dust
 - [ ] Better car physics (suspension, drifting, damage), boat, bike
 ### Make things (creative core)
-- [ ] Workbench + crafting recipes (tools, furniture, fences), blueprint unlocks
+- [ ] (v1 DONE 2026-11-23: Workbench station by the sell bin, 5 data-driven recipes in GameState.RECIPES, E crafts first affordable; still to do: recipe picker UI, tool/furniture recipes, blueprint unlocks, use fence panels/rocket plates) Workbench + crafting recipes (tools, furniture, fences), blueprint unlocks
 - [ ] Build mode: place walls/floors/roofs on a grid, build your own house, decorate; snap, rotate, demolish refund
 - [ ] Vehicle builder: attach parts (wheels, engine, body, thrusters) to make cars -> boats -> the starship (ties to the rocket goal)
 - [ ] Tool upgrades and invention bench (combine parts into funny gadgets)
@@ -164,3 +164,9 @@ Priority order for runs: weapons/hunting, friendship, odd jobs, pets with jobs, 
 - No-repeat barks DONE (2026-11-18): Npc.fresh_bark skips ahead so the same line never plays twice running. Next: Outlaw-only dialogue options, per-NPC last-line memory.
 - Outlaw dialogue DONE v1 (2026-11-18): reputation <= -7 gets a notorious bark tier (Npc.BARKS_NOTORIOUS). Research: dialogue-reacts-to-reputation devlog (links only: itch 'Echo dynamic dialogue faction system', Roadwarden devlog). Next: Outlaw-only shop/fence dialogue choices, per-NPC last-line memory.
 - Sal reacts to Outlaw standing DONE (2026-11-18): Shady Sal's sale line changes at rep <= -3 and <= -7 (Station.sal_sale_line). Next: Outlaw-only shop dialogue, per-NPC last-line memory.
+
+## Research backlog (2026-11-23 run)
+Weakest part vs comparables: gathered materials (wood, stone, ore, gems) had no use; Terraria/Core Keeper turn them into progression at stations. Applied: workbench + recipes (rocket_plate ties to the Moon goal), coyote time + jump buffer.
+- Terraria crafting guide, nearby-station/chest crafting UX: https://terraria.wiki.gg/wiki/Crafting_station and https://godlike.host/new-crafting-ui-explained-in-terraria-1-4-5-update-how-to-craft-from-nearby-chests-blog (idea: craft from nearby chests, station tiers)
+- Godot 4 game feel checklist (hit stop, trauma shake, coyote time): https://forum.godotengine.org/t/game-feel-checklist-for-godot-4-hit-stop-trauma-shake-coyote-time-and-more/145340
+- Stacking feel effects, "apply the difference": https://forum.godotengine.org/t/game-feel-effects-that-stack-without-fighting-your-code-trauma-shake-real-time-hit-stop-and-apply-the-difference/146379

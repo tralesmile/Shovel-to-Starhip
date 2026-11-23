@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -967,4 +967,47 @@ func test_npc_barks() -> bool:
 	check(t["fire"] and t["timer"] == 25.0, "fires when near with no cooldown")
 	check(not Npc.bark_tick(10.0, 1.0, true)["fire"], "cooldown suppresses barks")
 	check(not Npc.bark_tick(0.0, 1.0, false)["fire"], "no bark when nobody is near")
+	return true
+
+
+func test_crafting() -> bool:
+	check(game.first_craftable() == -1, "nothing craftable at start")
+	game.add_item("wood", 2)
+	check(game.first_craftable() == 0, "planks craftable from 2 wood")
+	check(game.craft(0) and game.count("plank") == 3 and game.count("wood") == 0, "planks crafted")
+	check(not game.craft(0), "cannot craft without ingredients")
+	game.add_item("plank", 1)
+	check(game.craft(1) and game.count("fence_panel") == 1 and game.count("plank") == 0, "fence panel from 4 planks")
+	game.add_item("gem", 1)
+	game.add_item("stone", 2)
+	check(game.craft(3) and game.count("polished_gem") == 1, "polished gem")
+	check(not game.can_craft(99) and not game.can_craft(-1), "bad index rejected")
+	check(GameState.recipe_text(0).contains("Planks") or GameState.recipe_text(0).contains("Plank"), "recipe text names output")
+	for r in GameState.RECIPES:
+		for id in r["in"]:
+			check(GameState.ITEMS.has(id), "recipe input known: " + id)
+		for id in r["out"]:
+			check(GameState.ITEMS.has(id), "recipe output known: " + id)
+	var wb := Station.new()
+	wb.kind = Station.Kind.WORKBENCH
+	root.add_child(wb)
+	check(wb.get_prompt(game).begins_with("Workbench"), "idle workbench prompt")
+	game.add_item("wood", 2)
+	check(wb.get_prompt(game).begins_with("[E] Craft"), "craft prompt")
+	wb.interact(game)
+	check(game.count("plank") == 3, "workbench interact crafts")
+	return true
+
+
+func test_jump_step() -> bool:
+	var r := FX.jump_step(true, true, 0.0, 0.0, 0.016)
+	check(r["jump"], "jump on floor")
+	r = FX.jump_step(false, true, 0.1, 0.0, 0.016)
+	check(r["jump"], "coyote jump just after leaving ledge")
+	r = FX.jump_step(false, true, 0.0, 0.0, 0.016)
+	check(not r["jump"] and r["buffer"] > 0.0, "no jump in air, press is buffered")
+	r = FX.jump_step(true, false, 0.0, 0.1, 0.016)
+	check(r["jump"], "buffered press fires on landing")
+	r = FX.jump_step(false, false, 0.12, 0.0, 0.5)
+	check(r["coyote"] == 0.0 and not r["jump"], "coyote expires")
 	return true

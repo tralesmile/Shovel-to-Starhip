@@ -66,6 +66,9 @@ var _action_time: float = 0.0
 var _hand_items: Dictionary = {}
 var _dust: CPUParticles3D
 var _trauma: float = 0.0
+var _coyote: float = 0.0
+var _jump_buf: float = 0.0
+
 
 
 func _build_model() -> void:
@@ -252,9 +255,12 @@ func _physics_process(delta: float) -> void:
 	if vehicle != null:
 		_drive(delta)
 		return
+	var jr := FX.jump_step(is_on_floor(), Input.is_action_just_pressed("jump"), _coyote, _jump_buf, delta)
+	_coyote = jr["coyote"]
+	_jump_buf = jr["buffer"]
 	if not is_on_floor():
 		velocity.y -= gravity * delta
-	elif Input.is_action_just_pressed("jump"):
+	if jr["jump"]:
 		velocity.y = JUMP_VELOCITY
 
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")

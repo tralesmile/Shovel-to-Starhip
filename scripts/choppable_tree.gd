@@ -43,6 +43,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _wobble <= 0.0 and not felled and not _falling:
+		# Gentle wind sway, phase offset per tree.
+		var t := Time.get_ticks_msec() * 0.001
+		_trunk.rotation.z = sin(t * 0.9 + float(absi(hash(str(name))) % 100)) * 0.012
+		_trunk.rotation.x = sin(t * 0.7 + float(absi(hash(str(name))) % 37)) * 0.008
 	if _wobble > 0.0:
 		_wobble = max(0.0, _wobble - delta * 4.0)
 		_trunk.rotation.z = sin(_wobble * 20.0) * 0.06 * _wobble

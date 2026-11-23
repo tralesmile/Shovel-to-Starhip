@@ -30,6 +30,7 @@ func _ready() -> void:
 	_build_house()
 	_build_store()
 	_build_sell_bin()
+	_build_workbench()
 	_build_fence()
 	_build_fishing_spot()
 	_build_delivery_depot()
@@ -474,6 +475,27 @@ func _spawn_player_car() -> void:
 	car.rotation.y = car.heading
 	add_child(car)
 	car.setup()
+
+
+func _build_workbench() -> void:
+	var wb := Station.new()
+	wb.name = "Workbench"
+	wb.kind = Station.Kind.WORKBENCH
+	wb.position = Vector3(4.4, 0, 6.2)
+	wb.interact_radius = 1.8
+	add_child(wb)
+	Models.solid(wb, Models.MED + "crate_B_small.gltf", Vector3.ZERO, 5.0)
+	var lamp := OmniLight3D.new()   # warm workshop glow
+	lamp.light_color = Color(1.0, 0.7, 0.4)
+	lamp.light_energy = 1.2
+	lamp.omni_range = 5.0
+	lamp.position = Vector3(0, 1.8, 0)
+	wb.add_child(lamp)
+	var embers := FX.emitter(wb, Color(1.0, 0.65, 0.2), 4, 2.0, 0.05, Vector3(0.3, 0.1, 0.3), Vector3(0, 0.5, 0), true, "sphere")
+	embers.position.y = 1.0
+	var l := Art.label("WORKBENCH\ncraft stuff", 44, Color(1, 0.9, 0.7))
+	l.position.y = 2.2
+	wb.add_child(l)
 
 
 func _build_sell_bin() -> void:

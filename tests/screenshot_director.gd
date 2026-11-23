@@ -82,6 +82,21 @@ func _run() -> void:
 		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=97"):
+		var wb: Node3D = main.get_node("Workbench")
+		Game.time_of_day = 19.5
+		Game.add_item("wood", 2)
+		p.global_position = wb.global_position + Vector3(0, 0.1, 3.5)
+		p._yaw = 0.0
+		p._pitch = -0.3
+		p._zoom = 6.0
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		await _wait(20)
+		wb.interact(Game)
+		await _wait(8)
+		await _shot("97_workbench.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=98"):
 		var rock: MineRock = main.get_node("Rocks/Rock_00")
 		Game.set_tool(GameState.Tool.PICKAXE)

@@ -121,3 +121,16 @@ static func grade_for(day: float, sunset: float, night: float) -> Dictionary:
 		"contrast": 1.04 * d + 1.1 * s + 1.0 * n,
 		"brightness": 1.0 * d + 1.0 * s + 1.04 * n,
 	}
+
+
+const COYOTE_TIME := 0.12
+const JUMP_BUFFER := 0.12
+
+
+## Coyote time + jump buffering (pure, tested). Returns new timers and whether to jump now.
+static func jump_step(on_floor: bool, pressed: bool, coyote: float, buf: float, delta: float) -> Dictionary:
+	coyote = COYOTE_TIME if on_floor else maxf(0.0, coyote - delta)
+	buf = JUMP_BUFFER if pressed else maxf(0.0, buf - delta)
+	if buf > 0.0 and coyote > 0.0:
+		return {"jump": true, "coyote": 0.0, "buffer": 0.0}
+	return {"jump": false, "coyote": coyote, "buffer": buf}

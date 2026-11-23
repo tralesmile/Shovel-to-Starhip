@@ -38,6 +38,12 @@ const ITEMS := {
 	"stone": {"name": "Stone", "buy": 0, "sell": 4},
 	"copper_ore": {"name": "Copper Ore", "buy": 0, "sell": 18},
 	"gem": {"name": "Shiny Gem", "buy": 0, "sell": 90},
+	# Crafted at the workbench.
+	"plank": {"name": "Plank", "buy": 0, "sell": 4},
+	"copper_ingot": {"name": "Copper Ingot", "buy": 0, "sell": 50},
+	"polished_gem": {"name": "Polished Gem", "buy": 0, "sell": 220},
+	"fence_panel": {"name": "Fence Panel", "buy": 0, "sell": 28},
+	"rocket_plate": {"name": "Rocket Hull Plate", "buy": 0, "sell": 0},
 	# Fish: sell at the bin.
 	"boot": {"name": "Old Boot", "buy": 0, "sell": 2},
 	"minnow": {"name": "Minnow", "buy": 0, "sell": 8},
@@ -51,6 +57,15 @@ const ITEMS := {
 	"garden_gnome": {"name": "Garden Gnome", "buy": 0, "sell": 0, "loot": true, "value": 120},
 	"rubber_duck_gold": {"name": "Golden Rubber Duck", "buy": 0, "sell": 0, "loot": true, "value": 200},
 }
+
+## Workbench recipes (ordered). "in" is consumed, "out" is produced.
+const RECIPES := [
+	{"id": "plank", "name": "Planks", "in": {"wood": 2}, "out": {"plank": 3}},
+	{"id": "fence_panel", "name": "Fence Panel", "in": {"plank": 4}, "out": {"fence_panel": 1}},
+	{"id": "copper_ingot", "name": "Copper Ingot", "in": {"copper_ore": 2, "wood": 1}, "out": {"copper_ingot": 1}},
+	{"id": "polished_gem", "name": "Polished Gem", "in": {"gem": 1, "stone": 2}, "out": {"polished_gem": 1}},
+	{"id": "rocket_plate", "name": "Rocket Hull Plate", "in": {"copper_ingot": 3, "plank": 2}, "out": {"rocket_plate": 1}},
+]
 
 const CARRY_LIMIT := 4   ## max stolen items in your pockets
 
@@ -118,6 +133,44 @@ func spend(amount: int) -> bool:
 	money -= amount
 	money_changed.emit(money)
 	return true
+
+
+## Index of the first recipe whose ingredients you hold, or -1 (pure, tested).
+func first_craftable() -> int:
+	for i in RECIPES.size():
+		if can_craft(i):
+			return i
+	return -1
+
+
+func can_craft(idx: int) -> bool:
+	if idx < 0 or idx >= RECIPES.size():
+		return false
+	for id in RECIPES[idx]["in"]:
+		if count(id) < int(RECIPES[idx]["in"][id]):
+			return false
+	return true
+
+
+func craft(idx: int) -> bool:
+	if not can_craft(idx):
+		return false
+	for id in RECIPES[idx]["in"]:
+		remove_item(id, int(RECIPES[idx]["in"][id]))
+	for id in RECIPES[idx]["out"]:
+		add_item(id, int(RECIPES[idx]["out"][id]))
+	return true
+
+
+static func recipe_text(idx: int) -> String:
+	var r: Dictionary = RECIPES[idx]
+	var ins: PackedStringArray = []
+	for id in r["in"]:
+		ins.append("%d %s" % [r["in"][id], ITEMS[id]["name"]])
+	var outs: PackedStringArray = []
+	for id in r["out"]:
+		outs.append("%d %s" % [r["out"][id], ITEMS[id]["name"]])
+	return "%s -> %s" % [", ".join(ins), ", ".join(outs)]
 
 
 func count(item_id: String) -> int:
