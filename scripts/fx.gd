@@ -134,3 +134,29 @@ static func jump_step(on_floor: bool, pressed: bool, coyote: float, buf: float, 
 	if buf > 0.0 and coyote > 0.0:
 		return {"jump": true, "coyote": 0.0, "buffer": 0.0}
 	return {"jump": false, "coyote": coyote, "buffer": buf}
+
+
+const STAMINA_MAX := 100.0
+const SPRINT_DRAIN := 22.0      ## per second while sprinting
+const STAMINA_REGEN := 30.0     ## per second otherwise
+const STAMINA_RESUME := 25.0    ## after running dry you must recover this much to sprint again
+
+
+## Sprint stamina (pure, tested). Running dry forces a breather until STAMINA_RESUME is regained.
+static func stamina_step(stamina: float, want_sprint: bool, moving: bool, winded: bool, delta: float) -> Dictionary:
+	var sprinting := want_sprint and moving and not winded and stamina > 0.0
+	if sprinting:
+		stamina = maxf(0.0, stamina - SPRINT_DRAIN * delta)
+		if stamina <= 0.0:
+			winded = true
+			sprinting = false
+	else:
+		stamina = minf(STAMINA_MAX, stamina + STAMINA_REGEN * delta)
+		if winded and stamina >= STAMINA_RESUME:
+			winded = false
+	return {"stamina": stamina, "sprinting": sprinting, "winded": winded}
+
+
+## Landing squash (pure, tested): vertical scale dips with the fall speed, clamped.
+static func landing_squash(fall_speed: float) -> float:
+	return clampf(1.0 - maxf(0.0, fall_speed - 3.0) * 0.06, 0.7, 1.0)

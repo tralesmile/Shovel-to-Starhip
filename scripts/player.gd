@@ -68,6 +68,11 @@ var _dust: CPUParticles3D
 var _trauma: float = 0.0
 var _coyote: float = 0.0
 var _jump_buf: float = 0.0
+var stamina: float = FX.STAMINA_MAX
+var winded: bool = false
+var _was_floor: bool = true
+var _last_vy: float = 0.0
+var _squash: float = 1.0
 
 
 
@@ -267,8 +272,14 @@ func _physics_process(delta: float) -> void:
 	var basis_yaw := Basis(Vector3.UP, _yaw)
 	var dir := (basis_yaw * Vector3(input.x, 0, input.y))
 	crouching = Input.is_action_pressed("crouch") and is_on_floor()
-	var speed := CROUCH_SPEED if crouching else (RUN_SPEED if Input.is_action_pressed("sprint") else WALK_SPEED)
-	_model.scale.y = lerpf(_model.scale.y, 0.7 if crouching else 1.0, 12.0 * delta)
+	var sr := FX.stamina_step(stamina, Input.is_action_pressed("sprint") and not crouching, dir.length() > 0.01, winded, delta)
+	stamina = sr["stamina"]
+	if sr["winded"] and not winded:
+		Game.say("Huff... puff... turnips are heavy.")
+	winded = sr["winded"]
+	var speed := CROUCH_SPEED if crouching else (RUN_SPEED if sr["sprinting"] else WALK_SPEED)
+	_squash = lerpf(_squash, 1.0, 10.0 * delta)
+	_model.scale.y = lerpf(_model.scale.y, (0.7 if crouching else 1.0) * _squash, 12.0 * delta)
 	if global_position.y < Terrain.WATER_LEVEL + 0.2:
 		speed *= 0.45   # wading through the pond
 	if dir.length() > 0.01:
@@ -283,7 +294,13 @@ func _physics_process(delta: float) -> void:
 	if _action_time > 0.0:
 		velocity.x *= 0.2
 		velocity.z *= 0.2
+	_last_vy = velocity.y
 	move_and_slide()
+	if is_on_floor() and not _was_floor and _last_vy < -3.0:
+		_squash = FX.landing_squash(-_last_vy)
+		FX.burst(self, global_position + Vector3(0, 0.05, 0), Color(0.78, 0.7, 0.55), 10, 0.14, 2.2, -1.0, "sphere", 80.0)
+		Sfx.play_on(self, "thud")
+	_was_floor = is_on_floor()
 	if global_position.y < -20.0:
 		global_position = Vector3(0, 2, 8)
 		velocity = Vector3.ZERO

@@ -19,6 +19,11 @@ var _mesh: Node3D
 var _wobble := 0.0
 
 
+## Pure (tested): hits needed to break; the copper pickaxe cracks rocks a hit sooner.
+static func hits_needed(upgraded: bool) -> int:
+	return HITS_TO_BREAK - 1 if upgraded else HITS_TO_BREAK
+
+
 ## Pure (tested): which drops does a break give? roll1/roll2 are 0..1 randoms.
 static func drops_for(rich: bool, roll1: float, roll2: float) -> Array:
 	var out := [{"item": "stone", "amount": 1}, {"item": "stone", "amount": 1}]
@@ -76,7 +81,7 @@ func get_prompt(game: GameState) -> String:
 	if broken:
 		return "Gravel dust. It'll regrow in %d day(s)." % (REGROW_DAYS - days_broken)
 	if game.current_tool == GameState.Tool.PICKAXE:
-		return "[E] Mine %s(%d/%d)" % ["copper-streaked rock " if ore_rich else "rock ", hits, HITS_TO_BREAK]
+		return "[E] Mine %s(%d/%d)" % ["copper-streaked rock " if ore_rich else "rock ", hits, hits_needed(game.count("copper_pickaxe") > 0)]
 	return "A big rock. Use the Pickaxe [5]."
 
 
@@ -92,7 +97,7 @@ func interact(game: GameState) -> void:
 	Sfx.play_on(self, "thud")
 	FX.burst(self, global_position + Vector3(0, 0.9, 0), STONE_COLOR.lightened(0.3), 8, 0.08, 3.5)
 	FX.burst(self, global_position + Vector3(0, 0.9, 0), Color(1, 0.9, 0.5), 4, 0.05, 5.0, -2.0, "sphere")   # sparks
-	if hits >= HITS_TO_BREAK:
+	if hits >= hits_needed(game.count("copper_pickaxe") > 0):
 		FX.hit_stop(get_tree(), 0.9)
 		game.shake.emit(0.5)
 		broken = true

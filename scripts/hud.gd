@@ -10,6 +10,7 @@ var _inv: Label
 var _prompt: Label
 var _heat: Label
 var _job: Label
+var _stam: ProgressBar
 var _toast_box: VBoxContainer
 var _slots: Array[PanelContainer] = []
 var _help: PanelContainer
@@ -45,6 +46,21 @@ func _ready() -> void:
 	_job = _label(root, 22)
 	_job.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_place(_job, 0.5, 0, 0.5, 0, -400, 8, 400, 40)
+	_stam = ProgressBar.new()
+	_stam.show_percentage = false
+	_stam.max_value = FX.STAMINA_MAX
+	_stam.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.5, 0.9, 0.4)
+	fill.set_corner_radius_all(5)
+	var back := StyleBoxFlat.new()
+	back.bg_color = Color(0.1, 0.1, 0.15, 0.6)
+	back.set_corner_radius_all(5)
+	_stam.add_theme_stylebox_override("fill", fill)
+	_stam.add_theme_stylebox_override("background", back)
+	root.add_child(_stam)
+	_place(_stam, 0.5, 1, 0.5, 1, -120, -116, 120, -106)
+	_stam.visible = false
 	_prompt = _label(root, 26)
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_place(_prompt, 0.5, 1, 0.5, 1, -600, -156, 600, -116)
@@ -243,6 +259,10 @@ func _process(_delta: float) -> void:
 		_heat.text = "Heat: %s  [%s]%s" % [Game.heat_name(), Game.reputation_title(), "  (lying low...)" if Game.lying_low else ""]
 	else:
 		_heat.text = ""
+	if player:
+		_stam.value = player.stamina
+		_stam.visible = player.stamina < FX.STAMINA_MAX - 0.5
+		(_stam.get_theme_stylebox("fill") as StyleBoxFlat).bg_color = Color(0.95, 0.55, 0.3) if player.winded else Color(0.5, 0.9, 0.4)
 	_click_hint.visible = Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
 	if player and player.target:
 		_prompt.text = InputPrompts.prompt_text(player.target.get_prompt(Game), InputPrompts.use_pad)

@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1010,4 +1010,36 @@ func test_jump_step() -> bool:
 	check(r["jump"], "buffered press fires on landing")
 	r = FX.jump_step(false, false, 0.12, 0.0, 0.5)
 	check(r["coyote"] == 0.0 and not r["jump"], "coyote expires")
+	return true
+
+
+func test_stamina() -> bool:
+	var r := FX.stamina_step(100.0, true, true, false, 1.0)
+	check(r["sprinting"] and r["stamina"] < 100.0, "sprint drains stamina")
+	r = FX.stamina_step(0.1, true, true, false, 1.0)
+	check(r["winded"] and not r["sprinting"], "running dry makes you winded")
+	r = FX.stamina_step(10.0, true, true, true, 0.1)
+	check(not r["sprinting"] and r["winded"], "winded cannot sprint")
+	r = FX.stamina_step(24.0, true, true, true, 0.1)
+	check(not r["winded"], "recovers after resume threshold")
+	r = FX.stamina_step(50.0, true, false, false, 1.0)
+	check(r["stamina"] > 50.0, "standing still regenerates")
+	check(FX.landing_squash(2.0) == 1.0 and FX.landing_squash(10.0) < 0.8 and FX.landing_squash(100.0) == 0.7, "landing squash clamps")
+	return true
+
+
+func test_pickaxe_upgrade() -> bool:
+	var game := GameState.new()
+	var idx := -1
+	for i in GameState.RECIPES.size():
+		if GameState.RECIPES[i]["id"] == "copper_pickaxe":
+			idx = i
+	check(idx >= 0, "pickaxe recipe exists")
+	game.add_item("copper_ingot", 2)
+	game.add_item("plank", 2)
+	check(game.craft(idx), "craft copper pickaxe")
+	game.add_item("copper_ingot", 2)
+	game.add_item("plank", 2)
+	check(not game.can_craft(idx), "pickaxe is one-off")
+	check(MineRock.hits_needed(true) == MineRock.hits_needed(false) - 1, "copper pickaxe breaks rocks a hit sooner")
 	return true

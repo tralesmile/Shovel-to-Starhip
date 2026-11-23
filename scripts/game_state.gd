@@ -44,6 +44,7 @@ const ITEMS := {
 	"polished_gem": {"name": "Polished Gem", "buy": 0, "sell": 220},
 	"fence_panel": {"name": "Fence Panel", "buy": 0, "sell": 28},
 	"rocket_plate": {"name": "Rocket Hull Plate", "buy": 0, "sell": 0},
+	"copper_pickaxe": {"name": "Copper Pickaxe", "buy": 0, "sell": 0},
 	# Fish: sell at the bin.
 	"boot": {"name": "Old Boot", "buy": 0, "sell": 2},
 	"minnow": {"name": "Minnow", "buy": 0, "sell": 8},
@@ -64,6 +65,7 @@ const RECIPES := [
 	{"id": "fence_panel", "name": "Fence Panel", "in": {"plank": 4}, "out": {"fence_panel": 1}},
 	{"id": "copper_ingot", "name": "Copper Ingot", "in": {"copper_ore": 2, "wood": 1}, "out": {"copper_ingot": 1}},
 	{"id": "polished_gem", "name": "Polished Gem", "in": {"gem": 1, "stone": 2}, "out": {"polished_gem": 1}},
+	{"id": "copper_pickaxe", "name": "Copper Pickaxe", "in": {"copper_ingot": 2, "plank": 2}, "out": {"copper_pickaxe": 1}, "once": true},
 	{"id": "rocket_plate", "name": "Rocket Hull Plate", "in": {"copper_ingot": 3, "plank": 2}, "out": {"rocket_plate": 1}},
 ]
 
@@ -146,6 +148,10 @@ func first_craftable() -> int:
 func can_craft(idx: int) -> bool:
 	if idx < 0 or idx >= RECIPES.size():
 		return false
+	if RECIPES[idx].get("once", false):
+		for id in RECIPES[idx]["out"]:
+			if count(id) > 0:
+				return false   # one-off tool upgrade already owned
 	for id in RECIPES[idx]["in"]:
 		if count(id) < int(RECIPES[idx]["in"][id]):
 			return false
