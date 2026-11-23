@@ -12,6 +12,18 @@ const SEED_PACK := 5     ## seeds bought per press
 const ROCKET_PRICE := 1000000
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if kind != Kind.WORKBENCH or not event.is_action_pressed("craft_next"):
+		return
+	var pl := get_tree().get_first_node_in_group("player") as Node3D
+	var game := get_node_or_null("/root/Game") as GameState
+	if pl == null or game == null or pl.global_position.distance_to(global_position) > interact_radius + 0.8:
+		return
+	var i := game.cycle_recipe(1)
+	Sfx.play_on(self, "blip", 1.2)
+	game.say("Blueprint: %s." % GameState.RECIPES[i]["name"])
+
+
 func get_prompt(game: GameState) -> String:
 	match kind:
 		Kind.SHOP:
@@ -32,8 +44,14 @@ func get_prompt(game: GameState) -> String:
 				return "Honest Hank: \"She's parked by the road. Treat her kindly.\""
 			return "[E] Buy a used sedan ($%d)  - you have $%d" % [Car.PRICE, game.money]
 		Kind.WORKBENCH:
-			var i := game.first_craftable()
-			return "[E] Craft: %s" % GameState.recipe_text(i) if i >= 0 else "Workbench. Bring wood, stone, ore or gems."
+			var i: int = game.selected_recipe
+			if game.owned_once_recipes().has(i):
+				i = game.cycle_recipe(1)
+			var miss := game.recipe_missing(i)
+			var head := "%s: %s" % [GameState.RECIPES[i]["name"], GameState.recipe_text(i)]
+			if miss == "":
+				return "[E] Craft %s   [Q] next recipe" % head
+			return "%s (%s)   [Q] next recipe" % [head, miss]
 		Kind.ROCKET:
 			return "Rocket: $%s to finish. You have $%d. Keep farming." % [_pretty(ROCKET_PRICE), game.money]
 	return ""
@@ -75,13 +93,13 @@ func interact(game: GameState) -> void:
 			else:
 				game.say("Honest Hank: \"That's $%d. You have... lint.\"" % Car.PRICE)
 		Kind.WORKBENCH:
-			var i := game.first_craftable()
-			if i >= 0 and game.craft(i):
+			var i: int = game.selected_recipe
+			if game.craft(i):
 				game.say("Clunk! Made %s. It is mostly straight." % GameState.RECIPES[i]["name"])
 				game.shake.emit(0.2)
 				FX.burst(self, global_position + Vector3(0, 1.1, 0), Color(1.0, 0.7, 0.25), 16, 0.07, 4.5, -9.0, "sphere", 45.0)
 			else:
-				game.say("The workbench wobbles expectantly. Nothing to craft yet.")
+				game.say("The workbench wobbles: %s." % game.recipe_missing(i))
 		Kind.ROCKET:
 			game.say("One day, little rocket. One day.")
 

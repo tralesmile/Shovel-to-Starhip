@@ -47,6 +47,19 @@ static func height_at(x: float, z: float) -> float:
 	return h
 
 
+## Baked shore-proximity map for the water shader (R8, res x res over the whole world):
+## 1.0 where the ground sits right at the water surface, fading to 0 by 0.9 m deep.
+static func shore_map(res: int) -> Image:
+	var img := Image.create(res, res, false, Image.FORMAT_R8)
+	for j in res:
+		for i in res:
+			var x := (float(i) + 0.5) / res * SIZE - SIZE * 0.5
+			var z := (float(j) + 0.5) / res * SIZE - SIZE * 0.5
+			var depth := maxf(WATER_LEVEL - height_at(x, z), 0.0)
+			img.set_pixel(i, j, Color(clampf(1.0 - depth / 0.9, 0.0, 1.0), 0, 0))
+	return img
+
+
 static func is_water(x: float, z: float) -> bool:
 	return height_at(x, z) < WATER_LEVEL - 0.15
 

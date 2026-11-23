@@ -172,3 +172,22 @@ static func stamina_step(stamina: float, want_sprint: bool, moving: bool, winded
 ## Landing squash (pure, tested): vertical scale dips with the fall speed, clamped.
 static func landing_squash(fall_speed: float) -> float:
 	return clampf(1.0 - maxf(0.0, fall_speed - 3.0) * 0.06, 0.7, 1.0)
+
+
+## Horizontal unit direction a tree should topple: away from the chopper (Valheim-style).
+## Falls back to +X when the player stands on the trunk.
+static func fall_dir(tree_pos: Vector3, player_pos: Vector3) -> Vector3:
+	var d := Vector3(tree_pos.x - player_pos.x, 0.0, tree_pos.z - player_pos.z)
+	if d.length() < 0.05:
+		return Vector3.RIGHT
+	return d.normalized()
+
+
+## Rotation axis that tips an upright trunk over towards horizontal direction `dir`.
+static func fall_axis(dir: Vector3) -> Vector3:
+	return Vector3.UP.cross(dir).normalized()
+
+
+## Screen-shake strength for a landing tree: stronger the closer you stand.
+static func fall_shake(dist: float) -> float:
+	return clampf(0.7 - dist * 0.06, 0.15, 0.7)

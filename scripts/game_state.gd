@@ -86,6 +86,7 @@ var inventory: Dictionary = {"turnip_seed": 5}
 var day: int = 1
 var time_of_day: float = START_TIME
 var current_tool: int = Tool.HOE
+var selected_recipe: int = 0         ## workbench picker choice (not saved)
 var selected_crop: String = "turnip"   ## which seed the Seeds tool plants
 var clock_running: bool = true
 var total_earned: int = 0
@@ -145,6 +146,41 @@ func first_craftable() -> int:
 		if can_craft(i):
 			return i
 	return -1
+
+
+## Recipe picker (workbench): index of the next recipe not yet owned (one-off upgrades), wrapping. Pure.
+static func next_recipe(current: int, dir: int, owned_once: Array) -> int:
+	var n := RECIPES.size()
+	for step in range(1, n + 1):
+		var i := posmod(current + dir * step, n)
+		if not (i in owned_once):
+			return i
+	return current
+
+
+func owned_once_recipes() -> Array:
+	var out: Array = []
+	for i in RECIPES.size():
+		if RECIPES[i].get("once", false):
+			for id in RECIPES[i]["out"]:
+				if count(id) > 0:
+					out.append(i)
+	return out
+
+
+func cycle_recipe(dir: int = 1) -> int:
+	selected_recipe = next_recipe(selected_recipe, dir, owned_once_recipes())
+	return selected_recipe
+
+
+## "need 2 more Wood, 1 more Stone" for the recipe (empty when craftable).
+func recipe_missing(idx: int) -> String:
+	var parts: PackedStringArray = []
+	for id in RECIPES[idx]["in"]:
+		var lack: int = int(RECIPES[idx]["in"][id]) - count(id)
+		if lack > 0:
+			parts.append("%d more %s" % [lack, ITEMS[id]["name"]])
+	return "need " + ", ".join(parts) if parts.size() > 0 else ""
 
 
 func can_craft(idx: int) -> bool:
@@ -545,6 +581,7 @@ func setup_input() -> void:
 	_key_action("tool_3", [KEY_3])
 	_key_action("tool_4", [KEY_4])
 	_key_action("tool_5", [KEY_5])
+	_key_action("craft_next", [KEY_Q])
 	_key_action("help", [KEY_H, KEY_F1])
 	_key_action("save", [KEY_F5])
 	_key_action("pause", [KEY_ESCAPE])
@@ -561,7 +598,7 @@ const PAD_BUTTONS := {
 	"jump": [JOY_BUTTON_A], "interact": [JOY_BUTTON_X], "interact_click": [JOY_BUTTON_RIGHT_SHOULDER],
 	"sprint": [JOY_BUTTON_LEFT_STICK], "crouch": [JOY_BUTTON_B], "help": [JOY_BUTTON_Y], "pause": [JOY_BUTTON_START],
 	"tool_1": [JOY_BUTTON_DPAD_UP], "tool_2": [JOY_BUTTON_DPAD_RIGHT],
-	"tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER],
+	"craft_next": [JOY_BUTTON_BACK], "tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER],
 }
 const PAD_AXES := {
 	"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],

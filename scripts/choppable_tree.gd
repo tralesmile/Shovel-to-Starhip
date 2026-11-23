@@ -93,33 +93,41 @@ func _fall(game: GameState) -> void:
 	if not is_inside_tree():
 		return
 	_falling = true
-	var side := 1.0 if randf() < 0.5 else -1.0
+	_wobble = 0.0
+	# Valheim-style: topples away from whoever swung the axe.
+	var pl := get_tree().get_first_node_in_group("player") as Node3D
+	var dir := FX.fall_dir(global_position, pl.global_position if pl != null else global_position - Vector3.RIGHT)
+	var axis := FX.fall_axis(dir)
+	var dist := pl.global_position.distance_to(global_position) if pl != null else 3.0
 	var tw := create_tween()
-	tw.tween_property(_trunk, "rotation:z", side * PI * 0.5, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_method(func(a: float): _trunk.basis = Basis(axis, a), 0.0, PI * 0.5, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func():
-		_spawn_logs(game, side)
-		game.shake.emit(0.45)
-		FX.burst(self, global_position + Vector3(side * 2.5, 0.3, 0), Color(0.45, 0.62, 0.25), 24, 0.16, 4.0, -6.0)
-		FX.burst(self, global_position + Vector3(side * 2.5, 0.2, 0), Color(0.75, 0.68, 0.55), 16, 0.2, 2.0, -2.0, "sphere"))
+		_spawn_logs(game, dir)
+		game.shake.emit(FX.fall_shake(dist))
+		FX.burst(self, global_position + dir * 2.5 + Vector3(0, 0.3, 0), Color(0.45, 0.62, 0.25), 24, 0.16, 4.0, -6.0)
+		FX.burst(self, global_position + dir * 2.5 + Vector3(0, 0.2, 0), Color(0.75, 0.68, 0.55), 16, 0.2, 2.0, -2.0, "sphere"))
+	# Thud rebound: bounces back a few degrees and settles.
+	tw.tween_method(func(a: float): _trunk.basis = Basis(axis, a), PI * 0.5, PI * 0.46, 0.09).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_method(func(a: float): _trunk.basis = Basis(axis, a), PI * 0.46, PI * 0.5, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_property(_trunk, "scale", Vector3.ONE * 0.01, 0.35).set_delay(0.25)
 	tw.tween_callback(func():
 		_falling = false
-		_trunk.rotation.z = 0.0
-		_trunk.scale = Vector3.ONE
+		_trunk.basis = Basis.IDENTITY
 		_refresh())
 
 
-## Logs are real rigid bodies that tumble out where the trunk lands.
-func _spawn_logs(game: GameState, side: float) -> void:
+## Logs are real rigid bodies that tumble out along the line the trunk fell.
+func _spawn_logs(game: GameState, dir: Vector3) -> void:
 	var host: Node = get_parent()
 	if host == null:
 		return
+	var side := dir.cross(Vector3.UP)
 	for i in WOOD_DROP:
 		var lg := WoodLog.new()
 		lg.game = game
 		host.add_child(lg)
-		lg.global_position = global_position + Vector3(side * (1.2 + i * 0.9), 0.6 + i * 0.2, randf_range(-0.3, 0.3))
-		lg.pop(Vector3(side * 1.5, 0, 0))
+		lg.global_position = global_position + dir * (1.2 + i * 0.9) + side * randf_range(-0.3, 0.3) + Vector3(0, 0.6 + i * 0.2, 0)
+		lg.pop(dir * 1.5)
 
 
 func on_new_day(_game: GameState) -> void:

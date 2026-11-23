@@ -991,7 +991,7 @@ func test_crafting() -> bool:
 	var wb := Station.new()
 	wb.kind = Station.Kind.WORKBENCH
 	root.add_child(wb)
-	check(wb.get_prompt(game).begins_with("Workbench"), "idle workbench prompt")
+	check(wb.get_prompt(game).begins_with("Planks") and "need 2 more Wood" in wb.get_prompt(game), "idle workbench prompt shows selected recipe + missing")
 	game.add_item("wood", 2)
 	check(wb.get_prompt(game).begins_with("[E] Craft"), "craft prompt")
 	wb.interact(game)
@@ -1061,4 +1061,24 @@ func test_axe_combo() -> bool:
 	check(ChoppableTree.hits_needed(true) == 2 and ChoppableTree.hits_needed(false) == 3, "copper axe fells in 2")
 	check(FX.pickup_combo(0, 99.0) == 1 and FX.pickup_combo(1, 0.5) == 2 and FX.pickup_combo(3, 5.0) == 1 and FX.pickup_combo(8, 0.1) == 8, "combo steps, resets, caps")
 	check(is_equal_approx(FX.combo_pitch(1), 1.0) and is_equal_approx(FX.combo_pitch(13), 2.0), "combo pitch is semitones")
+	# Run 4: fall direction, recipe picker, shore map
+	var fd := FX.fall_dir(Vector3(0, 0, 0), Vector3(0, 0, 3))
+	check(fd.is_equal_approx(Vector3(0, 0, -1)), "tree falls away from the player")
+	check(FX.fall_dir(Vector3(1, 0, 1), Vector3(1, 0, 1)) == Vector3.RIGHT, "fall dir fallback when standing on trunk")
+	var ax := FX.fall_axis(Vector3.RIGHT)
+	check((Basis(ax, PI * 0.5) * Vector3.UP).is_equal_approx(Vector3.RIGHT), "fall axis tips trunk toward dir")
+	check((Basis(FX.fall_axis(fd), PI * 0.5) * Vector3.UP).is_equal_approx(fd), "fall axis works for any dir")
+	check(FX.fall_shake(0.0) > FX.fall_shake(8.0) and FX.fall_shake(100.0) >= 0.15, "fall shake fades with distance")
+	check(GameState.next_recipe(0, 1, []) == 1 and GameState.next_recipe(0, -1, []) == GameState.RECIPES.size() - 1, "recipe cycle wraps")
+	check(GameState.next_recipe(3, 1, [4]) == 5, "recipe cycle skips owned one-offs")
+	var rg := GameState.new()
+	check(rg.recipe_missing(0) == "need 2 more Wood", "missing text for planks")
+	rg.add_item("wood", 2)
+	check(rg.recipe_missing(0) == "", "no missing when craftable")
+	rg.selected_recipe = 0
+	check(rg.cycle_recipe(1) == 1 and rg.selected_recipe == 1, "cycle_recipe updates selection")
+	var sm := Terrain.shore_map(32)
+	var mid := sm.get_pixel(16, 16).r
+	check(sm.get_width() == 32 and mid <= 1.0, "shore map built")
+	check(Terrain.WATER_LEVEL - Terrain.height_at(Terrain.POND_CENTER.x, Terrain.POND_CENTER.y) > 0.9, "pond centre is deep (foam 0)")
 	return true

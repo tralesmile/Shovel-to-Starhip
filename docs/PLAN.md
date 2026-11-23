@@ -33,7 +33,7 @@ Mark each item [x] when done and tested.
 ## Phase 1.6 - Depth, feel and story (owner request 2026-11-18; keep ALL core ideas, this adds to them)
 Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Keeper, Terraria, Palworld, GTA-lite, Cassette Beasts) while keeping the lighthearted shovel-to-starship idea. Every run: at least one item from "Feel" and one from "Graphics/Physics", plus one from "Make things".
 ### Gather and break (physics-based)
-- [ ] (v1 DONE 2026-11-19: 3 real RigidBody3D logs tumble out when the trunk lands, bounce, magnet to you within 2.6m and add wood; still to do: fall as rigid body, chop logs into planks, stump regrow already works) Tree felling: chopping hits fill a damage meter, then the tree FALLS as a rigid body in the chop direction, splits into logs (RigidBody3D), logs can be chopped again into planks/firewood, stump remains and regrows over days
+- [ ] (v1 DONE 2026-11-19: 3 real RigidBody3D logs tumble out when the trunk lands, bounce, magnet to you within 2.6m and add wood; still to do: fall as rigid body, chop logs into planks, stump regrow already works) Tree felling (v2 DONE 2026-11-23: trunk topples AWAY from the player on its own axis, thud rebound, logs spawn along the fall line, shake scales with distance): chopping hits fill a damage meter, then the tree FALLS as a rigid body in the chop direction, splits into logs (RigidBody3D), logs can be chopped again into planks/firewood, stump remains and regrows over days
 - [ ] (v1 DONE: WoodLog pickup w/ arm delay, magnet, collect pop; reuse for stone/ore/herbs) Pick up anything from the ground (E / auto-magnet when close): logs, stones, ore, herbs, dropped items with bounce, pop and a small pickup arc
 - [ ] (v1 DONE 2026-11-19: Pickaxe tool [5], 5 MineRock rocks, 4 hits with shake/shrink/sparks/hit-stop, break into rigid-body stone/copper/gem chunks, regrow 3 days; still to do: pickaxe tiers, mine area/caves, selling/using ore) Mining: ore rocks with hit stages that crack and break into chunks/ore pieces (rigid bodies), pickaxe tiers, small caves/mine area, gems
 - [ ] Carry system: heavy items (logs, rocks) slow you; wheelbarrow/cart/car trunk to haul
@@ -45,7 +45,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (coyote time + jump buffer DONE v1 2026-11-23 via FX.jump_step; tree wind sway DONE; sprint stamina bar + winded breather, landing squash + dust DONE v1 2026-11-23) Walk/run/sprint with stamina, acceleration curves, jump + coyote time, slopes, camera shake/FOV on sprint, footstep dust
 - [ ] Better car physics (suspension, drifting, damage), boat, bike
 ### Make things (creative core)
-- [ ] (v1 DONE 2026-11-23: Workbench station by the sell bin, 5 data-driven recipes in GameState.RECIPES, E crafts first affordable; Copper Pickaxe upgrade recipe DONE (2 ingots + 2 planks, one-off, rocks break a hit sooner); Copper Axe DONE v1 2026-11-23 (trees fall in 2 hits); ore/gem chunks glow + sparkle DONE; still to do: recipe picker UI, furniture recipes, blueprint unlocks, use fence panels/rocket plates) Workbench + crafting recipes (tools, furniture, fences), blueprint unlocks
+- [ ] (v1 DONE 2026-11-23: Workbench station by the sell bin, 5 data-driven recipes in GameState.RECIPES, E crafts first affordable; Copper Pickaxe upgrade recipe DONE (2 ingots + 2 planks, one-off, rocks break a hit sooner); Copper Axe DONE v1 2026-11-23 (trees fall in 2 hits); ore/gem chunks glow + sparkle DONE; still to do: recipe picker UI, furniture recipes, blueprint unlocks, use fence panels/rocket plates) Workbench + crafting recipes (recipe picker DONE v1 2026-11-23: [Q]/Back cycles recipes, prompt shows what is missing) (tools, furniture, fences), blueprint unlocks
 - [ ] Build mode: place walls/floors/roofs on a grid, build your own house, decorate; snap, rotate, demolish refund
 - [ ] Vehicle builder: attach parts (wheels, engine, body, thrusters) to make cars -> boats -> the starship (ties to the rocket goal)
 - [ ] Tool upgrades and invention bench (combine parts into funny gadgets)
@@ -55,7 +55,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] Jobs and side activities: delivery, fishing contests, racing, treasure maps
 ### Graphics and physics polish (every run, pick one)
 - [ ] (colour grading per time of day DONE v1 2026-11-19 via FX.grade_for; SSAO/glow/fog already High mode) Lighting: SSAO/SSIL, soft shadows, fog, bloom, colour grading per time of day
-- [ ] Better vegetation (wind sway shader, grass density), water shader with foam, particles (dust, leaves, sparks)
+- [ ] Better vegetation (wind sway shader, grass density), water shader with foam (shoreline foam DONE v1 2026-11-23 via baked shore map, since depth-texture reconstruction misbehaved in the compat renderer), particles (dust, leaves, sparks)
 - [ ] (hit-stop DONE v1 on chop + mining; camera shake DONE) Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
 - [ ] Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
@@ -183,3 +183,10 @@ Weakest part vs comparables (Core Keeper/Terraria): pickups were silent bookkeep
 - Core Keeper/Terraria similarities and digging craving: https://www.thegamer.com/core-keeper-terraria-similarities/
 - Godot particles progress report: https://godotengine.org/article/progress-report-state-of-particles/ and stylized water tool https://80.lv/articles/create-beautiful-stylized-water-easily-with-this-godot-tool/
 - Next: recipe picker UI (cycle recipes), iron tier, water foam shader, GPUParticles hit sparks, pet that picks up items for you.
+
+## Research backlog (2026-11-23 run 4)
+Weakest part vs comparables (Valheim/Terraria): felling a tree was a fixed sideways tilt with no relation to where you stand, and the workbench could only craft "the first thing you can afford", so the player had no agency over making things. Applied: Valheim-style fall away from the chopper, recipe picker, shoreline foam. Searches returned links only.
+- Valheim woodcutting (trees fall away from you, logs then chopped): https://www.thegamer.com/valheim-woodcutting-trees-logs-you-died/ and https://www.pcgamer.com/in-valheim-the-trees-punch-back ; physics-tree mods https://www.curseforge.com/minecraft/mc-mods/physics-trees
+- Chopping as an adventure design write-up: https://www.gamepressure.com/editorials/reviews/chopping-trees-is-an-adventure-or-why-isnt-valheim-boring/ze3d7
+- Godot water foam: https://80.lv/articles/godot-tutorial-create-realistic-water-with-dynamic-foam and GPUParticles progress https://godotengine.org/article/progress-report-state-of-particles/
+- Next: fallen trunk that can be chopped into planks (Valheim logs), trees that can squash you (funny), real depth-texture foam when compat behaves, recipe picker as a proper menu with icons, iron tier, GPUParticles sparks, pet that fetches logs.

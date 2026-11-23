@@ -75,11 +75,27 @@ func _run() -> void:
 		p._yaw = 0.0
 		p._pitch = -0.3
 		p._zoom = 8.0
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		p.global_position = tree.global_position + Vector3(2.5, 0.1, 3.0)   # swing from the south-east: it falls north-west
+		p._yaw = -0.6
 		for i in 3:
 			tree.interact(Game)
-		await _wait(110)
+		await _wait(38)
+		await _shot("99_fall_mid.png")
+		await _wait(70)
 		await _shot("99_logs.png")
 		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=96"):
+		Game.time_of_day = 0.45
+		p.global_position = Vector3(Terrain.POND_CENTER.x + 8.0, 0.1, Terrain.POND_CENTER.y + 1.0)
+		p._yaw = 1.57
+		p._pitch = -0.35
+		p._zoom = 9.0
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		await _wait(20)
+		await _shot("96_pond_foam.png")
 		get_tree().quit()
 		return
 	if OS.get_cmdline_user_args().has("--only=97"):

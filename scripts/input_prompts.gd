@@ -4,13 +4,13 @@ extends Node
 
 const KEY_LABELS := {
 	"interact": "E", "jump": "Space", "sprint": "Shift", "crouch": "C", "help": "H", "save": "F5", "pause": "Esc",
-	"tool_1": "1", "tool_2": "2", "tool_3": "3", "tool_4": "4", "tool_5": "5", "interact_click": "Click",
+	"tool_1": "1", "tool_2": "2", "tool_3": "3", "tool_4": "4", "tool_5": "5", "interact_click": "Click", "craft_next": "Q",
 	"move": "WASD", "look": "Mouse", "tools": "1-5", "use": "E / Left click",
 }
 const PAD_LABELS := {
 	"interact": "X", "jump": "A", "sprint": "L3", "crouch": "B", "help": "Y", "save": "F5", "pause": "Start",
 	"tool_1": "D-pad Up", "tool_2": "D-pad Right", "tool_3": "D-pad Down", "tool_4": "D-pad Left", "tool_5": "LB",
-	"interact_click": "RB",
+	"interact_click": "RB", "craft_next": "Back",
 	"move": "Left stick", "look": "Right stick", "tools": "D-pad", "use": "X / RB",
 }
 

@@ -5,6 +5,8 @@ render_mode blend_mix, cull_disabled, depth_draw_opaque, specular_schlick_ggx;
 uniform vec3 deep : source_color = vec3(0.12, 0.42, 0.62);
 uniform vec3 shallow : source_color = vec3(0.32, 0.68, 0.78);
 uniform float flow = 0.6;
+uniform sampler2D shore_tex : filter_linear, repeat_disable;   // baked: 1 at the shoreline, 0 in deep water
+uniform float world_size = 400.0;
 
 varying vec3 world_pos;
 
@@ -35,8 +37,13 @@ void fragment() {
 	col += vec3(0.25) * bands;
 	float sparkle = step(0.965, noise(p * 2.5 + vec2(TIME * 0.7, -TIME * 0.4)));
 	col += vec3(0.6) * sparkle;
+	// Shoreline foam from a baked shore-proximity map, broken up with moving noise.
+	float shore = texture(shore_tex, world_pos.xz / world_size + 0.5).r;
+	float foam_n = noise(p * 2.2 + vec2(TIME * 0.3, TIME * 0.18));
+	float edge = smoothstep(0.5, 0.62, shore + (foam_n - 0.5) * 0.28 + sin(TIME * 1.4 + p.x * 1.7 + p.y) * 0.03);
+	col = mix(col, vec3(0.96, 0.99, 1.0), edge);
 	ALBEDO = col;
-	ALPHA = 0.84;
+	ALPHA = mix(0.84, 0.97, edge);
 	ROUGHNESS = 0.15;
 	METALLIC = 0.0;
 	SPECULAR = 0.6;

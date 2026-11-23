@@ -244,6 +244,8 @@ func _build_ground() -> void:
 	water.mesh = plane
 	var wm := ShaderMaterial.new()
 	wm.shader = load("res://scripts/shaders/water.gdshader")
+	wm.set_shader_parameter("shore_tex", ImageTexture.create_from_image(Terrain.shore_map(256)))
+	wm.set_shader_parameter("world_size", Terrain.SIZE)
 	water.material_override = wm
 	water.position.y = Terrain.WATER_LEVEL
 	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
