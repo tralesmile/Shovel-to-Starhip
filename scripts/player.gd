@@ -22,6 +22,8 @@ var _arm: SpringArm3D
 var camera: Camera3D
 var _model: Node3D
 var vehicle: Car = null
+var mount: Critter = null
+var _hoof_t: float = 0.0
 var _shape: CollisionShape3D
 
 
@@ -153,7 +155,9 @@ func _update_animation(delta: float) -> void:
 	_anim.speed_scale = 1.0
 	var flat := Vector2(velocity.x, velocity.z).length()
 	var want := "Idle"
-	if not is_on_floor():
+	if mount != null:
+		want = "Idle"   # seated; the goat does the leg work
+	elif not is_on_floor():
 		want = "Jump_Idle"
 	elif flat > 6.0:
 		want = "Running_A"
@@ -237,6 +241,34 @@ func enter_car(car: Car) -> void:
 	Game.hint_event.emit("drive")
 
 
+## Climb onto a saddled, tamed goat (Critter.interact). Returns false if something blocks it.
+func mount_critter(c: Critter) -> bool:
+	if mount != null or vehicle != null or not Critter.can_mount(c.kind, c.tamed, Game.inventory):
+		return false
+	mount = c
+	c.set_ridden(true)
+	global_position = c.global_position
+	_model.position.y = Critter.MOUNT_SEAT_Y
+	_model.rotation.y = c.rotation.y
+	_zoom = maxf(_zoom, 8.0)
+	FX.burst(self, global_position + Vector3(0, 0.3, 0), Color(0.85, 0.8, 0.6), 12, 0.14, 2.2, -1.0, "sphere", 120.0)
+	Sfx.play_on(self, "happy", 0.8)
+	Game.shake.emit(0.15)
+	Game.say("Giddy-up! Shift to gallop, Space to jump, E to hop off.")
+	return true
+
+
+func dismount() -> void:
+	if mount == null:
+		return
+	mount.set_ridden(false)
+	mount.home = mount.position
+	mount = null
+	_model.position.y = 0.0
+	FX.burst(self, global_position + Vector3(0, 0.1, 0), Color(0.78, 0.7, 0.55), 8, 0.12, 1.8, -1.0, "sphere", 90.0)
+	Game.say("You slide off. The goat looks smug.")
+
+
 func _on_car_bump() -> void:
 	Game.shake.emit(0.3)
 
@@ -257,6 +289,9 @@ func exit_car() -> void:
 func _use() -> void:
 	if vehicle != null:
 		exit_car()
+		return
+	if mount != null:
+		dismount()
 		return
 	if Game.current_tool == GameState.Tool.BUILD:
 		var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
@@ -414,19 +449,22 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	if jr["jump"]:
-		velocity.y = JUMP_VELOCITY
+		velocity.y = JUMP_VELOCITY if mount == null else Critter.MOUNT_JUMP
 
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var basis_yaw := Basis(Vector3.UP, _yaw)
 	var dir := (basis_yaw * Vector3(input.x, 0, input.y))
-	crouching = Input.is_action_pressed("crouch") and is_on_floor()
+	crouching = Input.is_action_pressed("crouch") and is_on_floor() and mount == null
 	var sr := FX.stamina_step(stamina, Input.is_action_pressed("sprint") and not crouching, dir.length() > 0.01, winded, delta)
 	stamina = sr["stamina"]
 	if sr["winded"] and not winded:
 		Game.say("Huff... puff... turnips are heavy.")
 	winded = sr["winded"]
 	var speed := CROUCH_SPEED if crouching else (RUN_SPEED if sr["sprinting"] else WALK_SPEED)
-	speed *= FX.carry_speed_mult(Game.carry_weight(), Game.carry_free())
+	if mount != null:
+		speed = Critter.mount_speed(sr["sprinting"], FX.carry_speed_mult(Game.carry_weight(), Game.carry_free()))
+	else:
+		speed *= FX.carry_speed_mult(Game.carry_weight(), Game.carry_free())
 	_squash = lerpf(_squash, 1.0, 10.0 * delta)
 	_model.scale.y = lerpf(_model.scale.y, (0.7 if crouching else 1.0) * _squash, 12.0 * delta)
 	if global_position.y < Terrain.WATER_LEVEL + 0.2:
@@ -458,9 +496,37 @@ func _physics_process(delta: float) -> void:
 	_update_animation(delta)
 	var flat_speed := Vector2(velocity.x, velocity.z).length()
 	_dust.emitting = is_on_floor() and flat_speed > 6.0
-	camera.fov = lerp(camera.fov, 72.0 if flat_speed > 6.0 else 65.0, 4.0 * delta)
+	var fov_want := 72.0 if flat_speed > 6.0 else 65.0
+	if mount != null:
+		_ride_sync(delta, flat_speed)
+		fov_want = 82.0 if flat_speed > 10.0 else 68.0
+		_dust.emitting = false
+	camera.fov = lerp(camera.fov, fov_want, 4.0 * delta)
 	_update_camera(delta)
-	_find_target()
+	if mount != null:
+		target = null
+	else:
+		_find_target()
+
+
+## Keep the goat under the rider, gallop its legs, and fling hoof clods behind it.
+func _ride_sync(delta: float, flat_speed: float) -> void:
+	mount.global_position = global_position
+	mount.rotation.y = _model.rotation.y
+	mount.ride_tick(delta, flat_speed, is_on_floor())
+	var iv := Critter.hoof_interval(flat_speed)
+	if iv > 0.0 and is_on_floor():
+		_hoof_t -= delta
+		if _hoof_t <= 0.0:
+			_hoof_t = iv
+			var back := -Vector3(sin(_model.rotation.y), 0, cos(_model.rotation.y))
+			var fast := flat_speed > Critter.MOUNT_WALK + 1.0
+			FX.burst(self, global_position + back * 0.7 + Vector3(0, 0.08, 0), Color(0.5, 0.38, 0.24) if fast else Color(0.78, 0.7, 0.55),
+				7 if fast else 3, 0.1 if fast else 0.14, 3.2 if fast else 1.4, -9.0 if fast else -1.0, "box" if fast else "sphere", 50.0)
+			if fast:
+				Sfx.play_on(self, "thud", 1.9)
+	else:
+		_hoof_t = 0.0
 
 
 func _update_camera(delta: float) -> void:

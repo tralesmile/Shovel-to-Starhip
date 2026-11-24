@@ -99,6 +99,74 @@ static func follow_mode(dist: float) -> int:
 	return 0
 
 
+## Riding (Stardew horse x Palworld mounts, goat edition): tamed goat + saddle. Shift gallops and drains stamina.
+const MOUNT_WALK := 6.5
+const MOUNT_GALLOP := 13.0
+const MOUNT_JUMP := 7.2
+const MOUNT_SCALE := 1.5       ## the goat swells with pride (and so the farmer fits)
+const MOUNT_SEAT_Y := 1.0      ## seat height of the rider model above the ground at MOUNT_SCALE
+var ridden := false
+var _saddle: Node3D
+var _stride := 0.0
+
+
+## Pure (tested): can this critter be ridden with these pockets?
+static func can_mount(k: int, is_tamed: bool, inv: Dictionary) -> bool:
+	return k == Kind.GOAT and is_tamed and int(inv.get("saddle", 0)) > 0
+
+
+## Pure (tested): ride speed. Galloping needs stamina (sprinting from FX.stamina_step); load slows the goat too.
+static func mount_speed(gallop: bool, load_mult: float) -> float:
+	return (MOUNT_GALLOP if gallop else MOUNT_WALK) * clampf(load_mult, 0.55, 1.0)
+
+
+## Pure (tested): seconds between hoof-beat puffs; faster at a gallop, 0 when standing still.
+static func hoof_interval(speed: float) -> float:
+	if speed < 1.0:
+		return 0.0
+	return clampf(2.4 / speed, 0.16, 0.5)
+
+
+## Pure (tested): leg swing amplitude by speed (stiff when idle, wide at a gallop).
+static func gait_swing(speed: float) -> float:
+	return clampf(speed / MOUNT_GALLOP, 0.0, 1.0) * 0.9
+
+
+func set_ridden(on: bool) -> void:
+	ridden = on
+	_stride = 0.0
+	if on:
+		if _saddle == null:
+			_saddle = Node3D.new()
+			_body.add_child(_saddle)
+			_part(Art.box(Vector3(0.5, 0.06, 0.4), Color(0.55, 0.12, 0.12)), Vector3(0, 0.96, -0.05), _saddle)    # blanket
+			_part(Art.box(Vector3(0.3, 0.08, 0.26), Color(0.42, 0.24, 0.12)), Vector3(0, 1.02, -0.05), _saddle)   # seat
+			_part(Art.box(Vector3(0.3, 0.12, 0.05), Color(0.42, 0.24, 0.12)), Vector3(0, 1.08, -0.2), _saddle)   # back
+		_saddle.visible = true
+		scale = Vector3.ONE * MOUNT_SCALE
+	else:
+		if _saddle != null:
+			_saddle.visible = false
+		scale = Vector3.ONE
+		_body.position.y = 0.0
+		for leg in _legs:
+			leg.rotation.x = 0.0
+
+
+## Called every physics frame by the rider: gallop animation from the real speed.
+func ride_tick(delta: float, speed: float, on_floor: bool) -> void:
+	_t += delta
+	var amp := gait_swing(speed) if on_floor else 0.5
+	var rate := 6.0 + speed * 0.9
+	_stride += delta * rate
+	for i in _legs.size():
+		var front := 1.0 if i < 2 else -1.0
+		# Gallop: front pair and back pair swing together, opposite to each other.
+		_legs[i].rotation.x = sin(_stride + (0.0 if i < 2 else PI * 0.6)) * amp * (1.0 if i % 2 == 0 else 0.85) * front
+	_body.position.y = absf(sin(_stride)) * 0.05 * clampf(speed / MOUNT_WALK, 0.0, 1.6) if on_floor else 0.0
+	_body.rotation.x = lerpf(_body.rotation.x, -0.12 * clampf(speed / MOUNT_GALLOP, 0.0, 1.0), 8.0 * delta)
+
+
 const PET_LINES := {
 	Kind.CHICKEN: ["The chicken accepts your offering of pats.", "Bawk. (That means thanks.)", "The chicken judges your farming. Gently."],
 	Kind.GOAT: ["The goat is the 13th citizen. It knows.", "The goat eats your sleeve. Bonding!", "Mehhh. (The goat approves.)"],
@@ -143,6 +211,8 @@ func get_prompt(game: GameState) -> String:
 	var nm := "chicken" if kind == Kind.CHICKEN else "goat"
 	if kind != Kind.CHICKEN and kind != Kind.GOAT:
 		return ""
+	if tamed and can_mount(kind, tamed, game.inventory):
+		return "[E] Saddle up and ride the goat"
 	if tamed:
 		return "[E] Pet your %s (best friend)" % nm
 	var food := tame_food(kind, game.inventory)
@@ -152,6 +222,10 @@ func get_prompt(game: GameState) -> String:
 
 
 func interact(game: GameState) -> void:
+	if can_mount(kind, tamed, game.inventory):
+		var pl := get_tree().get_first_node_in_group("player")
+		if pl != null and pl.has_method("mount_critter") and pl.mount_critter(self):
+			return
 	var food := "" if tamed else tame_food(kind, game.inventory)
 	if food != "":
 		game.remove_item(food, 1)
@@ -296,6 +370,8 @@ func _build_bird() -> void:
 # ---------------------------------------------------------------- behaviour
 
 func _process(delta: float) -> void:
+	if ridden:
+		return   # the rider drives (ride_tick)
 	_t += delta
 	match kind:
 		Kind.CHICKEN, Kind.GOAT:

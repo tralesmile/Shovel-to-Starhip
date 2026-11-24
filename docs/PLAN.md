@@ -40,7 +40,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 ### Animals and riding
 - [ ] (v1 DONE 2026-11-24: 6 rabbits flee with alert/freeze/bolt hop AI, any swing bonks them into meat/pelt/carrot physics drops, Rabbit Stew recipe; still to do: bow/slingshot, deer/boars, campfire cooking, hunting skill) Hunting (simple wildlife that flees, drops meat/hide; bow or slingshot), cooking
 - [ ] (v1 DONE 2026-11-24: feed carrot/turnip/tomato x3 to a chicken or the goat -> tamed, follows you (trot/run/warp), hearts, saved; tamed chickens lay eggs every 80s; still to do: pet jobs, animal pens, more species) Taming: feed/befriend wild animals, pets that follow and help (find loot, carry), farm animals with products
-- [ ] Riding: horse/ostrich/goat mount (walk/run/gallop, stamina, jump), later dinosaur on the jungle planet
+- [ ] (v1 DONE 2026-11-24 run 12: tamed goat + craftable Goat Saddle (2 planks + 2 pelts) -> E to ride, walk 6.5 / Shift gallop 13 draining sprint stamina, jump 7.2, hoof clods + dust, FOV kick, goat swells to mount size, E hops off; still to do: horse/ostrich, saddle bags, mount obstacle-jumping, dinosaur on the jungle planet) Riding: horse/ostrich/goat mount (walk/run/gallop, stamina, jump), later dinosaur on the jungle planet
 ### Movement feel
 - [ ] (coyote time + jump buffer DONE v1 2026-11-23 via FX.jump_step; tree wind sway DONE; sprint stamina bar + winded breather, landing squash + dust DONE v1 2026-11-23) Walk/run/sprint with stamina, acceleration curves, jump + coyote time, slopes, camera shake/FOV on sprint, footstep dust
 - [ ] Better car physics (suspension, drifting, damage), boat, bike
@@ -59,6 +59,11 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (hit-stop DONE v1 on chop + mining; camera shake DONE) Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
 - [ ] (v1 DONE 2026-11-24: 4 crates + 2 barrels as RigidBody3D props around the farm, shoved by walking into them, axe/pickaxe smashes in 2 hits into plank pickups + loot (seeds/wood/ore/gem), hit-stop + shake + wobble; drop-from-inventory DONE v1 2026-11-24 via G; still to do: fences/other props, more prop kinds) Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
+
+### Research backlog 2026-11-24 (run 12; searches returned links only)
+- Weakest part vs comparables: travel is slow and samey; Stardew's horse, Core Keeper 1.3 mounts (Riders of the Underground) and Palworld mounts make traversal a reward for taming. APPLIED: ridable tamed goat with gallop stamina, jump and hoof clods.
+- Sources: https://allthings.how/core-keeper-riders-of-the-underground-update-what-s-new-in-1-3/ ; https://punishedbacklog.com/the-horse-in-stardew-valley-deserves-better/ ; https://www.engadget.com/indie-developers-are-trying-to-make-horse-games-that-dont-suck-its-not-easy-140008337.html ; Godot controller https://kidscancode.org/godot_recipes/4.x/3d/assets/character_controller/
+- Next ideas: horse variant from pelts/carrot taming tiers, mounted jump over fences, saddle bags (+carry), summon-whistle for the mount, mount-only rough terrain.
 
 ### Research backlog 2026-11-24 (run 11; searches returned links only)
 - Weakest part vs comparables: the animals are scenery. Core Keeper (Paws & Claws) and Stardew make animals befriendable with food/affection and useful (eggs, pets); ours only said a pet line. APPLIED: feed veg x3 to a chicken/goat -> follows you; tamed chickens lay eggs. Also food had no heat source: APPLIED campfire (stone ring, flame + smoke particles, flickering light) that roasts raw meat.

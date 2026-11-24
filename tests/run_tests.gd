@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1278,4 +1278,39 @@ func test_campfire_taming() -> bool:
 	check(a == 3 and tamed, "three feeds tame")
 	check(not bool(Critter.feed_result(0)["tamed"]), "one feed is not enough")
 	check(Critter.follow_mode(1.0) == 0 and Critter.follow_mode(4.0) == 1 and Critter.follow_mode(10.0) == 2 and Critter.follow_mode(50.0) == -1, "follow modes by distance")
+	return true
+
+
+func test_riding() -> bool:
+	check(Critter.can_mount(Critter.Kind.GOAT, true, {"saddle": 1}), "tamed goat + saddle can be ridden")
+	check(not Critter.can_mount(Critter.Kind.GOAT, false, {"saddle": 1}), "wild goat cannot be ridden")
+	check(not Critter.can_mount(Critter.Kind.GOAT, true, {}), "no saddle, no ride")
+	check(not Critter.can_mount(Critter.Kind.CHICKEN, true, {"saddle": 1}), "chickens are not mounts (yet)")
+	check(Critter.mount_speed(true, 1.0) > Critter.mount_speed(false, 1.0) * 1.5, "gallop is much faster than walk")
+	check(Critter.mount_speed(true, 1.0) > 8.5, "riding beats sprinting on foot")
+	check(Critter.mount_speed(true, 0.1) >= Critter.MOUNT_GALLOP * 0.55 - 0.01, "heavy load slows the goat but never to a crawl")
+	check(Critter.hoof_interval(0.0) == 0.0, "no hoofbeats when standing")
+	check(Critter.hoof_interval(13.0) < Critter.hoof_interval(6.5), "hoofbeats are quicker at a gallop")
+	check(Critter.hoof_interval(1.5) <= 0.5, "hoof interval is capped")
+	check(Critter.gait_swing(0.0) == 0.0 and Critter.gait_swing(99.0) <= 0.91, "gait swing clamps")
+	check(Critter.MOUNT_JUMP > 5.0, "goat out-jumps the farmer")
+	var g := GameState.new()
+	g.add_item("plank", 2)
+	g.add_item("rabbit_pelt", 2)
+	var idx := _recipe_index_of("saddle")
+	check(idx >= 0 and g.craft(idx) and g.count("saddle") == 1, "saddle recipe: 2 planks + 2 pelts")
+	check(not g.can_craft(idx), "saddle is a one-off")
+	check(int(GameState.ITEMS["saddle"]["sell"]) == 0, "saddle cannot be sold by accident")
+	g.free()
+	var c := Critter.new()
+	c.kind = Critter.Kind.GOAT
+	root.add_child(c)
+	c.tamed = true
+	c.set_ridden(true)
+	check(c.ridden and absf(c.scale.x - Critter.MOUNT_SCALE) < 0.001, "ridden goat swells to mount size")
+	c.ride_tick(0.1, 13.0, true)
+	check(absf(c._legs[0].rotation.x) > 0.0 or absf(c._legs[2].rotation.x) > 0.0, "legs gallop")
+	c.set_ridden(false)
+	check(not c.ridden and absf(c.scale.x - 1.0) < 0.001 and c._legs[0].rotation.x == 0.0, "dismount resets the goat")
+	c.free()
 	return true

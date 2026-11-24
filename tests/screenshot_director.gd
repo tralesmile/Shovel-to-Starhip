@@ -172,6 +172,30 @@ func _run() -> void:
 		await _shot("94_wood_build.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=91"):
+		Game.time_of_day = 0.55
+		var goat := main.get_node("Goat") as Critter
+		goat.tamed = true
+		Game.add_item("saddle", 1)
+		p.global_position = Vector3(2, Terrain.height_at(2, 2), 2)
+		goat.global_position = p.global_position + Vector3(1.6, 0, 0)
+		p._yaw = 0.0
+		p._pitch = -0.3
+		p._zoom = 6.0
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(10)
+		p.mount_critter(goat)
+		p._model.rotation.y = PI
+		Input.action_press("move_forward")
+		Input.action_press("sprint")
+		await _wait(50)
+		p._yaw = 0.5
+		await _wait(20)
+		await _shot("91_riding.png")
+		Input.action_release("move_forward")
+		Input.action_release("sprint")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=92"):
 		Game.time_of_day = 0.6
 		var rb := main.get_node("Rabbit_0") as Critter

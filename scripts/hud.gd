@@ -281,6 +281,8 @@ func _process(_delta: float) -> void:
 	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
 	if Game.current_tool == GameState.Tool.BUILD and bw != null and player and player.vehicle == null:
 		_prompt.text = InputPrompts.format(InputPrompts.prompt_text(bw.prompt(), InputPrompts.use_pad), InputPrompts.use_pad)
+	elif player and player.mount != null:
+		_prompt.text = InputPrompts.format("[E] Hop off  |  Shift gallop  |  Space jump", InputPrompts.use_pad)
 	elif player and player.target:
 		_prompt.text = InputPrompts.prompt_text(player.target.get_prompt(Game), InputPrompts.use_pad)
 	elif player and player.vehicle == null and player._smash_tool() and player._crate_ahead() != null:
