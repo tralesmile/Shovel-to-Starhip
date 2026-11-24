@@ -15,10 +15,11 @@ const PIECES := {
 	"wood_door": {"name": "Wood Doorway", "size": Vector3(1.96, 2.2, 0.2), "color": Color(0.66, 0.44, 0.27), "style": "doorway"},
 	"wood_table": {"name": "Wood Table", "size": Vector3(1.3, 0.8, 0.9), "color": Color(0.7, 0.48, 0.28), "style": "table"},
 	"wood_chair": {"name": "Wood Chair", "size": Vector3(0.6, 0.95, 0.6), "color": Color(0.76, 0.54, 0.34), "style": "chair"},
+	"wood_bed": {"name": "Wood Bed", "size": Vector3(1.1, 0.6, 1.9), "color": Color(0.7, 0.46, 0.28), "style": "bed"},
 	"lantern": {"name": "Lantern Post", "size": Vector3(0.3, 1.5, 0.3), "color": Color(0.3, 0.3, 0.34), "style": "lantern"},
 	"wood_roof": {"name": "Wood Roof", "size": Vector3(2.3, 0.7, 2.3), "color": Color(0.62, 0.28, 0.22), "style": "roof", "y": 2.2},
 }
-const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "lantern"]
+const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern"]
 
 var pieces := {}   ## cell key -> BuildPiece
 var piece_id := "fence_panel"
@@ -61,7 +62,7 @@ static func key_for(id: String, p: Vector3, r: int) -> String:
 
 ## Pure (tested): furniture lives in its own key space (one per cell, stands on floors).
 static func is_furniture(id: String) -> bool:
-	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern"]
+	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed"]
 
 
 ## Pure (tested): height above the ground a piece sits at (roofs rest on top of 2.2m walls).

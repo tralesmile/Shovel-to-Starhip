@@ -101,6 +101,29 @@ func _ready() -> void:
 				var leg2 := Art.box(Vector3(0.07, 0.42, 0.07), c.darkened(0.2))
 				leg2.position = Vector3(lx2, 0.21, lz2)
 				_mesh.add_child(leg2)
+	elif def["style"] == "bed":
+		var frame := Art.box(Vector3(sz.x, 0.28, sz.z), c)
+		frame.position.y = 0.26
+		_mesh.add_child(frame)
+		var mattress := Art.box(Vector3(sz.x - 0.1, 0.16, sz.z - 0.5), Color(0.92, 0.88, 0.8))
+		mattress.position = Vector3(0, 0.48, 0.12)
+		_mesh.add_child(mattress)
+		var blanket := Art.box(Vector3(sz.x - 0.08, 0.1, 0.9), Color(0.85, 0.35, 0.4))
+		blanket.position = Vector3(0, 0.56, 0.38)
+		_mesh.add_child(blanket)
+		var pillow := Art.box(Vector3(0.7, 0.14, 0.34), Color(1.0, 0.97, 0.92))
+		pillow.position = Vector3(0, 0.6, -0.62)
+		_mesh.add_child(pillow)
+		var head := Art.box(Vector3(sz.x, 0.7, 0.1), c.darkened(0.18))
+		head.position = Vector3(0, 0.5, -sz.z * 0.5 + 0.05)
+		_mesh.add_child(head)
+		for lx3 in [-0.5, 0.5]:
+			var foot := Art.box(Vector3(0.12, 0.2, 0.12), c.darkened(0.25))
+			foot.position = Vector3(lx3, 0.1, sz.z * 0.5 - 0.08)
+			_mesh.add_child(foot)
+		var spot := BedSpot.new()
+		spot.interact_radius = 2.2
+		add_child(spot)
 	elif def["style"] == "lantern":
 		var post := Art.box(Vector3(0.1, 1.2, 0.1), c)
 		post.position.y = 0.6

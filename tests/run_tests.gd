@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1141,7 +1141,7 @@ func test_build_mode() -> bool:
 	check(bw.place("wood_floor", fp, 0, game) and bw.place("wood_wall", fp, 1, game), "floor then wall in the same cell")
 	check(not bw.place("wood_floor", fp, 1, game), "no second floor in a cell")
 	check(bw.demolish(BuildWorld.key_for("wood_floor", fp, 0), game) and game.count("wood_floor") == 1, "demolish floor refunds")
-	check(BuildWorld.PIECE_ORDER.size() == 9 and GameState.ITEM_WEIGHT.has("wood_floor"), "floor/wall registered")
+	check(BuildWorld.PIECE_ORDER.size() == 10 and GameState.ITEM_WEIGHT.has("wood_floor"), "floor/wall registered")
 	# Roofs and doorways (run 8).
 	check(BuildWorld.base_y("wood_roof") == 2.2 and BuildWorld.base_y("wood_wall") == 0.0, "roofs sit on wall tops")
 	check(BuildWorld.key_for("wood_roof", Vector3(2, 0, 4), 0) == BuildWorld.key_for("wood_roof", Vector3(2, 0, 4), 3), "roof ignores rotation")
@@ -1214,3 +1214,36 @@ func test_hunting() -> bool:
 	check(GameState.ITEMS.has("rabbit_pelt") and int(GameState.ITEMS["rabbit_stew"]["sell"]) > int(GameState.ITEMS["rabbit_meat"]["sell"]) * 2, "stew worth more than raw")
 	game.free()
 	return true
+
+
+func test_drop_items() -> bool:
+	var g := GameState.new()
+	check(g.drop_candidate() == "", "nothing droppable at start (seeds only)")
+	g.add_item("gem", 3)
+	g.add_item("stone", 2)
+	g.add_item("wood", 1)
+	check(g.drop_candidate() == "stone", "heaviest total weight drops first (6kg stone)")
+	g.remove_item("stone", 2)
+	check(g.drop_candidate() == "wood", "then wood (2kg) over gems (1.5kg)")
+	g.add_item("wheelbarrow", 1)
+	g.remove_item("wood", 1)
+	g.remove_item("gem", 3)
+	check(g.drop_candidate() == "", "wheelbarrow and seeds are not droppable")
+	check(WoodLog.shadow_for(0.0).x == 1.0 and WoodLog.shadow_for(3.0).x < 0.5, "shadow shrinks with height")
+	check(WoodLog.shadow_for(0.0).y > WoodLog.shadow_for(2.0).y, "shadow fades with height")
+	check(BuildWorld.is_furniture("wood_bed") and BuildWorld.PIECE_ORDER.has("wood_bed"), "bed is furniture")
+	g.add_item("plank", 5)
+	g.add_item("rabbit_pelt", 1)
+	check(g.craft(_recipe_index_of("wood_bed")) and g.count("wood_bed") == 1 and g.count("rabbit_pelt") == 0, "bed recipe uses a pelt blanket")
+	check(WoodLog.toss_dir(0.0).z > 2.0 and absf(WoodLog.toss_dir(0.0).x) < 0.01, "toss goes forward at yaw 0")
+	check(WoodLog.state_for(0.3, -1.0) == "wait" and WoodLog.state_for(0.3, 0.8) == "collect", "dropped item waits then collects")
+	check(WoodLog.drop_color("copper_ingot").a == 1.0 and WoodLog.is_organic("turnip"), "ingot colour, turnip organic")
+	g.free()
+	return true
+
+
+func _recipe_index_of(id: String) -> int:
+	for i in GameState.RECIPES.size():
+		if GameState.RECIPES[i]["id"] == id:
+			return i
+	return -1

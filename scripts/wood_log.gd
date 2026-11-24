@@ -36,8 +36,25 @@ static func wants_chop(id: String, tool: int) -> bool:
 	return id == "wood" and tool == GameState.Tool.AXE
 
 
+## Pure (tested): contact-shadow scale and opacity for a pickup `h` metres above the ground.
+static func shadow_for(h: float) -> Vector2:
+	var t := clampf(h / 3.0, 0.0, 1.0)
+	return Vector2(lerpf(1.0, 0.45, t), lerpf(1.0, 0.25, t))
+
+
+## Pure (tested): where a dropped item lands; a toss ahead of the player, up a bit.
+static func toss_dir(facing_y: float) -> Vector3:
+	return Vector3(sin(facing_y), 0.0, cos(facing_y)) * 2.4
+
+
+var _shadow: MeshInstance3D
+
+
 func _ready() -> void:
 	add_to_group("pickup")
+	_shadow = Critter.blob_shadow(0.3)
+	_shadow.top_level = true
+	add_child(_shadow)
 	mass = 2.0
 	linear_damp = 0.4
 	angular_damp = 1.2
@@ -130,12 +147,15 @@ static func drop_color(id: String) -> Color:
 		"carrot": return Color(1.0, 0.55, 0.1)
 		"copper_ore": return Color(0.85, 0.5, 0.28)
 		"gem": return Color(0.4, 0.9, 1.0)
+		"copper_ingot": return Color(0.95, 0.62, 0.32)
+		"turnip": return Color(0.92, 0.85, 0.95)
+		"tomato": return Color(0.9, 0.2, 0.15)
 	return Color(0.6, 0.6, 0.62)
 
 
 ## Organic drops (meat, pelts, carrots) do not shimmer like ore.
 static func is_organic(id: String) -> bool:
-	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "rabbit_stew"]
+	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "rabbit_stew", "turnip", "tomato"]
 
 
 ## Stone / ore / gem chunk: a small tumbling rock.
@@ -166,6 +186,25 @@ func _build_chunk() -> void:
 		add_child(glow)
 
 
+## Keeps the soft contact shadow glued to the ground below, shrinking and fading as the item flies.
+func _update_shadow() -> void:
+	if _shadow == null:
+		return
+	var q := PhysicsRayQueryParameters3D.create(global_position, global_position + Vector3(0, -6, 0))
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty():
+		_shadow.visible = false
+		return
+	_shadow.visible = true
+	var h: float = global_position.y - (hit["position"] as Vector3).y
+	_shadow.global_position = (hit["position"] as Vector3) + Vector3(0, 0.03, 0)
+	_shadow.global_rotation = Vector3.ZERO
+	var sh := shadow_for(h)
+	_shadow.scale = Vector3(sh.x, 1.0, sh.x)
+	(_shadow.material_override as StandardMaterial3D).albedo_color = Color(1, 1, 1, sh.y)
+
+
 ## Pop out with a small random hop.
 func pop(dir: Vector3 = Vector3.ZERO) -> void:
 	apply_central_impulse((Vector3(randf_range(-1, 1), 0, randf_range(-1, 1)) * 1.6 + dir + Vector3.UP * 4.2) * mass)
@@ -183,6 +222,7 @@ func _physics_process(delta: float) -> void:
 		FX.burst(self, global_position + Vector3(0, 0.05, 0), Color(0.72, 0.64, 0.5), 5, 0.14, 1.4, -1.0, "sphere", 80.0)
 		Sfx.play_on(self, "thud", 0.9 + randf() * 0.3)
 	_prev_vy = linear_velocity.y
+	_update_shadow()
 	var pl := get_tree().get_first_node_in_group("player") as Node3D
 	if pl == null:
 		return

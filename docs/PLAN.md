@@ -57,8 +57,14 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (colour grading per time of day DONE v1 2026-11-19 via FX.grade_for; SSAO/glow/fog already High mode) Lighting: SSAO/SSIL, soft shadows, fog, bloom, colour grading per time of day
 - [ ] Better vegetation (wind sway shader, grass density), water shader with foam (shoreline foam DONE v1 2026-11-23 via baked shore map, since depth-texture reconstruction misbehaved in the compat renderer), particles (dust, leaves, sparks)
 - [ ] (hit-stop DONE v1 on chop + mining; camera shake DONE) Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
-- [ ] (v1 DONE 2026-11-24: 4 crates + 2 barrels as RigidBody3D props around the farm, shoved by walking into them, axe/pickaxe smashes in 2 hits into plank pickups + loot (seeds/wood/ore/gem), hit-stop + shake + wobble; still to do: fences/other props, more prop kinds, drop-from-inventory) Ragdoll or physics props for crates, barrels, fences; destructible small props
+- [ ] (v1 DONE 2026-11-24: 4 crates + 2 barrels as RigidBody3D props around the farm, shoved by walking into them, axe/pickaxe smashes in 2 hits into plank pickups + loot (seeds/wood/ore/gem), hit-stop + shake + wobble; drop-from-inventory DONE v1 2026-11-24 via G; still to do: fences/other props, more prop kinds) Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
+
+### Research backlog 2026-11-24 (run 10; searches returned links only)
+- Weakest part vs comparables: items only flow one way (world -> pockets). Stardew/Core Keeper let you drop things and Core Keeper/Terraria items cast contact shadows so loot reads on the ground; ours floated visually and could not be put back down. APPLIED: G drops the heaviest item as a tossed physics pickup (long arm delay), soft ray-cast contact shadows under every pickup, and a craftable Wood Bed you really sleep in.
+- Stardew drop discussion: https://forums.stardewvalley.net/threads/dropping-items-from-inventory.6060/latest ; manual pickup toggle idea: https://forums.stardewvalley.net/threads/add-option-toggle-to-manually-pick-up-items.10673/latest (idea: auto-magnet off option / pick-up filter)
+- Godot particles docs: https://docs.godotengine.org/en/4.7/tutorials/3d/particles/index.html ; state of particles https://godotengine.org/article/progress-report-state-of-particles/ (idea: GPUParticles3D debris for compat renderer, next graphics item)
+- Next ideas: choose WHICH item to drop (scroll), drop tools-on-ground, car trunk storage, storage chest piece, bed-quality bonus (rest buff).
 
 ### Research backlog 2026-11-23 (run 6; searches returned links only)
 - Weakest part vs comparables: mined/chopped stuff has weight in no way, so hauling is a non-decision (Valheim encumbrance, Core Keeper digging loop). APPLIED: encumbrance + wheelbarrow. Next: push-able physical wheelbarrow prop, drop-on-ground.

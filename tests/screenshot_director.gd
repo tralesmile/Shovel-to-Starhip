@@ -251,6 +251,17 @@ func _run() -> void:
 	bw.place("lantern", Vector3(2, 0, 3), 0, Game)
 	bw.place("wood_wall", Vector3(-2, 0, 1), 0, Game)
 	await _view(p, 0.95, Vector3(-1, 0.1, 7), 0.0, -0.3, 6.0, "09_furniture_night.png")
+	# Bed + dropped items with contact shadows.
+	Game.add_item("wood_bed", 1)
+	bw.place("wood_bed", Vector3(-4, 0, 3), 0, Game)
+	p.global_position = Vector3(-1, 0.1, 6)
+	p._model.rotation.y = PI
+	for it in ["stone", "stone", "gem", "wood", "copper_ore"]:
+		Game.add_item(it, 1)
+	for i in 5:
+		p.drop_item()
+		await _wait(8)
+	await _view(p, 0.5, Vector3(-1, 0.1, 6.5), 0.0, -0.4, 6.5, "10_bed_and_drops.png")
 	# Targeting check: stand south of a plot facing north (-Z) and see what we'd use.
 	p.global_position = Vector3(-1, 0.1, 4.6)
 	p._model.rotation.y = PI     # facing -Z

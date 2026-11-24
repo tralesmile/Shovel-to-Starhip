@@ -181,11 +181,39 @@ func _unhandled_input(event: InputEvent) -> void:
 				_use()
 	elif event.is_action_pressed("interact"):
 		_use()
+	elif event.is_action_pressed("drop_item"):
+		drop_item()
 	elif event.is_action_pressed("pause"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	for i in 6:
 		if event.is_action_pressed("tool_%d" % (i + 1)):
 			Game.set_tool(i)
+
+
+## G: toss the heaviest droppable item from your pockets onto the ground as a physics pickup.
+## It cannot be re-collected for a couple of seconds, so you can actually leave it (e.g. to dodge the carry limit).
+func drop_item() -> bool:
+	if vehicle != null:
+		return false
+	var id := Game.drop_candidate()
+	if id == "":
+		Game.say("Nothing droppable. Your pockets are suspiciously light.")
+		return false
+	if not Game.remove_item(id, 1):
+		return false
+	var p := WoodLog.new()
+	p.item_id = id
+	if id != "wood" and id != "plank":
+		p.chunk_color = WoodLog.drop_color(id)
+	p.game = Game
+	p.age = -1.6   # long arm delay (ARM_TIME 0.7 + 1.6) so it does not magnet straight back
+	get_parent().add_child(p)
+	p.global_position = global_position + Vector3(0, 1.1, 0)
+	var dir := WoodLog.toss_dir(_model.rotation.y if _model != null else 0.0)
+	p.pop(dir)
+	Sfx.play_on(p, "thud", 1.45)
+	Game.say("Dropped %s" % GameState.ITEMS.get(id, {}).get("name", id))
+	return true
 
 
 ## Show/hide the character model (hidden while in a wardrobe or driving).
