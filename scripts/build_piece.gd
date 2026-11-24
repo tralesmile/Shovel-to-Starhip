@@ -76,6 +76,50 @@ func _ready() -> void:
 		var knob := Art.box(Vector3(0.08, 0.08, 0.14), Color(0.95, 0.8, 0.3))
 		knob.position = Vector3(0.78, 1.0, 0)
 		hinge.add_child(knob)
+	elif def["style"] == "table":
+		var top := Art.box(Vector3(sz.x, 0.1, sz.z), c.lightened(0.08))
+		top.position.y = sz.y - 0.05
+		_mesh.add_child(top)
+		for lx in [-0.55, 0.55]:
+			for lz in [-0.35, 0.35]:
+				var leg := Art.box(Vector3(0.1, sz.y - 0.1, 0.1), c.darkened(0.2))
+				leg.position = Vector3(lx, (sz.y - 0.1) * 0.5, lz)
+				_mesh.add_child(leg)
+		# A small pie, because a table with nothing on it is just a sad plank.
+		var pie := Art.box(Vector3(0.24, 0.07, 0.24), Color(0.9, 0.7, 0.35))
+		pie.position = Vector3(0.25, sz.y + 0.035, 0.05)
+		_mesh.add_child(pie)
+	elif def["style"] == "chair":
+		var seat := Art.box(Vector3(0.55, 0.08, 0.55), c)
+		seat.position.y = 0.45
+		_mesh.add_child(seat)
+		var back := Art.box(Vector3(0.55, 0.5, 0.07), c.darkened(0.12))
+		back.position = Vector3(0, 0.74, -0.24)
+		_mesh.add_child(back)
+		for lx2 in [-0.23, 0.23]:
+			for lz2 in [-0.23, 0.23]:
+				var leg2 := Art.box(Vector3(0.07, 0.42, 0.07), c.darkened(0.2))
+				leg2.position = Vector3(lx2, 0.21, lz2)
+				_mesh.add_child(leg2)
+	elif def["style"] == "lantern":
+		var post := Art.box(Vector3(0.1, 1.2, 0.1), c)
+		post.position.y = 0.6
+		_mesh.add_child(post)
+		var cage := Art.box(Vector3(0.3, 0.3, 0.3), Color(1.0, 0.8, 0.4))
+		cage.material_override = Art.mat(Color(1.0, 0.8, 0.4), true)
+		cage.position.y = 1.35
+		_mesh.add_child(cage)
+		var cap := Art.box(Vector3(0.38, 0.07, 0.38), c)
+		cap.position.y = 1.54
+		_mesh.add_child(cap)
+		var lt := OmniLight3D.new()
+		lt.light_color = Color(1.0, 0.78, 0.45)
+		lt.omni_range = 7.0
+		lt.light_energy = 0.0
+		lt.visible = false
+		lt.position.y = 1.35
+		lt.add_to_group("lantern")
+		_mesh.add_child(lt)
 	elif def["style"] == "roof":
 		# Gable: two tilted slabs meeting at a ridge, shingle rows, gable cap hides the seam.
 		for side in [-1, 1]:

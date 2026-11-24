@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1141,7 +1141,7 @@ func test_build_mode() -> bool:
 	check(bw.place("wood_floor", fp, 0, game) and bw.place("wood_wall", fp, 1, game), "floor then wall in the same cell")
 	check(not bw.place("wood_floor", fp, 1, game), "no second floor in a cell")
 	check(bw.demolish(BuildWorld.key_for("wood_floor", fp, 0), game) and game.count("wood_floor") == 1, "demolish floor refunds")
-	check(BuildWorld.PIECE_ORDER.size() == 6 and GameState.ITEM_WEIGHT.has("wood_floor"), "floor/wall registered")
+	check(BuildWorld.PIECE_ORDER.size() == 9 and GameState.ITEM_WEIGHT.has("wood_floor"), "floor/wall registered")
 	# Roofs and doorways (run 8).
 	check(BuildWorld.base_y("wood_roof") == 2.2 and BuildWorld.base_y("wood_wall") == 0.0, "roofs sit on wall tops")
 	check(BuildWorld.key_for("wood_roof", Vector3(2, 0, 4), 0) == BuildWorld.key_for("wood_roof", Vector3(2, 0, 4), 3), "roof ignores rotation")
@@ -1174,3 +1174,23 @@ func _recipe_index(id: String) -> int:
 		if GameState.RECIPES[i]["id"] == id:
 			return i
 	return -1
+
+
+func test_props_furniture() -> bool:
+	check(PropCrate.loot_for(0.1).is_empty() and PropCrate.loot_for(0.99)[0]["item"] == "gem", "crate loot table ends")
+	check(PropCrate.loot_for(0.5)[0]["item"] == "turnip_seed" and PropCrate.loot_for(0.7)[0]["item"] == "wood", "crate loot mid rolls")
+	check(PropCrate.planks_for("crate") == 3 and PropCrate.planks_for("barrel") == 2, "planks per prop")
+	check(PropCrate.push_strength(6.0, 4.0) > 0.0 and PropCrate.push_strength(6.0, 99.0) <= PropCrate.push_strength(6.0, 8.0), "push strength capped")
+	check(PropCrate.push_strength(1.0, 4.0) > PropCrate.push_strength(20.0, 4.0), "lighter props shove easier")
+	check(BuildWorld.is_furniture("wood_table") and BuildWorld.is_furniture("lantern") and not BuildWorld.is_furniture("wood_wall"), "furniture detection")
+	var fp := Vector3(6, 0, 6)
+	check(BuildWorld.key_for("wood_chair", fp, 0) == BuildWorld.key_for("wood_chair", fp, 3), "furniture ignores rotation")
+	check(BuildWorld.key_for("wood_table", fp, 0) != BuildWorld.key_for("wood_floor", fp, 0), "furniture stands on floor cell")
+	var game := GameState.new()
+	game.add_item("plank", 10)
+	game.add_item("copper_ingot", 1)
+	game.add_item("gem", 1)
+	check(game.craft(_recipe_index("wood_table")) and game.count("wood_table") == 1, "table recipe")
+	check(game.craft(_recipe_index("wood_chair")) and game.craft(_recipe_index("lantern")), "chair + lantern recipes")
+	game.free()
+	return true

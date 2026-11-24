@@ -39,6 +39,7 @@ func _ready() -> void:
 	_build_police_car()
 	_build_trees()
 	_build_rocks()
+	_build_crates()
 	add_child(BuildWorld.new())
 	_build_road_and_signs()
 	_build_interiors()
@@ -190,6 +191,9 @@ func _update_daylight() -> void:
 		l.visible = dark > 0.3
 		l.light_energy = 4.5 * dark
 	_lamp_mat.set_shader_parameter("emission_energy", 2.5 * dark)
+	for lt in get_tree().get_nodes_in_group("lantern"):
+		lt.visible = dark > 0.3
+		lt.light_energy = 3.2 * dark
 	Toon.set_night(dark)
 	for c in get_tree().get_nodes_in_group("car"):
 		if c.has_method("set_dark"):
@@ -570,6 +574,23 @@ func _build_rocks() -> void:
 		r.position = ROCK_SPOTS[i]
 		r.position.y = Terrain.height_at(r.position.x, r.position.z)
 		rocks.add_child(r)
+
+
+const CRATE_SPOTS := [Vector3(4, 0, -6), Vector3(5.2, 0, -6.4), Vector3(-6, 0, 9), Vector3(11, 0, 4), Vector3(-13, 0, -4), Vector3(2.5, 0, 12)]
+
+
+## Shove-able, smashable props scattered around the farm (physics fun + plank source).
+func _build_crates() -> void:
+	var props := Node3D.new()
+	props.name = "Props"
+	add_child(props)
+	for i in CRATE_SPOTS.size():
+		var c := PropCrate.new()
+		c.name = "Crate_%02d" % i
+		c.kind = "barrel" if i % 3 == 2 else "crate"
+		c.game = Game
+		props.add_child(c)
+		c.position = CRATE_SPOTS[i] + Vector3(0, Terrain.height_at(CRATE_SPOTS[i].x, CRATE_SPOTS[i].z) + 0.05, 0)
 
 
 func _build_trees() -> void:

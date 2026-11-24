@@ -46,7 +46,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] Better car physics (suspension, drifting, damage), boat, bike
 ### Make things (creative core)
 - [ ] (v1 DONE 2026-11-23: Workbench station by the sell bin, 5 data-driven recipes in GameState.RECIPES, E crafts first affordable; Copper Pickaxe upgrade recipe DONE (2 ingots + 2 planks, one-off, rocks break a hit sooner); Copper Axe DONE v1 2026-11-23 (trees fall in 2 hits); ore/gem chunks glow + sparkle DONE; still to do: recipe picker UI, furniture recipes, blueprint unlocks, use fence panels/rocket plates) Workbench + crafting recipes (recipe picker DONE v1 2026-11-23: [Q]/Back cycles recipes, prompt shows what is missing) (tools, furniture, fences), blueprint unlocks
-- [ ] (v1 DONE 2026-11-23: Builder tool [6], translucent pulsing ghost on a 2m grid (green ok / red blocked / amber = demolish), place with pop-in squash + dust, Q rotates, F switches piece, full-refund demolish, fence panel + stone wall, saved in GameState.built; Wood Floor + Wood Wall pieces DONE v1 2026-11-23 (plank-grain look, recipes 3/4 planks, floor in its own key space so walls stand on floor cells); Wood Doorway + gable Wood Roof DONE v1 2026-11-24 (roof key space, rests on 2.2m walls, doorway = walkable gap with ajar door leaf, recipes 4 planks+1 ingot / 5 planks); still to do: snap to neighbours, wall height stacking, door that opens/closes, structural look) Build mode: place walls/floors/roofs on a grid, build your own house, decorate; snap, rotate, demolish refund
+- [ ] (v1 DONE 2026-11-23: Builder tool [6], translucent pulsing ghost on a 2m grid (green ok / red blocked / amber = demolish), place with pop-in squash + dust, Q rotates, F switches piece, full-refund demolish, fence panel + stone wall, saved in GameState.built; Wood Floor + Wood Wall pieces DONE v1 2026-11-23 (plank-grain look, recipes 3/4 planks, floor in its own key space so walls stand on floor cells); Furniture DONE v1 2026-11-24 (Wood Table with pie, Wood Chair, Lantern Post that glows at dusk; own key space, stand on floors); Wood Doorway + gable Wood Roof DONE v1 2026-11-24 (roof key space, rests on 2.2m walls, doorway = walkable gap with ajar door leaf, recipes 4 planks+1 ingot / 5 planks); still to do: snap to neighbours, wall height stacking, door that opens/closes, structural look) Build mode: place walls/floors/roofs on a grid, build your own house, decorate; snap, rotate, demolish refund
 - [ ] Vehicle builder: attach parts (wheels, engine, body, thrusters) to make cars -> boats -> the starship (ties to the rocket goal)
 - [ ] Tool upgrades and invention bench (combine parts into funny gadgets)
 ### World and story
@@ -57,13 +57,19 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (colour grading per time of day DONE v1 2026-11-19 via FX.grade_for; SSAO/glow/fog already High mode) Lighting: SSAO/SSIL, soft shadows, fog, bloom, colour grading per time of day
 - [ ] Better vegetation (wind sway shader, grass density), water shader with foam (shoreline foam DONE v1 2026-11-23 via baked shore map, since depth-texture reconstruction misbehaved in the compat renderer), particles (dust, leaves, sparks)
 - [ ] (hit-stop DONE v1 on chop + mining; camera shake DONE) Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
-- [ ] Ragdoll or physics props for crates, barrels, fences; destructible small props
+- [ ] (v1 DONE 2026-11-24: 4 crates + 2 barrels as RigidBody3D props around the farm, shoved by walking into them, axe/pickaxe smashes in 2 hits into plank pickups + loot (seeds/wood/ore/gem), hit-stop + shake + wobble; still to do: fences/other props, more prop kinds, drop-from-inventory) Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
 
 ### Research backlog 2026-11-23 (run 6; searches returned links only)
 - Weakest part vs comparables: mined/chopped stuff has weight in no way, so hauling is a non-decision (Valheim encumbrance, Core Keeper digging loop). APPLIED: encumbrance + wheelbarrow. Next: push-able physical wheelbarrow prop, drop-on-ground.
 - Core Keeper/Terraria digging juice: https://www.thegamer.com/core-keeper-and-the-endless-craving-for-digging-holes/ (idea: tunnelling toward ore, ore veins visible through walls)
 - Godot RigidBody carry/hold physics: https://forum.godotengine.org/t/hl2-amnesia-style-physics-object-manipulation/133886 (idea: grab + carry a crate/log in hands with joint/force, not teleport)
+
+### Research backlog 2026-11-24 (run 8; searches returned links only)
+- Weakest part vs comparables: the world is mostly static, so only trees/rocks react; Valheim/Core Keeper/Terraria fill spaces with breakable, shove-able props and furniture that makes a base feel lived in. APPLIED: physics crates/barrels (push + smash into planks and loot) and furniture build pieces (table, chair, night-lit lantern post).
+- Godot RigidBody tips: https://docs.godotengine.org/en/4.6/tutorials/physics/rigid_body.html ; chopping/breaking trees thread https://forum.godotengine.org/t/chopping-breaking-trees-system/46356
+- Valheim snapping update: https://www.pcgamesn.com/valheim/building-snapping-update ; PC Gamer on crafting-game crafting friction: https://pcgamer.com/games/survival-crafting/somehow-the-worst-part-of-crafting-games-is-the-crafting (idea: keep recipe picker quick, show what is missing)
+- Next ideas: drop items on the ground, push-able wheelbarrow, vehicle builder parts as crates found/smashed, sleep on a placed bed.
 
 ### Research backlog 2026-11-23 (run 7; searches returned links only)
 - Weakest part vs comparables: building had only fences/stone, so no one could make a *house* (Valheim's floor+wall+roof snap kit is the core hook). APPLIED: wood floor + plank wall. Next: roof pieces, door piece, snap to neighbouring pieces' edges, wall stacking.

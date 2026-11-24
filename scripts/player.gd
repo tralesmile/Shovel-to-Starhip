@@ -237,6 +237,18 @@ func _use() -> void:
 			if a != "":
 				play_action(a, 0.45)
 		return
+	if target == null and _action_time <= 0.0 and _smash_tool():
+		var cr := _crate_ahead()
+		if cr != null:
+			var tc := cr.global_position - global_position
+			_model.rotation.y = atan2(tc.x, tc.z)
+			play_action("1H_Melee_Attack_Chop", 0.55)
+			cr.game = Game
+			if cr.smash_hit():
+				Game.shake.emit(0.3)
+			else:
+				Game.shake.emit(0.12)
+			return
 	if target == null and Game.current_tool == GameState.Tool.AXE and _action_time <= 0.0:
 		var lg := _log_ahead()
 		if lg != null:
@@ -266,6 +278,40 @@ func _use() -> void:
 	_model.rotation.y = atan2(to.x, to.z)
 	play_action(anim, 0.55)
 	target.interact(Game)
+
+
+func _smash_tool() -> bool:
+	return Game.current_tool == GameState.Tool.AXE or Game.current_tool == GameState.Tool.PICKAXE
+
+
+## Shove physics props you walk into (crates, barrels, loose logs).
+func _push_bodies() -> void:
+	var spd := Vector2(velocity.x, velocity.z).length()
+	if spd < 0.5:
+		return
+	for i in get_slide_collision_count():
+		var rb := get_slide_collision(i).get_collider() as RigidBody3D
+		if rb == null:
+			continue
+		var dir := Vector3(velocity.x, 0, velocity.z).normalized()
+		rb.apply_central_impulse(dir * PropCrate.push_strength(rb.mass, spd) * rb.mass * 0.35)
+
+
+## Nearest smashable crate/barrel in front of you.
+func _crate_ahead() -> PropCrate:
+	var forward := Vector3(sin(_model.rotation.y), 0, cos(_model.rotation.y))
+	var probe := global_position + forward * 0.9
+	var best: PropCrate = null
+	var best_d := 1.5
+	for n in get_tree().get_nodes_in_group("smashable"):
+		var c := n as PropCrate
+		if c == null:
+			continue
+		var d := Vector2(probe.x - c.global_position.x, probe.z - c.global_position.z).length()
+		if d < best_d:
+			best = c
+			best_d = d
+	return best
 
 
 ## Nearest loose log in front of you (axe chops it into planks).
@@ -344,6 +390,7 @@ func _physics_process(delta: float) -> void:
 		velocity.z *= 0.2
 	_last_vy = velocity.y
 	move_and_slide()
+	_push_bodies()
 	if is_on_floor() and not _was_floor and _last_vy < -3.0:
 		_squash = FX.landing_squash(-_last_vy)
 		FX.burst(self, global_position + Vector3(0, 0.05, 0), Color(0.78, 0.7, 0.55), 10, 0.14, 2.2, -1.0, "sphere", 80.0)

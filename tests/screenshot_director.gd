@@ -217,6 +217,17 @@ func _run() -> void:
 	await _view(p, 0.40, Vector3(-17, 0.1, 9), 1.9, -0.42, 9.0, "06_pond_animals.png")
 	await _view(p, 0.88, Vector3(0, 0.1, 7), 0.0, -0.55, 9.0, "07_night_farm.png")
 	await _view(p, 0.93, Vector3(-4, 0.1, 13), PI, -0.25, 11.0, "08_night_shops.png")
+	# Furniture room + crates at night (lantern glow).
+	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+	for id in ["wood_floor", "wood_table", "wood_chair", "lantern", "wood_wall"]:
+		Game.add_item(id, 3)
+	for cx in [0, 2]:
+		bw.place("wood_floor", Vector3(-2 + cx, 0, 3), 0, Game)
+	bw.place("wood_table", Vector3(-2, 0, 3), 0, Game)
+	bw.place("wood_chair", Vector3(0, 0, 3), 0, Game)
+	bw.place("lantern", Vector3(2, 0, 3), 0, Game)
+	bw.place("wood_wall", Vector3(-2, 0, 1), 0, Game)
+	await _view(p, 0.95, Vector3(-1, 0.1, 7), 0.0, -0.3, 6.0, "09_furniture_night.png")
 	# Targeting check: stand south of a plot facing north (-Z) and see what we'd use.
 	p.global_position = Vector3(-1, 0.1, 4.6)
 	p._model.rotation.y = PI     # facing -Z
