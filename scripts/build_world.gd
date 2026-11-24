@@ -12,8 +12,10 @@ const PIECES := {
 	"stone_wall": {"name": "Stone Wall", "size": Vector3(1.95, 1.3, 0.4), "color": Color(0.6, 0.61, 0.66), "style": "block"},
 	"wood_floor": {"name": "Wood Floor", "size": Vector3(1.96, 0.14, 1.96), "color": Color(0.8, 0.6, 0.38), "style": "floor"},
 	"wood_wall": {"name": "Wood Wall", "size": Vector3(1.96, 2.2, 0.2), "color": Color(0.74, 0.52, 0.32), "style": "plank_wall"},
+	"wood_door": {"name": "Wood Doorway", "size": Vector3(1.96, 2.2, 0.2), "color": Color(0.66, 0.44, 0.27), "style": "doorway"},
+	"wood_roof": {"name": "Wood Roof", "size": Vector3(2.3, 0.7, 2.3), "color": Color(0.62, 0.28, 0.22), "style": "roof", "y": 2.2},
 }
-const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall"]
+const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof"]
 
 var pieces := {}   ## cell key -> BuildPiece
 var piece_id := "fence_panel"
@@ -47,7 +49,14 @@ static func cell_key(p: Vector3, r: int) -> String:
 static func key_for(id: String, p: Vector3, r: int) -> String:
 	if PIECES.has(id) and PIECES[id]["style"] == "floor":
 		return "f,%d,%d" % [int(roundf(p.x / GRID)), int(roundf(p.z / GRID))]
+	if PIECES.has(id) and PIECES[id]["style"] == "roof":
+		return "r,%d,%d" % [int(roundf(p.x / GRID)), int(roundf(p.z / GRID))]
 	return cell_key(p, r)
+
+
+## Pure (tested): height above the ground a piece sits at (roofs rest on top of 2.2m walls).
+static func base_y(id: String) -> float:
+	return float(PIECES[id].get("y", 0.0)) if PIECES.has(id) else 0.0
 
 
 static func yaw_of(r: int) -> float:
@@ -115,7 +124,7 @@ func _rebuild_ghost() -> void:
 	bm.size = sz
 	bm.material = _ghost_mat
 	mi.mesh = bm
-	mi.position.y = sz.y * 0.5
+	mi.position.y = sz.y * 0.5 + base_y(piece_id)
 	_ghost.add_child(mi)
 
 
@@ -206,7 +215,7 @@ func _update_ghost(g: GameState, pl: Node3D) -> void:
 
 ## Physics check: nothing solid (trees, rocks, buildings) where the piece would stand.
 func _space_free(p: Vector3) -> bool:
-	if not is_inside_tree():
+	if not is_inside_tree() or PIECES[piece_id]["style"] == "roof":
 		return true
 	var space := get_world_3d().direct_space_state
 	var q := PhysicsShapeQueryParameters3D.new()

@@ -47,6 +47,8 @@ const ITEMS := {
 	"stone_wall": {"name": "Stone Wall", "buy": 0, "sell": 20},
 	"wood_floor": {"name": "Wood Floor", "buy": 0, "sell": 12},
 	"wood_wall": {"name": "Wood Wall", "buy": 0, "sell": 16},
+	"wood_door": {"name": "Wood Doorway", "buy": 0, "sell": 20},
+	"wood_roof": {"name": "Wood Roof", "buy": 0, "sell": 18},
 	"rocket_plate": {"name": "Rocket Hull Plate", "buy": 0, "sell": 0},
 	"copper_pickaxe": {"name": "Copper Pickaxe", "buy": 0, "sell": 0},
 	"copper_axe": {"name": "Copper Axe", "buy": 0, "sell": 0},
@@ -78,11 +80,13 @@ const RECIPES := [
 	{"id": "wheelbarrow", "name": "Wheelbarrow", "in": {"plank": 4, "copper_ingot": 1}, "out": {"wheelbarrow": 1}, "once": true},
 	{"id": "wood_floor", "name": "Wood Floor", "in": {"plank": 3}, "out": {"wood_floor": 1}},
 	{"id": "wood_wall", "name": "Wood Wall", "in": {"plank": 4}, "out": {"wood_wall": 1}},
+	{"id": "wood_door", "name": "Wood Doorway", "in": {"plank": 4, "copper_ingot": 1}, "out": {"wood_door": 1}},
+	{"id": "wood_roof", "name": "Wood Roof", "in": {"plank": 5}, "out": {"wood_roof": 1}},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
-	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
+	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
 	"copper_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow

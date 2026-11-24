@@ -283,6 +283,8 @@ func _process(_delta: float) -> void:
 		_prompt.text = InputPrompts.format(InputPrompts.prompt_text(bw.prompt(), InputPrompts.use_pad), InputPrompts.use_pad)
 	elif player and player.target:
 		_prompt.text = InputPrompts.prompt_text(player.target.get_prompt(Game), InputPrompts.use_pad)
+	elif player and player.vehicle == null and Game.current_tool == GameState.Tool.AXE and player._log_ahead() != null:
+		_prompt.text = InputPrompts.format("[E] Split log into planks", InputPrompts.use_pad)
 	else:
 		_prompt.text = ""
 

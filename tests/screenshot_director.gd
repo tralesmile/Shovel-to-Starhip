@@ -133,6 +133,11 @@ func _run() -> void:
 		bw4.place("wood_wall", Vector3(2, 0, -9), 0, Game)
 		bw4.place("wood_wall", Vector3(-1, 0, -8), 1, Game)
 		bw4.place("wood_wall", Vector3(-1, 0, -6), 1, Game)
+		Game.add_item("wood_door", 2)
+		Game.add_item("wood_roof", 4)
+		bw4.place("wood_door", Vector3(2, 0, -7), 0, Game)
+		bw4.place("wood_roof", Vector3(0, 0, -8), 0, Game)
+		bw4.place("wood_roof", Vector3(2, 0, -8), 0, Game)
 		var lg4 := WoodLog.new()
 		lg4.game = Game
 		main.add_child(lg4)
