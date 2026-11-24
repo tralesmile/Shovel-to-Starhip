@@ -47,6 +47,9 @@ const ITEMS := {
 	"egg": {"name": "Happy Egg", "buy": 0, "sell": 15},
 	"campfire": {"name": "Campfire", "buy": 0, "sell": 0},
 	"saddle": {"name": "Goat Saddle", "buy": 0, "sell": 0},
+	"turbo_engine": {"name": "Turbo Engine", "buy": 0, "sell": 0},
+	"offroad_wheels": {"name": "Big Wheels", "buy": 0, "sell": 0},
+	"rocket_booster": {"name": "Rocket Booster", "buy": 0, "sell": 0},
 	# Crafted at the workbench.
 	"plank": {"name": "Plank", "buy": 0, "sell": 4},
 	"copper_ingot": {"name": "Copper Ingot", "buy": 0, "sell": 50},
@@ -100,12 +103,15 @@ const RECIPES := [
 	{"id": "lantern", "name": "Lantern Post", "in": {"plank": 1, "copper_ingot": 1, "gem": 1}, "out": {"lantern": 1}},
 	{"id": "campfire", "name": "Campfire", "in": {"stone": 3, "wood": 2}, "out": {"campfire": 1}},
 	{"id": "rabbit_stew", "name": "Rabbit Stew", "in": {"rabbit_meat": 2, "carrot": 1}, "out": {"rabbit_stew": 1}},
-	{"id": "saddle", "name": "Goat Saddle", "in": {"plank": 2, "rabbit_pelt": 2}, "out": {"saddle": 1}, "once": true}
+	{"id": "saddle", "name": "Goat Saddle", "in": {"plank": 2, "rabbit_pelt": 2}, "out": {"saddle": 1}, "once": true},
+	{"id": "turbo_engine", "name": "Turbo Engine", "in": {"copper_ingot": 3, "plank": 2}, "out": {"turbo_engine": 1}, "once": true},
+	{"id": "offroad_wheels", "name": "Big Wheels", "in": {"plank": 4, "rabbit_pelt": 1, "copper_ingot": 1}, "out": {"offroad_wheels": 1}, "once": true},
+	{"id": "rocket_booster", "name": "Rocket Booster", "in": {"rocket_plate": 1, "copper_ingot": 2, "gem": 1}, "out": {"rocket_booster": 1}, "once": true},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
-	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "campfire": 4.0, "saddle": 1.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
+	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "campfire": 4.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
 	"copper_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
@@ -139,6 +145,7 @@ var fence_sold_today: int = 0   ## items fenced today (resets each morning)
 var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the alarm
 
 var car_owned: bool = false
+var car_parts: Array = []   ## installed Car.PARTS ids
 var car_pos: Array = [8.0, 0.0, 14.0, 1.5708]   ## x, y, z, heading of the parked car
 
 var reputation: float = 0.0     ## -MAX_REP (Outlaw) .. +MAX_REP (Lawful)
@@ -556,6 +563,7 @@ func buy_car() -> bool:
 	if car_owned or not spend(Car.PRICE):
 		return false
 	car_owned = true
+	car_parts = []
 	car_pos = [8.0, 0.0, 14.0, 1.5708]
 	return true
 
@@ -580,6 +588,7 @@ func to_dict() -> Dictionary:
 		"fence_sold_today": fence_sold_today,
 		"reputation": reputation,
 		"car_owned": car_owned,
+		"car_parts": car_parts,
 		"car_pos": car_pos,
 		"world": world,
 	}
@@ -606,6 +615,7 @@ func from_dict(data: Dictionary) -> void:
 	reputation = float(data.get("reputation", 0.0))
 	fence_sold_today = int(data.get("fence_sold_today", 0))
 	car_owned = bool(data.get("car_owned", false))
+	car_parts = data.get("car_parts", [])
 	car_pos = data.get("car_pos", [8.0, 0.0, 14.0, 1.5708])
 	var world: Dictionary = data.get("world", {})
 	for node in get_tree().get_nodes_in_group("saveable"):

@@ -20,21 +20,57 @@ var driven: bool = false
 var seat: CarSeat
 var _lamps: Array[SpotLight3D] = []
 var _dust: CPUParticles3D
+var parts: Array = []            ## installed upgrade ids (see PARTS)
+var boost: float = 1.0           ## rocket booster fuel 0..1
+var boosting: bool = false
+var _flame: CPUParticles3D
+var _part_nodes: Dictionary = {}
+
+## Vehicle builder v1: bolt-on parts crafted at the workbench (Trailmakers-style modular upgrades).
+const PARTS := {
+	"turbo_engine": {"name": "Turbo Engine", "max_speed": 1.3, "accel": 1.4},
+	"offroad_wheels": {"name": "Big Wheels", "steer": 1.25, "bump_add": 0.25},
+	"rocket_booster": {"name": "Rocket Booster", "boost": 1.5},
+}
+const BOOST_DRAIN := 0.4
+const BOOST_RECHARGE := 0.18
+
+
+## Combined handling multipliers for a set of installed parts. Pure.
+static func stats_for(installed: Array) -> Dictionary:
+	var st := {"max_speed": MAX_SPEED, "accel": ACCEL, "steer": 1.0, "bump": 0.2, "boost": 1.0}
+	for id in installed:
+		var d: Dictionary = PARTS.get(id, {})
+		st["max_speed"] *= float(d.get("max_speed", 1.0))
+		st["accel"] *= float(d.get("accel", 1.0))
+		st["steer"] *= float(d.get("steer", 1.0))
+		st["bump"] += float(d.get("bump_add", 0.0))
+		st["boost"] *= float(d.get("boost", 1.0))
+	return st
+
+
+## Boost fuel step: drains while boosting, refills otherwise. Returns {fuel, active}.
+static func boost_step(fuel: float, want: bool, has_booster: bool, delta: float) -> Dictionary:
+	if not has_booster:
+		return {"fuel": fuel, "active": false}
+	if want and fuel > 0.02:
+		return {"fuel": maxf(0.0, fuel - BOOST_DRAIN * delta), "active": true}
+	return {"fuel": minf(1.0, fuel + BOOST_RECHARGE * delta), "active": false}
 
 
 ## Next forward speed given throttle (-1 reverse .. 1 forward) and handbrake.
-static func step_speed(current: float, throttle: float, handbrake: bool, delta: float) -> float:
+static func step_speed(current: float, throttle: float, handbrake: bool, delta: float, top: float = MAX_SPEED, accel: float = ACCEL) -> float:
 	var s := current
 	if handbrake:
 		s = move_toward(s, 0.0, BRAKE * delta)
 	elif throttle > 0.01:
 		# Pressing forward while rolling backwards brakes first.
-		s += (BRAKE if s < 0.0 else ACCEL * (1.0 - clampf(s / MAX_SPEED, 0.0, 1.0))) * throttle * delta
+		s += (BRAKE if s < 0.0 else accel * (1.0 - clampf(s / top, 0.0, 1.0))) * throttle * delta
 	elif throttle < -0.01:
 		s += (-BRAKE if s > 0.0 else -ACCEL) * -throttle * delta
 	else:
 		s = move_toward(s, 0.0, DRAG * delta)
-	return clampf(s, -MAX_REVERSE, MAX_SPEED)
+	return clampf(s, -MAX_REVERSE, maxf(top, MAX_SPEED))
 
 
 ## Tyre dust puffs when the handbrake is dragged at real speed, or when the car
@@ -128,11 +164,107 @@ func setup() -> void:
 	add_to_group("car")
 
 
-func drive(delta: float, throttle: float, steer_input: float, handbrake: bool) -> void:
-	speed = step_speed(speed, throttle, handbrake, delta)
+func has_part(id: String) -> bool:
+	return id in parts
+
+
+func install_part(id: String) -> bool:
+	if not PARTS.has(id) or id in parts:
+		return false
+	parts.append(id)
+	_show_part(id)
+	return true
+
+
+func set_parts(list: Array) -> void:
+	for id in list:
+		install_part(str(id))
+
+
+func _show_part(id: String) -> void:
+	if _part_nodes.has(id):
+		return
+	var root := Node3D.new()
+	var mat := StandardMaterial3D.new()
+	match id:
+		"turbo_engine":
+			mat.albedo_color = Color(0.75, 0.2, 0.15)
+			var b := MeshInstance3D.new()
+			var bm := BoxMesh.new(); bm.size = Vector3(0.9, 0.3, 0.8)
+			b.mesh = bm; b.material_override = mat; b.position = Vector3(0, 1.25, 1.3)
+			root.add_child(b)
+			for x in [-0.25, 0.25]:
+				var pipe := MeshInstance3D.new()
+				var cm := CylinderMesh.new(); cm.top_radius = 0.1; cm.bottom_radius = 0.1; cm.height = 0.5
+				pipe.mesh = cm; pipe.material_override = mat
+				pipe.position = Vector3(x, 1.5, 1.3)
+				root.add_child(pipe)
+		"offroad_wheels":
+			mat.albedo_color = Color(0.1, 0.1, 0.1)
+			for x in [-1.05, 1.05]:
+				for z in [-1.3, 1.3]:
+					var w := MeshInstance3D.new()
+					var cm := CylinderMesh.new(); cm.top_radius = 0.55; cm.bottom_radius = 0.55; cm.height = 0.4
+					w.mesh = cm; w.material_override = mat
+					w.rotation.z = PI / 2.0
+					w.position = Vector3(x, 0.55, z)
+					root.add_child(w)
+		"rocket_booster":
+			mat.albedo_color = Color(0.7, 0.72, 0.8)
+			mat.metallic = 0.6
+			var n := MeshInstance3D.new()
+			var cm := CylinderMesh.new(); cm.top_radius = 0.3; cm.bottom_radius = 0.45; cm.height = 0.9
+			n.mesh = cm; n.material_override = mat
+			n.rotation.x = -PI / 2.0
+			n.position = Vector3(0, 0.9, -2.3)
+			root.add_child(n)
+			_add_flame()
+	add_child(root)
+	_part_nodes[id] = root
+
+
+func _add_flame() -> void:
+	_flame = CPUParticles3D.new()
+	_flame.position = Vector3(0, 0.9, -2.9)
+	_flame.amount = 30
+	_flame.lifetime = 0.45
+	_flame.emitting = false
+	_flame.direction = Vector3(0, 0, -1)
+	_flame.spread = 12.0
+	_flame.initial_velocity_min = 5.0
+	_flame.initial_velocity_max = 8.0
+	_flame.gravity = Vector3.ZERO
+	var m := SphereMesh.new()
+	m.radius = 0.2
+	m.height = 0.4
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.6, 0.15)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.45, 0.1)
+	mat.emission_energy_multiplier = 2.5
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.material = mat
+	_flame.mesh = m
+	var curve := Curve.new()
+	curve.add_point(Vector2(0, 1))
+	curve.add_point(Vector2(1, 0))
+	_flame.scale_amount_curve = curve
+	add_child(_flame)
+
+
+func drive(delta: float, throttle: float, steer_input: float, handbrake: bool, want_boost: bool = false) -> void:
+	var st := stats_for(parts)
+	var bs := boost_step(boost, want_boost and throttle > 0.0, has_part("rocket_booster"), delta)
+	boost = bs["fuel"]
+	boosting = bs["active"]
+	if _flame:
+		_flame.emitting = boosting
+	var top: float = st["max_speed"] * (st["boost"] if boosting else 1.0)
+	var acc: float = st["accel"] * (2.0 if boosting else 1.0)
+	speed = step_speed(speed, throttle, handbrake, delta, top, acc)
 	if _dust:
 		_dust.emitting = dust_amount(speed, handbrake, steer_input) > 0.0
-	heading += turn_delta(speed, steer_input, delta)
+	heading += turn_delta(speed, steer_input, delta) * st["steer"]
 	rotation.y = heading
 	var fwd := Vector3(sin(heading), 0, cos(heading))
 	velocity = fwd * speed
@@ -143,7 +275,7 @@ func drive(delta: float, throttle: float, steer_input: float, handbrake: bool) -
 	move_and_slide()
 	# Bumping something stops us dead (comedy thud).
 	if get_slide_collision_count() > 0 and absf(speed) > 3.0:
-		speed *= 0.2
+		speed *= st["bump"]
 		bumped.emit()
 
 
@@ -157,9 +289,26 @@ class CarSeat extends Interactable:
 	var car: Car
 
 	func get_prompt(_game: GameState) -> String:
-		return "[E] Hop in and drive (WASD, Space = handbrake)"
+		var np := next_part(_game)
+		if np != "":
+			return "[E] Bolt on %s" % Car.PARTS[np]["name"]
+		return "[E] Hop in and drive (WASD, Space = handbrake%s)" % [", Shift = boost" if car.has_part("rocket_booster") else ""]
+
+	func next_part(g: GameState) -> String:
+		for id in Car.PARTS:
+			if g.count(id) > 0 and not car.has_part(id):
+				return id
+		return ""
 
 	func interact(_game: GameState) -> void:
+		var np := next_part(_game)
+		if np != "":
+			_game.remove_item(np, 1)
+			car.install_part(np)
+			_game.car_parts = car.parts.duplicate()
+			_game.say("Bolted on the %s. Warranty void." % Car.PARTS[np]["name"])
+			Sfx.play_on(car, "thud", 1.3)
+			return
 		var p = get_tree().get_first_node_in_group("player")
 		if p:
 			p.enter_car(car)

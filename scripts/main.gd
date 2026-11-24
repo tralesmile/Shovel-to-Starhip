@@ -482,6 +482,7 @@ func _spawn_player_car() -> void:
 	car.rotation.y = car.heading
 	add_child(car)
 	car.setup()
+	car.set_parts(Game.car_parts)
 
 
 func _build_workbench() -> void:

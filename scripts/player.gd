@@ -424,12 +424,14 @@ func _log_ahead() -> WoodLog:
 func _drive(delta: float) -> void:
 	var throttle := Input.get_axis("move_back", "move_forward")
 	var steer := Input.get_axis("move_right", "move_left")
-	vehicle.drive(delta, throttle, steer, Input.is_action_pressed("jump"))
+	vehicle.drive(delta, throttle, steer, Input.is_action_pressed("jump"), Input.is_action_pressed("sprint"))
+	if vehicle.boosting:
+		Game.shake.emit(0.06)
 	global_position = vehicle.global_position
 	# Chase camera drifts behind the car unless the mouse is being used.
 	_yaw = lerp_angle(_yaw, vehicle.heading + PI, 2.0 * delta)
 	_zoom = max(_zoom, 8.0)
-	camera.fov = lerp(camera.fov, 65.0 + absf(vehicle.speed) * 0.6, 4.0 * delta)
+	camera.fov = lerp(camera.fov, 65.0 + absf(vehicle.speed) * 0.6 + (10.0 if vehicle.boosting else 0.0), 4.0 * delta)
 	_dust.emitting = false
 	_update_camera(delta)
 	target = null

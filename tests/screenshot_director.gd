@@ -196,6 +196,25 @@ func _run() -> void:
 		Input.action_release("sprint")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=90"):
+		Game.time_of_day = 0.55
+		Game.car_owned = true
+		Game.car_parts = ["turbo_engine", "offroad_wheels", "rocket_booster"]
+		main._spawn_player_car()
+		var car := get_tree().get_first_node_in_group("car") as Car
+		car.global_position = Vector3(6, Terrain.height_at(6, 6) + 0.1, 6)
+		p.global_position = Vector3(2, Terrain.height_at(2, 6), 6)
+		p._yaw = 1.2
+		p._pitch = -0.25
+		p._zoom = 8.0
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(20)
+		car._flame.emitting = true
+		await _wait(20)
+		await _shot("90_car_parts.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=92"):
 		Game.time_of_day = 0.6
 		var rb := main.get_node("Rabbit_0") as Critter
