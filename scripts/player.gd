@@ -196,6 +196,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## G: toss the heaviest droppable item from your pockets onto the ground as a physics pickup.
 ## It cannot be re-collected for a couple of seconds, so you can actually leave it (e.g. to dodge the carry limit).
+## A falling tree landed on you: shoved sideways, squashed flat, winded for a moment.
+func timber_bonk(side: Vector3) -> void:
+	var sgn := 1.0 if randf() < 0.5 else -1.0
+	velocity += side * 6.0 * sgn + Vector3(0, 3.0, 0)
+	_squash = 0.55
+	stamina = 0.0
+	winded = true
+	_trauma = minf(1.0, _trauma + 0.8)
+	FX.burst(self, global_position + Vector3(0, 0.3, 0), Color(1.0, 0.9, 0.3), 8, 0.1, 3.5, -4.0, "box")  # cartoon stars
+
+
 func drop_item() -> bool:
 	if vehicle != null:
 		return false

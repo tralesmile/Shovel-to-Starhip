@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1352,4 +1352,45 @@ func test_car_parts() -> bool:
 	car.drive(0.1, 1.0, 0.0, false, true)
 	check(car.boosting, "driving with booster + shift boosts")
 	car.queue_free()
+	return true
+
+
+func test_timber_chest() -> bool:
+	var t := Vector3(0, 0, 0)
+	var d := Vector3.RIGHT
+	check(FX.in_fall_zone(t, d, Vector3(3, 0, 0.5)), "point along fall line is in the zone")
+	check(not FX.in_fall_zone(t, d, Vector3(-2, 0, 0)), "behind the stump is safe")
+	check(not FX.in_fall_zone(t, d, Vector3(3, 0, 2.5)), "off to the side is safe")
+	check(not FX.in_fall_zone(t, d, Vector3(8, 0, 0)), "beyond the crown is safe")
+	check(FX.in_fall_zone(t, Vector3(0, 0, 1), Vector3(0.3, 0, 3)), "works for any direction")
+	check(GameState.stashable("wood") and not GameState.stashable("copper_axe") and not GameState.stashable("nonsense"), "stashable rules")
+	var inv := {"wood": 3, "copper_axe": 1, "plank": 2}
+	var st := {}
+	check(GameState.quick_stack(inv, st) == 5 and inv == {"copper_axe": 1} and int(st["wood"]) == 3, "quick stack moves stashables only")
+	check(GameState.take_all(inv, st) == 5 and int(inv["plank"]) == 2 and st.is_empty(), "take all returns everything")
+	var g := GameState.new()
+	root.add_child(g)
+	g.clock_running = false
+	g.add_item("plank", 4)
+	g.add_item("copper_ingot", 1)
+	check(g.chest_deposit() >= 5 and g.count("plank") == 0 and g.stash["plank"] == 4, "chest_deposit")
+	check(g.count_with_stash("plank") == 4, "count with stash")
+	g.add_item("plank", 2)
+	var idx := _recipe_index_of("storage_chest")
+	check(idx >= 0 and g.can_craft(idx), "can craft chest from pockets + stash")
+	check(g.craft(idx) and g.count("storage_chest") == 1 and g.count("plank") == 0 and g.count_with_stash("plank") == 0, "craft draws pockets first then the stash")
+	var d2 := g.to_dict()
+	check(d2.has("stash"), "stash saved")
+	g.add_item("wood", 2)
+	g.chest_deposit()
+	g.from_dict(g.to_dict())
+	check(int(g.stash.get("wood", 0)) == 2, "stash survives save roundtrip")
+	g.free()
+	check(BuildWorld.is_furniture("storage_chest") and BuildWorld.PIECE_ORDER.has("storage_chest"), "chest is furniture")
+	check(ChestSpot.lid_angle(1.0) < ChestSpot.lid_angle(0.0), "lid opens upward")
+	var bp := BuildPiece.new()
+	bp.piece_id = "storage_chest"
+	root.add_child(bp)
+	check(bp.get_child_count() > 0, "chest piece builds")
+	bp.queue_free()
 	return true

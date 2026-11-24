@@ -238,6 +238,37 @@ func _run() -> void:
 		await _shot("92_hunting_bonk.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=98"):
+		var bw8: BuildWorld = main.get_node("BuildWorld")
+		Game.time_of_day = 0.45
+		Game.add_item("storage_chest", 1)
+		Game.add_item("wood", 4)
+		var p8: Player = main.player
+		var base := Vector3(4, Terrain.height_at(4, -2), -2)
+		p8.global_position = base
+		p8._yaw = 1.0
+		p8._pitch = -0.4
+		p8._zoom = 7.0
+		p8._pivot.global_position = p8.global_position + Vector3(0, 1.4, 0)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(10)
+		bw8.place("storage_chest", Vector3(6, 0, -5), 0, Game)
+		await _wait(20)
+		for n in get_tree().get_nodes_in_group("interactable"):
+			if n is ChestSpot:
+				n.interact(Game)
+		var tr := ChoppableTree.new()
+		tr.name = "ShotTree"
+		main.add_child(tr)
+		tr.global_position = Vector3(2.5, Terrain.height_at(2.5, -7), -7)
+		await _wait(5)
+		tr.hits = 2
+		Game.current_tool = GameState.Tool.AXE
+		tr.interact(Game)
+		await _wait(22)
+		await _shot("98_timber_chest.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=96"):
 		Game.time_of_day = 0.45
 		p.global_position = Vector3(Terrain.POND_CENTER.x + 8.0, 0.1, Terrain.POND_CENTER.y + 1.0)

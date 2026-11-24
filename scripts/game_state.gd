@@ -68,6 +68,7 @@ const ITEMS := {
 	"wood_chair": {"name": "Wood Chair", "buy": 0, "sell": 0},
 	"wood_bed": {"name": "Wood Bed", "buy": 0, "sell": 0},
 	"lantern": {"name": "Lantern Post", "buy": 0, "sell": 0},
+	"storage_chest": {"name": "Storage Chest", "buy": 0, "sell": 0},
 	# Fish: sell at the bin.
 	"boot": {"name": "Old Boot", "buy": 0, "sell": 2},
 	"minnow": {"name": "Minnow", "buy": 0, "sell": 8},
@@ -103,6 +104,7 @@ const RECIPES := [
 	{"id": "lantern", "name": "Lantern Post", "in": {"plank": 1, "copper_ingot": 1, "gem": 1}, "out": {"lantern": 1}},
 	{"id": "campfire", "name": "Campfire", "in": {"stone": 3, "wood": 2}, "out": {"campfire": 1}},
 	{"id": "rabbit_stew", "name": "Rabbit Stew", "in": {"rabbit_meat": 2, "carrot": 1}, "out": {"rabbit_stew": 1}},
+	{"id": "storage_chest", "name": "Storage Chest", "in": {"plank": 6, "copper_ingot": 1}, "out": {"storage_chest": 1}},
 	{"id": "saddle", "name": "Goat Saddle", "in": {"plank": 2, "rabbit_pelt": 2}, "out": {"saddle": 1}, "once": true},
 	{"id": "turbo_engine", "name": "Turbo Engine", "in": {"copper_ingot": 3, "plank": 2}, "out": {"turbo_engine": 1}, "once": true},
 	{"id": "offroad_wheels", "name": "Big Wheels", "in": {"plank": 4, "rabbit_pelt": 1, "copper_ingot": 1}, "out": {"offroad_wheels": 1}, "once": true},
@@ -111,7 +113,7 @@ const RECIPES := [
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
-	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "campfire": 4.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
+	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
 	"copper_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
@@ -145,6 +147,7 @@ var fence_sold_today: int = 0   ## items fenced today (resets each morning)
 var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the alarm
 
 var car_owned: bool = false
+var stash: Dictionary = {}  ## shared contents of every Storage Chest (Gran's magic stash)
 var car_parts: Array = []   ## installed Car.PARTS ids
 var car_pos: Array = [8.0, 0.0, 14.0, 1.5708]   ## x, y, z, heading of the parked car
 
@@ -228,7 +231,7 @@ func cycle_recipe(dir: int = 1) -> int:
 func recipe_missing(idx: int) -> String:
 	var parts: PackedStringArray = []
 	for id in RECIPES[idx]["in"]:
-		var lack: int = int(RECIPES[idx]["in"][id]) - count(id)
+		var lack: int = int(RECIPES[idx]["in"][id]) - count_with_stash(id)
 		if lack > 0:
 			parts.append("%d more %s" % [lack, ITEMS[id]["name"]])
 	return "need " + ", ".join(parts) if parts.size() > 0 else ""
@@ -242,7 +245,7 @@ func can_craft(idx: int) -> bool:
 			if count(id) > 0:
 				return false   # one-off tool upgrade already owned
 	for id in RECIPES[idx]["in"]:
-		if count(id) < int(RECIPES[idx]["in"][id]):
+		if count_with_stash(id) < int(RECIPES[idx]["in"][id]):
 			return false
 	return true
 
@@ -251,7 +254,14 @@ func craft(idx: int) -> bool:
 	if not can_craft(idx):
 		return false
 	for id in RECIPES[idx]["in"]:
-		remove_item(id, int(RECIPES[idx]["in"][id]))
+		var need := int(RECIPES[idx]["in"][id])
+		var from_pockets := mini(need, count(id))
+		if from_pockets > 0:
+			remove_item(id, from_pockets)
+		if need > from_pockets:
+			stash[id] = int(stash.get(id, 0)) - (need - from_pockets)
+			if int(stash[id]) <= 0:
+				stash.erase(id)
 	for id in RECIPES[idx]["out"]:
 		add_item(id, int(RECIPES[idx]["out"][id]))
 	return true
@@ -302,6 +312,58 @@ func drop_candidate() -> String:
 			best_w = w
 			best = id
 	return best
+
+
+## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
+const NO_STASH := ["copper_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster"]
+
+
+## Pure (tested): can this item go in a chest?
+static func stashable(id: String) -> bool:
+	return ITEMS.has(id) and not (id in NO_STASH) and not bool(ITEMS[id].get("loot", false))
+
+
+## Pocket count plus what the chest holds (crafting draws on both, Terraria-style).
+func count_with_stash(id: String) -> int:
+	return count(id) + int(stash.get(id, 0))
+
+
+## Pure (tested): Terraria "Quick Stack": move every stashable item from `inv` into `stash`
+## (all of it). Returns the number of items moved.
+static func quick_stack(inv: Dictionary, st: Dictionary) -> int:
+	var moved := 0
+	for id in inv.keys().duplicate():
+		if stashable(id):
+			var n := int(inv[id])
+			st[id] = int(st.get(id, 0)) + n
+			inv.erase(id)
+			moved += n
+	return moved
+
+
+## Pure (tested): take everything back out of the chest. Returns the number of items moved.
+static func take_all(inv: Dictionary, st: Dictionary) -> int:
+	var moved := 0
+	for id in st.keys().duplicate():
+		var n := int(st[id])
+		inv[id] = int(inv.get(id, 0)) + n
+		st.erase(id)
+		moved += n
+	return moved
+
+
+func chest_deposit() -> int:
+	var n := GameState.quick_stack(inventory, stash)
+	if n > 0:
+		inventory_changed.emit()
+	return n
+
+
+func chest_withdraw() -> int:
+	var n := GameState.take_all(inventory, stash)
+	if n > 0:
+		inventory_changed.emit()
+	return n
 
 
 func add_item(item_id: String, amount: int = 1) -> void:
@@ -589,6 +651,7 @@ func to_dict() -> Dictionary:
 		"reputation": reputation,
 		"car_owned": car_owned,
 		"car_parts": car_parts,
+		"stash": stash,
 		"car_pos": car_pos,
 		"world": world,
 	}
@@ -616,6 +679,10 @@ func from_dict(data: Dictionary) -> void:
 	fence_sold_today = int(data.get("fence_sold_today", 0))
 	car_owned = bool(data.get("car_owned", false))
 	car_parts = data.get("car_parts", [])
+	stash = {}
+	var st: Dictionary = data.get("stash", {})
+	for k in st.keys():
+		stash[k] = int(st[k])
 	car_pos = data.get("car_pos", [8.0, 0.0, 14.0, 1.5708])
 	var world: Dictionary = data.get("world", {})
 	for node in get_tree().get_nodes_in_group("saveable"):

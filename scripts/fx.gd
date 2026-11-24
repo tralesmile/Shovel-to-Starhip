@@ -203,3 +203,12 @@ static func fall_axis(dir: Vector3) -> Vector3:
 ## Screen-shake strength for a landing tree: stronger the closer you stand.
 static func fall_shake(dist: float) -> float:
 	return clampf(0.7 - dist * 0.06, 0.15, 0.7)
+
+
+## Pure (tested): is `p` under a tree that topples from `tree_pos` along `dir`? (Valheim: trees hit back.)
+## The zone is a strip: `length` along the fall line (starting just past the stump), `half_w` either side.
+static func in_fall_zone(tree_pos: Vector3, dir: Vector3, p: Vector3, length: float = 5.0, half_w: float = 1.1) -> bool:
+	var rel := Vector3(p.x - tree_pos.x, 0.0, p.z - tree_pos.z)
+	var along := rel.dot(dir)
+	var side := absf(rel.dot(dir.cross(Vector3.UP)))
+	return along > -0.3 and along < length and side < half_w

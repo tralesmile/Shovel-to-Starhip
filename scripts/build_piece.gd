@@ -143,6 +143,29 @@ func _ready() -> void:
 		lt.position.y = 1.35
 		lt.add_to_group("lantern")
 		_mesh.add_child(lt)
+	elif def["style"] == "chest":
+		# Plank box with iron bands, a domed lid hinged at the back, and a gold latch.
+		var body := Art.box(Vector3(sz.x, 0.5, sz.z), c)
+		body.position.y = 0.25
+		_mesh.add_child(body)
+		for bx in [-0.35, 0.35]:
+			var band := Art.box(Vector3(0.1, 0.52, sz.z + 0.04), Color(0.3, 0.3, 0.34))
+			band.position = Vector3(bx, 0.25, 0)
+			_mesh.add_child(band)
+		var lid_pivot := Node3D.new()
+		lid_pivot.name = "LidPivot"
+		lid_pivot.position = Vector3(0, 0.5, -sz.z * 0.5)
+		_mesh.add_child(lid_pivot)
+		var lid := Art.box(Vector3(sz.x + 0.04, 0.2, sz.z + 0.04), c.lightened(0.1))
+		lid.position = Vector3(0, 0.1, sz.z * 0.5)
+		lid_pivot.add_child(lid)
+		var latch := Art.box(Vector3(0.14, 0.16, 0.06), Color(0.95, 0.8, 0.3))
+		latch.position = Vector3(0, -0.02, sz.z + 0.04)
+		lid_pivot.add_child(latch)
+		var cs := ChestSpot.new()
+		cs.interact_radius = 2.0
+		cs.lid = lid_pivot
+		add_child(cs)
 	elif def["style"] == "campfire":
 		# Ring of stones, crossed logs, flickering flames + smoke, and a spot to roast things.
 		for k in 8:

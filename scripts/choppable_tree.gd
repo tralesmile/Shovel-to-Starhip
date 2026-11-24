@@ -99,11 +99,17 @@ func _fall(game: GameState) -> void:
 	var dir := FX.fall_dir(global_position, pl.global_position if pl != null else global_position - Vector3.RIGHT)
 	var axis := FX.fall_axis(dir)
 	var dist := pl.global_position.distance_to(global_position) if pl != null else 3.0
+	# Warning: a red strip on the ground along the fall line, and a shout if you are standing in it.
+	_show_fall_warning(dir)
+	if pl != null and FX.in_fall_zone(global_position, dir, pl.global_position):
+		game.say("TIMBER!! Move your feet!")
+		Sfx.play_on(self, "thud", 0.7)
 	var tw := create_tween()
 	tw.tween_method(func(a: float): _trunk.basis = Basis(axis, a), 0.0, PI * 0.5, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func():
 		_spawn_logs(game, dir)
 		game.shake.emit(FX.fall_shake(dist))
+		_crush(game, dir)
 		FX.burst(self, global_position + dir * 2.5 + Vector3(0, 0.3, 0), Color(0.45, 0.62, 0.25), 24, 0.16, 4.0, -6.0)
 		FX.burst(self, global_position + dir * 2.5 + Vector3(0, 0.2, 0), Color(0.75, 0.68, 0.55), 16, 0.2, 2.0, -2.0, "sphere")
 		# Leaves flutter down slowly (low gravity, wide spread) for a long moment.
@@ -162,3 +168,45 @@ func _refresh() -> void:
 	for c in get_children():
 		if c is StaticBody3D:
 			c.process_mode = Node.PROCESS_MODE_DISABLED if felled else Node.PROCESS_MODE_INHERIT
+
+
+## Pulsing red strip on the ground showing where the trunk will land (fades after the thud).
+func _show_fall_warning(dir: Vector3) -> void:
+	var strip := MeshInstance3D.new()
+	var q := BoxMesh.new()
+	q.size = Vector3(2.2, 0.03, 5.0)
+	strip.mesh = q
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(1.0, 0.25, 0.2, 0.0)
+	strip.material_override = m
+	add_child(strip)
+	strip.top_level = true
+	strip.global_position = global_position + dir * 2.35 + Vector3(0, 0.08, 0)
+	strip.global_rotation.y = atan2(dir.x, dir.z)
+	var tw := strip.create_tween()
+	tw.tween_property(m, "albedo_color:a", 0.5, 0.25)
+	tw.tween_property(m, "albedo_color:a", 0.15, 0.2)
+	tw.tween_property(m, "albedo_color:a", 0.5, 0.2)
+	tw.tween_property(m, "albedo_color:a", 0.0, 0.5)
+	tw.tween_callback(strip.queue_free)
+
+
+## The trunk lands: anything in the strip gets flattened. Player is winded + shoved aside, rabbits
+## are bonked, crates splinter. Lighthearted: nobody is actually hurt.
+func _crush(game: GameState, dir: Vector3) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var pl := tree.get_first_node_in_group("player") as Node3D
+	if pl != null and pl.has_method("timber_bonk") and pl.vehicle == null and pl.mount == null and FX.in_fall_zone(global_position, dir, pl.global_position, 4.6, 0.9):
+		pl.timber_bonk(dir.cross(Vector3.UP))
+		game.say("BONK! The tree won that round.")
+	for n in tree.get_nodes_in_group("huntable"):
+		if n is Critter and n.visible and FX.in_fall_zone(global_position, dir, n.global_position, 4.6, 0.9):
+			n.bonk(game)
+	for n in tree.get_nodes_in_group("smashable"):
+		if n is PropCrate and FX.in_fall_zone(global_position, dir, n.global_position, 4.6, 0.9):
+			n.smash_hit()
+			n.smash_hit()
