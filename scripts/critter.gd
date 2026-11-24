@@ -60,6 +60,45 @@ static func hop_height(phase: float) -> float:
 	return 4.0 * f * (1.0 - f) * 0.35
 
 
+## Taming (Stardew-style affection): feed a veggie 3 times and the animal becomes a follower.
+const TAME_FEEDS := 3
+const FOLLOW_KEEP := 2.2      ## pets stop this far from you
+const FOLLOW_RUN := 7.0       ## farther than this and they trot at double speed
+const FOLLOW_WARP := 30.0     ## lost pets pop back next to you
+const EGG_EVERY := 80.0       ## seconds between eggs from a tamed chicken
+var affection := 0
+var tamed := false
+var _egg_t := 0.0
+var _heart_t := 0.0
+
+
+## Pure (tested): what a critter eats to befriend it ("" when it cannot be tamed or you hold none).
+static func tame_food(kind: int, inv: Dictionary) -> String:
+	if kind != Kind.CHICKEN and kind != Kind.GOAT:
+		return ""
+	for f in ["carrot", "turnip", "tomato"]:
+		if int(inv.get(f, 0)) > 0:
+			return f
+	return ""
+
+
+## Pure (tested): affection after a feed, and whether that made it tame.
+static func feed_result(aff: int) -> Dictionary:
+	var a := aff + 1
+	return {"affection": a, "tamed": a >= TAME_FEEDS}
+
+
+## Pure (tested): [direction-length-wanted-speed-multiplier]. 0 inside the keep radius, 1 trot, 2 run, -1 warp.
+static func follow_mode(dist: float) -> int:
+	if dist > FOLLOW_WARP:
+		return -1
+	if dist > FOLLOW_RUN:
+		return 2
+	if dist > FOLLOW_KEEP:
+		return 1
+	return 0
+
+
 const PET_LINES := {
 	Kind.CHICKEN: ["The chicken accepts your offering of pats.", "Bawk. (That means thanks.)", "The chicken judges your farming. Gently."],
 	Kind.GOAT: ["The goat is the 13th citizen. It knows.", "The goat eats your sleeve. Bonding!", "Mehhh. (The goat approves.)"],
@@ -74,6 +113,8 @@ func _ready() -> void:
 	add_child(_body)
 	if kind == Kind.CHICKEN or kind == Kind.GOAT or kind == Kind.RABBIT:
 		add_child(blob_shadow(0.55 if kind == Kind.GOAT else 0.32 if kind == Kind.CHICKEN else 0.26))
+	if kind == Kind.CHICKEN or kind == Kind.GOAT:
+		add_to_group("saveable")
 	match kind:
 		Kind.CHICKEN:
 			_build_chicken()
@@ -98,15 +139,34 @@ func _ready() -> void:
 			add_to_group("huntable")
 
 
-func get_prompt(_game: GameState) -> String:
-	if kind == Kind.CHICKEN:
-		return "[E] Pet the chicken"
-	if kind == Kind.GOAT:
-		return "[E] Pet the goat"
-	return ""
+func get_prompt(game: GameState) -> String:
+	var nm := "chicken" if kind == Kind.CHICKEN else "goat"
+	if kind != Kind.CHICKEN and kind != Kind.GOAT:
+		return ""
+	if tamed:
+		return "[E] Pet your %s (best friend)" % nm
+	var food := tame_food(kind, game.inventory)
+	if food != "":
+		return "[E] Feed %s to the %s (%d/%d hearts)" % [GameState.ITEMS[food]["name"], nm, affection, TAME_FEEDS]
+	return "[E] Pet the %s" % nm
 
 
 func interact(game: GameState) -> void:
+	var food := "" if tamed else tame_food(kind, game.inventory)
+	if food != "":
+		game.remove_item(food, 1)
+		var r := feed_result(affection)
+		affection = int(r["affection"])
+		FX.burst(self, global_position + Vector3(0, 1.0, 0), Color(1, 0.3, 0.45), 8, 0.16, 1.8, -1.0, "sphere", 40.0)
+		Sfx.play_on(self, "happy")
+		_wait = 1.2
+		if bool(r["tamed"]):
+			tamed = true
+			FX.burst(self, global_position + Vector3(0, 1.2, 0), Color(1, 0.85, 0.3), 16, 0.12, 3.5, -3.0, "sphere", 120.0)
+			game.say("%s is now your friend and will follow you around!" % ("The chicken" if kind == Kind.CHICKEN else "The goat"))
+		else:
+			game.say("Nom! The %s likes you a little more." % ("chicken" if kind == Kind.CHICKEN else "goat"))
+		return
 	var lines: Array = PET_LINES.get(kind, [])
 	if lines.size() > 0:
 		game.say(lines[randi() % lines.size()])
@@ -248,7 +308,69 @@ func _process(delta: float) -> void:
 			_rabbit(delta)
 
 
+func to_dict() -> Dictionary:
+	return {"affection": affection, "tamed": tamed}
+
+
+func from_dict(d: Dictionary) -> void:
+	affection = int(d.get("affection", 0))
+	tamed = bool(d.get("tamed", false))
+
+
+func _follow(delta: float, pl: Node3D) -> void:
+	var to := pl.global_position - global_position
+	to.y = 0
+	var mode := follow_mode(to.length())
+	if mode == -1:
+		position = pl.global_position + Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5))
+		FX.burst(self, global_position + Vector3(0, 0.4, 0), Color(1, 1, 1), 8, 0.12, 2.0, -1.0, "sphere", 180.0)
+		return
+	if mode == 0:
+		for leg in _legs:
+			leg.rotation.x = lerp(leg.rotation.x, 0.0, 8.0 * delta)
+		_heart_t += delta
+		if _heart_t > 6.0:
+			_heart_t = 0.0
+			FX.burst(self, global_position + Vector3(0, 1.1, 0), Color(1, 0.4, 0.55), 2, 0.12, 0.8, 0.2, "sphere", 20.0)
+		return
+	var spd := _speed * (2.6 if mode == 2 else 1.5)
+	position += to.normalized() * spd * delta
+	position.y = Terrain.height_at(position.x, position.z)
+	rotation.y = lerp_angle(rotation.y, atan2(to.x, to.z), 8.0 * delta)
+	var swing := sin(_t * spd * 9.0) * 0.6
+	for i in _legs.size():
+		_legs[i].rotation.x = swing * (1.0 if i % 2 == 0 else -1.0) * (1.0 if i < 2 else -1.0)
+	_body.position.y = absf(sin(_t * spd * 9.0)) * 0.05
+	home = position
+
+
+func _lay_egg() -> void:
+	var host := get_parent()
+	if host == null:
+		return
+	var p := WoodLog.new()
+	p.game = get_node("/root/Game")
+	p.item_id = "egg"
+	p.amount = 1
+	p.chunk_color = WoodLog.drop_color("egg")
+	host.add_child(p)
+	p.global_position = global_position + Vector3(0, 0.3, 0)
+	p.pop()
+	Sfx.play_on(self, "blip", 1.4)
+	p.game.say("Your chicken laid an egg. Good bird.")
+
+
 func _walk(delta: float) -> void:
+	if tamed:
+		var pl := get_tree().get_first_node_in_group("player") as Node3D
+		if pl != null and pl.visible:
+			if kind == Kind.CHICKEN:
+				_egg_t += delta
+				if _egg_t >= EGG_EVERY:
+					_egg_t = 0.0
+					_lay_egg()
+			_follow(delta, pl)
+			return
 	if _wait > 0.0:
 		_wait -= delta
 		for leg in _legs:

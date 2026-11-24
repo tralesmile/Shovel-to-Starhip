@@ -17,9 +17,10 @@ const PIECES := {
 	"wood_chair": {"name": "Wood Chair", "size": Vector3(0.6, 0.95, 0.6), "color": Color(0.76, 0.54, 0.34), "style": "chair"},
 	"wood_bed": {"name": "Wood Bed", "size": Vector3(1.1, 0.6, 1.9), "color": Color(0.7, 0.46, 0.28), "style": "bed"},
 	"lantern": {"name": "Lantern Post", "size": Vector3(0.3, 1.5, 0.3), "color": Color(0.3, 0.3, 0.34), "style": "lantern"},
+	"campfire": {"name": "Campfire", "size": Vector3(1.0, 0.4, 1.0), "color": Color(0.5, 0.48, 0.5), "style": "campfire"},
 	"wood_roof": {"name": "Wood Roof", "size": Vector3(2.3, 0.7, 2.3), "color": Color(0.62, 0.28, 0.22), "style": "roof", "y": 2.2},
 }
-const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern"]
+const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern", "campfire"]
 
 var pieces := {}   ## cell key -> BuildPiece
 var piece_id := "fence_panel"
@@ -62,7 +63,7 @@ static func key_for(id: String, p: Vector3, r: int) -> String:
 
 ## Pure (tested): furniture lives in its own key space (one per cell, stands on floors).
 static func is_furniture(id: String) -> bool:
-	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed"]
+	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed", "campfire"]
 
 
 ## Pure (tested): height above the ground a piece sits at (roofs rest on top of 2.2m walls).

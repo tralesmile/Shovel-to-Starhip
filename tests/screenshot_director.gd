@@ -114,6 +114,30 @@ func _run() -> void:
 		await _shot("95_build_mode.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=93"):
+		var bw3: BuildWorld = main.get_node("BuildWorld")
+		Game.time_of_day = 20.0
+		Game.add_item("campfire", 1)
+		Game.add_item("rabbit_meat", 2)
+		var p3: Player = main.player
+		p3.global_position = Vector3(4, Terrain.height_at(4, -2), -2)
+		p3._yaw = 1.0
+		p3._pitch = -0.35
+		p3._zoom = 5.5
+		p3._pivot.global_position = p3.global_position + Vector3(0, 1.4, 0)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(10)
+		bw3.place("campfire", Vector3(4, 0, -5), 0, Game)
+		await _wait(30)
+		var cf: CampfireSpot = null
+		for n in get_tree().get_nodes_in_group("interactable"):
+			if n is CampfireSpot:
+				cf = n
+		cf.interact(Game)
+		await _wait(60)
+		await _shot("93_campfire.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=94"):
 		var bw4: BuildWorld = main.get_node("BuildWorld")
 		Game.time_of_day = 15.5

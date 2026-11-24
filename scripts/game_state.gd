@@ -43,6 +43,9 @@ const ITEMS := {
 	"rabbit_meat": {"name": "Rabbit Meat", "buy": 0, "sell": 12},
 	"rabbit_pelt": {"name": "Rabbit Pelt", "buy": 0, "sell": 20},
 	"rabbit_stew": {"name": "Rabbit Stew", "buy": 0, "sell": 55},
+	"cooked_meat": {"name": "Roast Rabbit", "buy": 0, "sell": 32},
+	"egg": {"name": "Happy Egg", "buy": 0, "sell": 15},
+	"campfire": {"name": "Campfire", "buy": 0, "sell": 0},
 	# Crafted at the workbench.
 	"plank": {"name": "Plank", "buy": 0, "sell": 4},
 	"copper_ingot": {"name": "Copper Ingot", "buy": 0, "sell": 50},
@@ -94,15 +97,20 @@ const RECIPES := [
 	{"id": "wood_chair", "name": "Wood Chair", "in": {"plank": 2}, "out": {"wood_chair": 1}},
 	{"id": "wood_bed", "name": "Wood Bed", "in": {"plank": 5, "rabbit_pelt": 1}, "out": {"wood_bed": 1}},
 	{"id": "lantern", "name": "Lantern Post", "in": {"plank": 1, "copper_ingot": 1, "gem": 1}, "out": {"lantern": 1}},
+	{"id": "campfire", "name": "Campfire", "in": {"stone": 3, "wood": 2}, "out": {"campfire": 1}},
 	{"id": "rabbit_stew", "name": "Rabbit Stew", "in": {"rabbit_meat": 2, "carrot": 1}, "out": {"rabbit_stew": 1}}
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
-	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
+	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "campfire": 4.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
 	"copper_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
+
+## Raw -> cooked at a campfire (pure data, tested).
+const COOKABLE := {"rabbit_meat": "cooked_meat"}
+const COOK_TIME := 3.0
 
 const CARRY_LIMIT := 4   ## max stolen items in your pockets
 
@@ -268,7 +276,7 @@ func carry_free() -> float:
 
 
 ## Items that exist as physical things you can drop on the ground (seeds, tools and pieces cannot).
-const DROPPABLE := ["wood", "plank", "stone", "copper_ore", "copper_ingot", "gem", "carrot", "rabbit_meat", "rabbit_pelt", "turnip", "tomato", "rabbit_stew", "cooked_meat"]
+const DROPPABLE := ["wood", "plank", "stone", "copper_ore", "copper_ingot", "gem", "carrot", "rabbit_meat", "rabbit_pelt", "turnip", "tomato", "rabbit_stew", "cooked_meat", "egg"]
 
 
 ## Pure (tested): which item G drops: the one adding the most weight to your pockets (ties: alphabetical).

@@ -143,6 +143,22 @@ func _ready() -> void:
 		lt.position.y = 1.35
 		lt.add_to_group("lantern")
 		_mesh.add_child(lt)
+	elif def["style"] == "campfire":
+		# Ring of stones, crossed logs, flickering flames + smoke, and a spot to roast things.
+		for k in 8:
+			var a := float(k) / 8.0 * TAU
+			var rock := Art.box(Vector3(0.22, 0.16, 0.2), c.lightened(0.06 * float(k % 3)))
+			rock.position = Vector3(cos(a) * 0.42, 0.08, sin(a) * 0.42)
+			rock.rotation.y = a
+			_mesh.add_child(rock)
+		for k2 in 2:
+			var lg := Art.box(Vector3(0.7, 0.1, 0.1), Color(0.42, 0.28, 0.17))
+			lg.position.y = 0.14
+			lg.rotation.y = 0.8 + float(k2) * 1.6
+			_mesh.add_child(lg)
+		var spot := CampfireSpot.new()
+		spot.interact_radius = 2.0
+		add_child(spot)
 	elif def["style"] == "roof":
 		# Gable: two tilted slabs meeting at a ridge, shingle rows, gable cap hides the seam.
 		for side in [-1, 1]:

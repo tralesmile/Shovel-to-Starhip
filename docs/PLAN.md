@@ -39,7 +39,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (v1 DONE 2026-11-23: per-item weights, free capacity 30kg, speed drops to min 55% when overloaded, HUD load line, Wheelbarrow recipe (+40kg free, one-off); still to do: push-able wheelbarrow prop, car trunk, drop items on the ground) Carry system: heavy items (logs, rocks) slow you; wheelbarrow/cart/car trunk to haul
 ### Animals and riding
 - [ ] (v1 DONE 2026-11-24: 6 rabbits flee with alert/freeze/bolt hop AI, any swing bonks them into meat/pelt/carrot physics drops, Rabbit Stew recipe; still to do: bow/slingshot, deer/boars, campfire cooking, hunting skill) Hunting (simple wildlife that flees, drops meat/hide; bow or slingshot), cooking
-- [ ] Taming: feed/befriend wild animals, pets that follow and help (find loot, carry), farm animals with products
+- [ ] (v1 DONE 2026-11-24: feed carrot/turnip/tomato x3 to a chicken or the goat -> tamed, follows you (trot/run/warp), hearts, saved; tamed chickens lay eggs every 80s; still to do: pet jobs, animal pens, more species) Taming: feed/befriend wild animals, pets that follow and help (find loot, carry), farm animals with products
 - [ ] Riding: horse/ostrich/goat mount (walk/run/gallop, stamina, jump), later dinosaur on the jungle planet
 ### Movement feel
 - [ ] (coyote time + jump buffer DONE v1 2026-11-23 via FX.jump_step; tree wind sway DONE; sprint stamina bar + winded breather, landing squash + dust DONE v1 2026-11-23) Walk/run/sprint with stamina, acceleration curves, jump + coyote time, slopes, camera shake/FOV on sprint, footstep dust
@@ -59,6 +59,11 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (hit-stop DONE v1 on chop + mining; camera shake DONE) Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
 - [ ] (v1 DONE 2026-11-24: 4 crates + 2 barrels as RigidBody3D props around the farm, shoved by walking into them, axe/pickaxe smashes in 2 hits into plank pickups + loot (seeds/wood/ore/gem), hit-stop + shake + wobble; drop-from-inventory DONE v1 2026-11-24 via G; still to do: fences/other props, more prop kinds) Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
+
+### Research backlog 2026-11-24 (run 11; searches returned links only)
+- Weakest part vs comparables: the animals are scenery. Core Keeper (Paws & Claws) and Stardew make animals befriendable with food/affection and useful (eggs, pets); ours only said a pet line. APPLIED: feed veg x3 to a chicken/goat -> follows you; tamed chickens lay eggs. Also food had no heat source: APPLIED campfire (stone ring, flame + smoke particles, flickering light) that roasts raw meat.
+- Sources: https://primagames.com/gaming/how-to-get-animals-and-pets-in-core-keeper ; https://destructoid.com/?p=265668 (Stardew animal guide) ; https://rpggamers.com/news/core-keepers-paws-claws-update-unleashed ; Godot particles https://docs.godotengine.org/en/4.7/tutorials/3d/particles/index.html
+- Next ideas: pet jobs (goat finds loot / chicken sentinel), animal pens + daily products, campfire food buffs (stamina), door that opens/closes, GPUParticles3D flames with a gradient ramp.
 
 ### Research backlog 2026-11-24 (run 10; searches returned links only)
 - Weakest part vs comparables: items only flow one way (world -> pockets). Stardew/Core Keeper let you drop things and Core Keeper/Terraria items cast contact shadows so loot reads on the ground; ours floated visually and could not be put back down. APPLIED: G drops the heaviest item as a tossed physics pickup (long arm delay), soft ray-cast contact shadows under every pickup, and a craftable Wood Bed you really sleep in.
@@ -99,7 +104,7 @@ Priority order for runs: weapons/hunting, friendship, odd jobs, pets with jobs, 
 - [ ] Skill levels (farming, fishing, mining, hunting, stealth, driving) with perks
 - [ ] Community-centre-style collection goal whose rewards unlock rocket parts
 ### Valheim / Core Keeper style
-- [ ] Cooking with recipes and food buffs
+- [ ] (v1 DONE 2026-11-24: craftable Campfire build piece, E roasts Rabbit Meat in 3s -> Roast Rabbit pop-out pickup; still to do: more recipes, food buffs) Cooking with recipes and food buffs
 - [ ] Weather and temperature (rain, storms, cold nights, clothing)
 - [ ] Bosses with a funny twist (giant angry goose etc.)
 - [ ] Underground caves/dungeons with loot

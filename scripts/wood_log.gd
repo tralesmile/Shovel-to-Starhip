@@ -143,6 +143,9 @@ static func drop_color(id: String) -> Color:
 	match id:
 		"rabbit_meat": return Color(0.9, 0.42, 0.45)
 		"rabbit_pelt": return Color(0.78, 0.7, 0.6)
+		"egg":
+			return Color(0.98, 0.95, 0.85)
+		"egg": return Color(0.98, 0.95, 0.85)
 		"cooked_meat", "rabbit_stew": return Color(0.6, 0.32, 0.18)
 		"carrot": return Color(1.0, 0.55, 0.1)
 		"copper_ore": return Color(0.85, 0.5, 0.28)
@@ -155,7 +158,7 @@ static func drop_color(id: String) -> Color:
 
 ## Organic drops (meat, pelts, carrots) do not shimmer like ore.
 static func is_organic(id: String) -> bool:
-	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "rabbit_stew", "turnip", "tomato"]
+	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "egg", "rabbit_stew", "turnip", "tomato"]
 
 
 ## Stone / ore / gem chunk: a small tumbling rock.

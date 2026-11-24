@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1141,7 +1141,7 @@ func test_build_mode() -> bool:
 	check(bw.place("wood_floor", fp, 0, game) and bw.place("wood_wall", fp, 1, game), "floor then wall in the same cell")
 	check(not bw.place("wood_floor", fp, 1, game), "no second floor in a cell")
 	check(bw.demolish(BuildWorld.key_for("wood_floor", fp, 0), game) and game.count("wood_floor") == 1, "demolish floor refunds")
-	check(BuildWorld.PIECE_ORDER.size() == 10 and GameState.ITEM_WEIGHT.has("wood_floor"), "floor/wall registered")
+	check(BuildWorld.PIECE_ORDER.size() >= 10 and GameState.ITEM_WEIGHT.has("wood_floor"), "floor/wall registered")
 	# Roofs and doorways (run 8).
 	check(BuildWorld.base_y("wood_roof") == 2.2 and BuildWorld.base_y("wood_wall") == 0.0, "roofs sit on wall tops")
 	check(BuildWorld.key_for("wood_roof", Vector3(2, 0, 4), 0) == BuildWorld.key_for("wood_roof", Vector3(2, 0, 4), 3), "roof ignores rotation")
@@ -1247,3 +1247,35 @@ func _recipe_index_of(id: String) -> int:
 		if GameState.RECIPES[i]["id"] == id:
 			return i
 	return -1
+
+
+func test_campfire_taming() -> bool:
+	check(CampfireSpot.cooked_id("rabbit_meat") == "cooked_meat" and CampfireSpot.cooked_id("wood") == "", "meat cooks, wood does not")
+	check(CampfireSpot.raw_in({"rabbit_meat": 2}) == "rabbit_meat" and CampfireSpot.raw_in({"stone": 4}) == "", "raw_in finds meat")
+	var lo := 99.0
+	var hi := 0.0
+	for i in 200:
+		var e := CampfireSpot.flicker(float(i) * 0.05)
+		lo = minf(lo, e)
+		hi = maxf(hi, e)
+	check(lo > 1.5 and hi < 3.5 and hi - lo > 0.2, "flicker varies but never goes dark")
+	check(BuildWorld.is_furniture("campfire") and BuildWorld.PIECE_ORDER.has("campfire"), "campfire is a furniture piece")
+	var g := GameState.new()
+	g.add_item("stone", 3)
+	g.add_item("wood", 2)
+	check(g.craft(_recipe_index_of("campfire")) and g.count("campfire") == 1, "campfire recipe: 3 stone + 2 wood")
+	check(GameState.ITEMS.has("cooked_meat") and GameState.ITEMS.has("egg"), "cooked meat and egg are sellable items")
+	g.free()
+	check(Critter.tame_food(Critter.Kind.GOAT, {"carrot": 1}) == "carrot", "goat takes a carrot")
+	check(Critter.tame_food(Critter.Kind.RABBIT, {"carrot": 1}) == "", "rabbits cannot be tamed")
+	check(Critter.tame_food(Critter.Kind.CHICKEN, {"stone": 1}) == "", "no food, no taming")
+	var a := 0
+	var tamed := false
+	for i in 3:
+		var r := Critter.feed_result(a)
+		a = int(r["affection"])
+		tamed = bool(r["tamed"])
+	check(a == 3 and tamed, "three feeds tame")
+	check(not bool(Critter.feed_result(0)["tamed"]), "one feed is not enough")
+	check(Critter.follow_mode(1.0) == 0 and Critter.follow_mode(4.0) == 1 and Critter.follow_mode(10.0) == 2 and Critter.follow_mode(50.0) == -1, "follow modes by distance")
+	return true
