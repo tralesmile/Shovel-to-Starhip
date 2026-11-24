@@ -3,7 +3,7 @@ extends Interactable
 ## Wandering animals and flying things built from simple cartoon shapes.
 ## Chickens and the goat can be petted. Butterflies and birds only come out by day.
 
-enum Kind { CHICKEN, GOAT, BUTTERFLY, BIRD }
+enum Kind { CHICKEN, GOAT, BUTTERFLY, BIRD, RABBIT }
 
 @export var kind: int = Kind.CHICKEN
 var home: Vector3
@@ -18,6 +18,48 @@ var _t: float = 0.0
 var _speed: float = 1.0
 var _phase: float = 0.0
 
+const RABBIT_FLEE := 5.5       ## player closer than this and the rabbit bolts
+const RABBIT_ALERT := 9.0      ## ears up (and a freeze) inside this
+const RABBIT_RESPAWN := 70.0   ## seconds until a bonked rabbit hops back in
+var _alert_t := 0.0
+var _flee_dir := Vector3.ZERO
+var _hop := 0.0
+var _gone := 0.0
+var _ears: Array[Node3D] = []
+
+const BONK_LINES := ["BONK! The rabbit files a complaint and drops its lunch.", "Boing! Rabbit has left the chat (and some supplies).",
+	"The rabbit says 'rude' and vanishes in a puff."]
+
+## Pure (tested): rabbit mood from distance. Crouching halves the scare range, sprinting widens it.
+static func rabbit_mode(dist: float, crouched: bool, sprinting: bool) -> String:
+	var k := 1.0
+	if crouched:
+		k = 0.5
+	elif sprinting:
+		k = 1.45
+	if dist < RABBIT_FLEE * k:
+		return "flee"
+	if dist < RABBIT_ALERT * k:
+		return "alert"
+	return "calm"
+
+
+## Pure (tested): what a bonked rabbit drops. Always meat, a pelt about half the time, a lucky carrot rarely.
+static func rabbit_drops(roll: float) -> Array:
+	var d: Array = [{"item": "rabbit_meat", "amount": 1}]
+	if roll < 0.5:
+		d.append({"item": "rabbit_pelt", "amount": 1})
+	if roll > 0.9:
+		d.append({"item": "carrot", "amount": 1})
+	return d
+
+
+## Pure (tested): hop arc height for a phase 0..1 (a quick parabola).
+static func hop_height(phase: float) -> float:
+	var f := clampf(phase, 0.0, 1.0)
+	return 4.0 * f * (1.0 - f) * 0.35
+
+
 const PET_LINES := {
 	Kind.CHICKEN: ["The chicken accepts your offering of pats.", "Bawk. (That means thanks.)", "The chicken judges your farming. Gently."],
 	Kind.GOAT: ["The goat is the 13th citizen. It knows.", "The goat eats your sleeve. Bonding!", "Mehhh. (The goat approves.)"],
@@ -30,6 +72,8 @@ func _ready() -> void:
 	_phase = randf() * TAU
 	_body = Node3D.new()
 	add_child(_body)
+	if kind == Kind.CHICKEN or kind == Kind.GOAT or kind == Kind.RABBIT:
+		add_child(blob_shadow(0.55 if kind == Kind.GOAT else 0.32 if kind == Kind.CHICKEN else 0.26))
 	match kind:
 		Kind.CHICKEN:
 			_build_chicken()
@@ -47,6 +91,11 @@ func _ready() -> void:
 			_build_bird()
 			_speed = 9.0
 			remove_from_group("interactable")
+		Kind.RABBIT:
+			_build_rabbit()
+			_speed = 2.0
+			remove_from_group("interactable")
+			add_to_group("huntable")
 
 
 func get_prompt(_game: GameState) -> String:
@@ -107,6 +156,52 @@ func _build_goat() -> void:
 		_legs.append(leg)
 
 
+static var _blob_tex: GradientTexture2D
+
+## Soft round contact shadow that stays on the ground while the animal hops, so jumps read clearly.
+static func blob_shadow(radius: float) -> MeshInstance3D:
+	if _blob_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(0, 0, 0, 0.55))
+		g.set_color(1, Color(0, 0, 0, 0.0))
+		_blob_tex = GradientTexture2D.new()
+		_blob_tex.gradient = g
+		_blob_tex.fill = GradientTexture2D.FILL_RADIAL
+		_blob_tex.fill_from = Vector2(0.5, 0.5)
+		_blob_tex.fill_to = Vector2(1.0, 0.5)
+		_blob_tex.width = 64
+		_blob_tex.height = 64
+	var q := MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(radius * 2.0, radius * 2.0)
+	q.mesh = pm
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = _blob_tex
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	q.material_override = m
+	q.position.y = 0.03
+	q.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return q
+
+
+func _build_rabbit() -> void:
+	var fur := Color(0.78, 0.7, 0.6)
+	_part(Art.sphere(0.2, fur), Vector3(0, 0.22, 0)).scale = Vector3(0.9, 0.85, 1.3)
+	_part(Art.sphere(0.12, fur), Vector3(0, 0.34, 0.2))
+	_part(Art.sphere(0.07, Color(1, 1, 1)), Vector3(0, 0.22, -0.27))  # cotton tail
+	_part(Art.sphere(0.02, Color(0.1, 0.1, 0.1)), Vector3(-0.06, 0.38, 0.3))
+	_part(Art.sphere(0.02, Color(0.1, 0.1, 0.1)), Vector3(0.06, 0.38, 0.3))
+	_part(Art.sphere(0.03, Color(1.0, 0.6, 0.65)), Vector3(0, 0.33, 0.32))
+	for x in [-0.05, 0.05]:
+		var ear := Node3D.new()
+		ear.position = Vector3(x, 0.44, 0.18)
+		_body.add_child(ear)
+		_part(Art.box(Vector3(0.04, 0.22, 0.03), fur.lightened(0.1)), Vector3(0, 0.11, 0), ear)
+		_ears.append(ear)
+
+
 func _build_butterfly() -> void:
 	var c: Color = [Color(1.0, 0.55, 0.15), Color(0.95, 0.9, 0.25), Color(0.55, 0.75, 1.0), Color(1.0, 0.5, 0.8)][randi() % 4]
 	_part(Art.box(Vector3(0.03, 0.03, 0.14), Color(0.15, 0.12, 0.1)), Vector3.ZERO)
@@ -149,6 +244,8 @@ func _process(delta: float) -> void:
 			_flutter(delta)
 		Kind.BIRD:
 			_circle(delta)
+		Kind.RABBIT:
+			_rabbit(delta)
 
 
 func _walk(delta: float) -> void:
@@ -204,3 +301,101 @@ func _circle(delta: float) -> void:
 		flap = sin(_t * 14.0) * 0.6
 	for w in _wings:
 		w.rotation.z = flap * float(w.get_meta("side"))
+
+
+# ---------------------------------------------------------------- rabbit (huntable)
+
+func _rabbit(delta: float) -> void:
+	if _gone > 0.0:
+		_gone -= delta
+		if _gone <= 0.0:
+			position = home + Vector3(randf_range(-4, 4), 0, randf_range(-4, 4))
+			position.y = Terrain.height_at(position.x, position.z)
+			visible = true
+			scale = Vector3.ONE * 0.1
+			FX.burst(self, global_position + Vector3(0, 0.3, 0), Color(1, 1, 1), 6, 0.1, 1.5, -1.0, "sphere")
+		return
+	scale = scale.lerp(Vector3.ONE, 6.0 * delta)
+	var pl := get_tree().get_first_node_in_group("player") as Node3D
+	var mode := "calm"
+	if pl != null:
+		var away := position - pl.global_position
+		away.y = 0
+		var sprinting := false
+		var cr := false
+		if pl.get("crouching") != null:
+			cr = bool(pl.get("crouching"))
+		if pl is CharacterBody3D:
+			sprinting = Vector2((pl as CharacterBody3D).velocity.x, (pl as CharacterBody3D).velocity.z).length() > 6.0
+		mode = rabbit_mode(away.length(), cr, sprinting)
+		if mode == "flee":
+			if _alert_t < 0.25 and _flee_dir == Vector3.ZERO:
+				_alert_t += delta   # a startled freeze before the bolt
+			else:
+				_flee_dir = away.normalized() if away.length() > 0.1 else Vector3.RIGHT
+		else:
+			_flee_dir = Vector3.ZERO
+			_alert_t = 0.0
+	# Ears: up when alert, flat when calm.
+	for e in _ears:
+		e.rotation.x = lerpf(e.rotation.x, -0.9 if mode == "calm" else 0.0, 8.0 * delta)
+	if _flee_dir != Vector3.ZERO:
+		var step := _flee_dir * 6.2 * delta
+		position += step
+		position.y = Terrain.height_at(position.x, position.z)
+		rotation.y = lerp_angle(rotation.y, atan2(_flee_dir.x, _flee_dir.z), 12.0 * delta)
+		_hop = fmod(_hop + delta * 3.2, 1.0)
+		_body.position.y = hop_height(_hop)
+		_body.rotation.x = -0.35 * sin(_hop * PI)
+		# Don't flee into the sunset: keep within 18m of home.
+		if (position - home).length() > 18.0:
+			home = position
+		return
+	_body.rotation.x = 0.0
+	if mode == "alert":
+		_body.position.y = 0.0
+		return
+	# Calm: little nibbling hops around home.
+	if _wait > 0.0:
+		_wait -= delta
+		_body.position.y = 0.0
+		return
+	var to := _target - position
+	to.y = 0
+	if to.length() < 0.15:
+		_wait = randf_range(1.0, 3.5)
+		var a := randf() * TAU
+		_target = home + Vector3(cos(a), 0, sin(a)) * randf() * roam
+		return
+	position += to.normalized() * _speed * delta
+	position.y = Terrain.height_at(position.x, position.z)
+	rotation.y = lerp_angle(rotation.y, atan2(to.x, to.z), 8.0 * delta)
+	_hop = fmod(_hop + delta * 2.2, 1.0)
+	_body.position.y = hop_height(_hop)
+
+
+## A swing connected: loot pops out as physics pickups, the rabbit poofs away and hops back later.
+func bonk(game: GameState) -> void:
+	if kind != Kind.RABBIT or _gone > 0.0:
+		return
+	_gone = RABBIT_RESPAWN
+	var host := get_parent()
+	var pos := global_position
+	FX.burst(host, pos + Vector3(0, 0.3, 0), Color(1, 1, 1), 14, 0.14, 3.0, -2.0, "sphere", 180.0)
+	FX.burst(host, pos + Vector3(0, 0.4, 0), Color(1.0, 0.9, 0.3), 5, 0.1, 3.5, -4.0, "box")  # cartoon stars
+	Sfx.play_on(self, "thud", 1.5)
+	game.say(BONK_LINES[randi() % BONK_LINES.size()])
+	var drops := rabbit_drops(randf())
+	for i in drops.size():
+		var d: Dictionary = drops[i]
+		var p := WoodLog.new()
+		p.game = game
+		p.item_id = d["item"]
+		p.amount = int(d["amount"])
+		p.chunk_color = WoodLog.drop_color(p.item_id)
+		host.add_child(p)
+		p.global_position = pos + Vector3(randf_range(-0.2, 0.2), 0.5 + i * 0.15, randf_range(-0.2, 0.2))
+		p.pop()
+	visible = false
+	_flee_dir = Vector3.ZERO
+	_alert_t = 0.0

@@ -121,20 +121,41 @@ func chop_into_planks() -> int:
 	return PLANKS_PER_LOG
 
 
+## Pure (tested): chunk colour for a drop item (alpha 0 = plain log).
+static func drop_color(id: String) -> Color:
+	match id:
+		"rabbit_meat": return Color(0.9, 0.42, 0.45)
+		"rabbit_pelt": return Color(0.78, 0.7, 0.6)
+		"cooked_meat", "rabbit_stew": return Color(0.6, 0.32, 0.18)
+		"carrot": return Color(1.0, 0.55, 0.1)
+		"copper_ore": return Color(0.85, 0.5, 0.28)
+		"gem": return Color(0.4, 0.9, 1.0)
+	return Color(0.6, 0.6, 0.62)
+
+
+## Organic drops (meat, pelts, carrots) do not shimmer like ore.
+static func is_organic(id: String) -> bool:
+	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "rabbit_stew"]
+
+
 ## Stone / ore / gem chunk: a small tumbling rock.
 func _build_chunk() -> void:
 	mass = 1.0
 	var sz := 0.3 if item_id == "stone" else 0.22
+	if is_organic(item_id):
+		sz = 0.26
 	var cs := CollisionShape3D.new()
 	var bx := BoxShape3D.new()
 	bx.size = Vector3.ONE * sz
 	cs.shape = bx
 	add_child(cs)
 	var mi := Art.box(Vector3.ONE * sz, chunk_color)
-	if item_id != "stone":
+	if item_id != "stone" and not is_organic(item_id):
 		mi.material_override = Art.mat(chunk_color, true)   # ore and gems shimmer
+	if item_id == "rabbit_pelt":
+		mi.scale = Vector3(1.3, 0.35, 1.3)   # a flat furry rug
 	add_child(mi)
-	if item_id != "stone":
+	if item_id != "stone" and not is_organic(item_id):
 		var sp := FX.emitter(self, chunk_color.lightened(0.5), 4, 0.9, 0.05, Vector3(0.15, 0.1, 0.15), Vector3(0, 0.4, 0), true, "sphere")
 		sp.emitting = true
 	if item_id == "gem":

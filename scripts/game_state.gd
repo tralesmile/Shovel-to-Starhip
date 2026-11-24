@@ -39,6 +39,10 @@ const ITEMS := {
 	"stone": {"name": "Stone", "buy": 0, "sell": 4},
 	"copper_ore": {"name": "Copper Ore", "buy": 0, "sell": 18},
 	"gem": {"name": "Shiny Gem", "buy": 0, "sell": 90},
+	# Hunting and cooking.
+	"rabbit_meat": {"name": "Rabbit Meat", "buy": 0, "sell": 12},
+	"rabbit_pelt": {"name": "Rabbit Pelt", "buy": 0, "sell": 20},
+	"rabbit_stew": {"name": "Rabbit Stew", "buy": 0, "sell": 55},
 	# Crafted at the workbench.
 	"plank": {"name": "Plank", "buy": 0, "sell": 4},
 	"copper_ingot": {"name": "Copper Ingot", "buy": 0, "sell": 50},
@@ -88,6 +92,7 @@ const RECIPES := [
 	{"id": "wood_table", "name": "Wood Table", "in": {"plank": 4}, "out": {"wood_table": 1}},
 	{"id": "wood_chair", "name": "Wood Chair", "in": {"plank": 2}, "out": {"wood_chair": 1}},
 	{"id": "lantern", "name": "Lantern Post", "in": {"plank": 1, "copper_ingot": 1, "gem": 1}, "out": {"lantern": 1}},
+	{"id": "rabbit_stew", "name": "Rabbit Stew", "in": {"rabbit_meat": 2, "carrot": 1}, "out": {"rabbit_stew": 1}}
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).

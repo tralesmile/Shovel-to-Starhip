@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1192,5 +1192,25 @@ func test_props_furniture() -> bool:
 	game.add_item("gem", 1)
 	check(game.craft(_recipe_index("wood_table")) and game.count("wood_table") == 1, "table recipe")
 	check(game.craft(_recipe_index("wood_chair")) and game.craft(_recipe_index("lantern")), "chair + lantern recipes")
+	game.free()
+	return true
+
+
+func test_hunting() -> bool:
+	check(Critter.rabbit_mode(20.0, false, false) == "calm", "far rabbit calm")
+	check(Critter.rabbit_mode(7.0, false, false) == "alert", "mid rabbit alert")
+	check(Critter.rabbit_mode(3.0, false, false) == "flee", "near rabbit flees")
+	check(Critter.rabbit_mode(4.0, true, false) == "alert", "crouching sneaks up")
+	check(Critter.rabbit_mode(7.0, false, true) == "flee", "sprinting scares from further")
+	check(Critter.rabbit_drops(0.7).size() == 1 and Critter.rabbit_drops(0.7)[0]["item"] == "rabbit_meat", "meat only on mid roll")
+	check(Critter.rabbit_drops(0.2).size() == 2 and Critter.rabbit_drops(0.95).size() == 2, "pelt low roll, carrot high roll")
+	check(Critter.hop_height(0.0) == 0.0 and Critter.hop_height(1.0) == 0.0 and Critter.hop_height(0.5) > 0.3, "hop arc")
+	check(WoodLog.is_organic("rabbit_meat") and not WoodLog.is_organic("gem"), "organic drops don't shimmer")
+	check(WoodLog.drop_color("rabbit_meat").a == 1.0, "drop colour opaque")
+	var game := GameState.new()
+	game.add_item("rabbit_meat", 2)
+	game.add_item("carrot", 1)
+	check(game.craft(_recipe_index("rabbit_stew")) and game.count("rabbit_stew") == 1 and game.count("rabbit_meat") == 0, "stew recipe")
+	check(GameState.ITEMS.has("rabbit_pelt") and int(GameState.ITEMS["rabbit_stew"]["sell"]) > int(GameState.ITEMS["rabbit_meat"]["sell"]) * 2, "stew worth more than raw")
 	game.free()
 	return true

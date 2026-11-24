@@ -832,6 +832,15 @@ func _build_critters() -> void:
 		c.roam = 2.8
 		c.position = Vector3(-8.0 + k * 0.6, 0, 6.5 + (k % 2) * 0.8)
 		add_child(c)
+	# Wild rabbits in the meadow beyond the farm: they bolt when you get close.
+	for k in 6:
+		var r := Critter.new()
+		r.name = "Rabbit_%d" % k
+		r.kind = Critter.Kind.RABBIT
+		r.roam = 3.0
+		var ang := k * 1.05 + 0.4
+		r.position = Vector3(cos(ang) * (16.0 + k * 1.5), 0, sin(ang) * (16.0 + k * 1.5) - 6.0)
+		add_child(r)
 	var goat := Critter.new()
 	goat.name = "Goat"
 	goat.kind = Critter.Kind.GOAT

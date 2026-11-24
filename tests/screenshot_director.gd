@@ -148,6 +148,29 @@ func _run() -> void:
 		await _shot("94_wood_build.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=92"):
+		Game.time_of_day = 0.6
+		var rb := main.get_node("Rabbit_0") as Critter
+		p.global_position = Vector3(4, Terrain.height_at(4, -2), -2)
+		rb.home = Vector3(5.2, 0, 0.0)
+		rb.position = rb.home
+		rb.global_position = Vector3(5.2, Terrain.height_at(5.2, 0.0), 0.0)
+		p._yaw = 0.3
+		p._pitch = -0.4
+		p._zoom = 6.0
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		p._zoom = 3.5
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		rb.set_process(false)
+		await _wait(30)
+		await _shot("92_hunting.png")
+		rb.set_process(true)
+		rb.bonk(Game)
+		await _wait(25)
+		await _shot("92_hunting_bonk.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=96"):
 		Game.time_of_day = 0.45
 		p.global_position = Vector3(Terrain.POND_CENTER.x + 8.0, 0.1, Terrain.POND_CENTER.y + 1.0)

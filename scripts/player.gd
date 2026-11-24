@@ -249,6 +249,16 @@ func _use() -> void:
 			else:
 				Game.shake.emit(0.12)
 			return
+	if target == null and _action_time <= 0.0:
+		var rb := _rabbit_ahead()
+		if rb != null:
+			var tr := rb.global_position - global_position
+			_model.rotation.y = atan2(tr.x, tr.z)
+			play_action("1H_Melee_Attack_Chop", 0.5)
+			rb.bonk(Game)
+			Game.shake.emit(0.2)
+			FX.hit_stop(get_tree(), 0.5)
+			return
 	if target == null and Game.current_tool == GameState.Tool.AXE and _action_time <= 0.0:
 		var lg := _log_ahead()
 		if lg != null:
@@ -306,6 +316,23 @@ func _crate_ahead() -> PropCrate:
 	for n in get_tree().get_nodes_in_group("smashable"):
 		var c := n as PropCrate
 		if c == null:
+			continue
+		var d := Vector2(probe.x - c.global_position.x, probe.z - c.global_position.z).length()
+		if d < best_d:
+			best = c
+			best_d = d
+	return best
+
+
+## Nearest huntable rabbit within bonking reach in front of you (any tool but the builder).
+func _rabbit_ahead() -> Critter:
+	var forward := Vector3(sin(_model.rotation.y), 0, cos(_model.rotation.y))
+	var probe := global_position + forward * 0.9
+	var best: Critter = null
+	var best_d := 1.5
+	for n in get_tree().get_nodes_in_group("huntable"):
+		var c := n as Critter
+		if c == null or not c.visible:
 			continue
 		var d := Vector2(probe.x - c.global_position.x, probe.z - c.global_position.z).length()
 		if d < best_d:

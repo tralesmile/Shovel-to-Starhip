@@ -38,7 +38,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (v1 DONE 2026-11-19: Pickaxe tool [5], 5 MineRock rocks, 4 hits with shake/shrink/sparks/hit-stop, break into rigid-body stone/copper/gem chunks, regrow 3 days; still to do: pickaxe tiers, mine area/caves, selling/using ore) Mining: ore rocks with hit stages that crack and break into chunks/ore pieces (rigid bodies), pickaxe tiers, small caves/mine area, gems
 - [ ] (v1 DONE 2026-11-23: per-item weights, free capacity 30kg, speed drops to min 55% when overloaded, HUD load line, Wheelbarrow recipe (+40kg free, one-off); still to do: push-able wheelbarrow prop, car trunk, drop items on the ground) Carry system: heavy items (logs, rocks) slow you; wheelbarrow/cart/car trunk to haul
 ### Animals and riding
-- [ ] Hunting (simple wildlife that flees, drops meat/hide; bow or slingshot), cooking
+- [ ] (v1 DONE 2026-11-24: 6 rabbits flee with alert/freeze/bolt hop AI, any swing bonks them into meat/pelt/carrot physics drops, Rabbit Stew recipe; still to do: bow/slingshot, deer/boars, campfire cooking, hunting skill) Hunting (simple wildlife that flees, drops meat/hide; bow or slingshot), cooking
 - [ ] Taming: feed/befriend wild animals, pets that follow and help (find loot, carry), farm animals with products
 - [ ] Riding: horse/ostrich/goat mount (walk/run/gallop, stamina, jump), later dinosaur on the jungle planet
 ### Movement feel
@@ -218,3 +218,9 @@ Weakest part vs comparables: gathered materials had nowhere to GO. Valheim/Core 
 - Valheim snapping/roof guides: https://www.pcgamesn.com/valheim/building-snapping-update , https://mobalytics.gg/gamebase/guides/valheim-general-building-guide (idea: snap points on piece edges, roofs at fixed angles)
 - Godot falling-log/physics: https://forum.godotengine.org/t/making-a-log-fall-down-after-chopping-a-tree/128836 , https://docs.godotengine.org/en/4.7/tutorials/physics/rigid_body.html
 - Next: interactive door (swing open on E), interior lights for built houses, snapping to neighbour edges, hunting/slingshot.
+
+### Research backlog 2026-11-24 (run 9; searches returned links only)
+- Weakest part vs comparables (Palworld/Valheim/Core Keeper): the world had no wildlife to interact with beyond petting; no hunting/loot-from-creatures loop, and no vehicle/part builder. APPLIED: rabbits that flee (stealth-approach matters) and drop physics loot, stew recipe, blob shadows.
+- Vehicle builder references: https://github.com/pawngames/GodotModularBuilder , https://forum.godotengine.org/t/working-on-grid-system-not-gridmap-based-for-modular-vehicles/60002 , https://steamah.com/trailmakers-parts-construction-catalog-guide/ (idea: grid of snap-points, parts as RigidBody joints)
+- Loot feel/design: https://www.thegamer.com/core-keeper-and-the-endless-craving-for-digging-holes/ , https://bottomfeeder.substack.com/p/design-deep-dive-valheim , https://pcgamer.com/games/survival-crafting/somehow-the-worst-part-of-crafting-games-is-the-crafting
+- Next: slingshot/throwable turnip ranged hunting, taming by feeding carrots, campfire cooking station, boars/deer, vehicle builder part pickups.
