@@ -11,6 +11,10 @@ var _lamps: Array[OmniLight3D] = []
 var _lamp_mat: ShaderMaterial
 var _fireflies: Array[CPUParticles3D] = []
 var _rain: CPUParticles3D
+var _bolt_timer := -1.0      ## seconds to next strike (storms only)
+var _bolt_age := 99.0        ## seconds since the last strike flash
+var _thunder_in := -1.0      ## countdown to the rumble
+var _bolt_dist := 0.0
 var _rain_level := 0.0   ## eased 0..1 so rain fades in/out
 var _day_critters: Array[Node3D] = []
 var _npcs: Array[Npc] = []
@@ -220,12 +224,41 @@ func _update_weather(day: float, sunset: float, night: float) -> void:
 	if _rain == null:
 		_rain = Weather.make_rain()
 		add_child(_rain)
+	_update_lightning(w, get_process_delta_time())
 	_rain.emitting = _rain_level > 0.05
 	var n := Weather.drops(w)
 	if n > 0 and _rain.amount != n:
 		_rain.amount = n
 	if player != null and player.camera != null:
 		_rain.global_position = player.global_position + Vector3(0, 10, 0)
+
+
+## Storm lightning: sky flash + brief light surge, then the rumble arrives later (farther bolt = longer wait).
+func _update_lightning(w: String, delta: float) -> void:
+	if w == Weather.STORM and _rain_level > 0.6:
+		if _bolt_timer < 0.0:
+			_bolt_timer = Weather.lightning_gap(w, randf())
+		_bolt_timer -= delta
+		if _bolt_timer <= 0.0:
+			_bolt_timer = -1.0
+			_bolt_age = 0.0
+			_bolt_dist = randf_range(30.0, 320.0)
+			_thunder_in = Weather.thunder_delay(_bolt_dist)
+	else:
+		_bolt_timer = -1.0
+	_bolt_age += delta
+	var f := Weather.flash_level(_bolt_age)
+	_sky_mat.set_shader_parameter("flash", f)
+	if f > 0.0:
+		sun.light_energy += 2.6 * f
+		env.ambient_light_energy = 1.0 + 2.0 * f
+	else:
+		env.ambient_light_energy = 1.0
+	if _thunder_in >= 0.0:
+		_thunder_in -= delta
+		if _thunder_in < 0.0 and player != null:
+			Sfx.play_on(player, "thunder", randf_range(0.85, 1.1))
+			Game.shake.emit(clampf(1.0 - _bolt_dist / 360.0, 0.05, 0.6) * 0.5)
 
 
 func _build_environment() -> void:

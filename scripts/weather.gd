@@ -54,6 +54,31 @@ static func morning_line(w: String) -> String:
 	return ""
 
 
+## Pure (tested): seconds until the next lightning strike. Only storms strike; `r` is a 0..1 random roll.
+static func lightning_gap(w: String, r: float) -> float:
+	if w != STORM:
+		return -1.0
+	return lerpf(5.0, 15.0, clampf(r, 0.0, 1.0))
+
+
+## Pure (tested): seconds between flash and rumble. Light is instant, sound lags (squeezed for fun).
+static func thunder_delay(dist: float) -> float:
+	return clampf(dist / 120.0, 0.25, 3.5)
+
+
+## Pure (tested): flash brightness 0..1 `t` seconds after a strike: sharp flash, dim gap, softer second flicker.
+static func flash_level(t: float) -> float:
+	if t < 0.0:
+		return 0.0
+	if t < 0.12:
+		return 1.0 - t / 0.12 * 0.7
+	if t < 0.2:
+		return 0.3 * (1.0 - (t - 0.12) / 0.08)
+	if t < 0.3:
+		return 0.7 * sin((t - 0.2) / 0.1 * PI)
+	return maxf(0.0, 0.25 * (1.0 - (t - 0.3) / 0.25))
+
+
 ## Builds a rain curtain that follows `anchor` (the camera).
 static func make_rain() -> CPUParticles3D:
 	var p := CPUParticles3D.new()

@@ -53,6 +53,7 @@ const ITEMS := {
 	"magnet_gloves": {"name": "Magnet Gloves", "buy": 0, "sell": 0},
 	"spring_boots": {"name": "Spring Boots", "buy": 0, "sell": 0},
 	"glider": {"name": "Pelt Glider", "buy": 0, "sell": 0},
+	"loot_vacuum": {"name": "Loot Vacuum", "buy": 0, "sell": 0},
 	"saddle": {"name": "Goat Saddle", "buy": 0, "sell": 0},
 	"turbo_engine": {"name": "Turbo Engine", "buy": 0, "sell": 0},
 	"offroad_wheels": {"name": "Big Wheels", "buy": 0, "sell": 0},
@@ -128,7 +129,7 @@ const RECIPES := [
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
 	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "anvil": 10.0, "invention_bench": 9.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
-	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0}
+	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0, "loot_vacuum": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -143,9 +144,12 @@ const INVENTIONS := [
 	{"id": "magnet_gloves", "in": {"copper_ingot": 2, "gem": 1, "plank": 1}, "taps": 2, "line": "Magnet Gloves! Loot now flies to you from twice as far."},
 	{"id": "spring_boots", "in": {"rabbit_pelt": 2, "copper_ingot": 1, "plank": 2}, "taps": 3, "line": "Spring Boots! Boing. Gravity filed a complaint."},
 	{"id": "glider", "in": {"rabbit_pelt": 3, "plank": 2, "copper_ingot": 1}, "taps": 3, "line": "Pelt Glider! Hold jump in the air to float. Rabbits are not consulted."},
+	## Gadget combine (Terraria Tinkerer-style): Magnet Gloves + junk -> a funnier, stronger gadget that replaces them.
+	{"id": "loot_vacuum", "in": {"magnet_gloves": 1, "copper_ingot": 2, "gem": 1, "plank": 1}, "taps": 4, "line": "LOOT VACUUM! Everything not nailed down comes to you. Check your pockets for neighbours."},
 ]
 const MAGNET_BASE := 2.6
 const MAGNET_GLOVES := 5.4
+const MAGNET_VACUUM := 11.0
 const JUMP_BASE := 5.0
 const JUMP_BOOTS := 6.6
 const SMELTABLE := {"copper_ore": {"out": "copper_ingot", "ore": 1, "fuel": 1}}
@@ -345,7 +349,9 @@ func carry_free() -> float:
 
 
 ## Pure (tested): pickup magnet radius, doubled by Magnet Gloves.
-static func magnet_range(gloves: bool) -> float:
+static func magnet_range(gloves: bool, vacuum: bool = false) -> float:
+	if vacuum:
+		return MAGNET_VACUUM
 	return MAGNET_GLOVES if gloves else MAGNET_BASE
 
 
@@ -391,7 +397,7 @@ func drop_candidate() -> String:
 
 
 ## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
-const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot"]
+const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum"]
 
 
 ## Pure (tested): can this item go in a chest?

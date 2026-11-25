@@ -319,6 +319,27 @@ func _run() -> void:
 		await _shot("87_anvil_chips.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=84"):
+		var d84 := 3
+		while Weather.for_day(d84) != Weather.STORM:
+			d84 += 1
+		Game.day = d84
+		Game.time_of_day = 0.45
+		var p84: Player = main.player
+		p84.global_position = Vector3(4, Terrain.height_at(4, -2), -2)
+		p84._yaw = 1.0
+		p84._pitch = -0.1
+		p84._zoom = 6.0
+		main._rain_level = 0.9
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(10)
+		await _shot("84_storm_calm.png")
+		main._bolt_age = 0.02
+		main._bolt_timer = 99.0
+		await _wait(1)
+		await _shot("84_storm_flash.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=85"):
 		var d85 := 3
 		while Weather.for_day(d85) != Weather.RAIN:

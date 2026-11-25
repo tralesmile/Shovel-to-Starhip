@@ -60,6 +60,11 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (v1 DONE 2026-11-24: 4 crates + 2 barrels as RigidBody3D props around the farm, shoved by walking into them, axe/pickaxe smashes in 2 hits into plank pickups + loot (seeds/wood/ore/gem), hit-stop + shake + wobble; drop-from-inventory DONE v1 2026-11-24 via G; still to do: fences/other props, more prop kinds) Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
 
+### Research backlog 2026-11-25 (run 22; searches returned links only)
+- Weakest part vs comparables: storms were only grey rain, no drama; Slime Rancher 2 / Valheim weather has audio-visual events, and ranged weapons (Terraria bow, Stardew slingshot) reward hold-to-charge. APPLIED: storm lightning (double-flicker sky/sun/ambient flash, delayed thunder by distance + shake), hold-to-draw slingshot (power 45-100%), Loot Vacuum gadget (Magnet Gloves + parts combine, 11m pull).
+- Sources: https://www.gamedeveloper.com/programming/the-art-and-science-of-creating-weather-in-slime-rancher-2 ; https://www.pcgamer.com/how-developers-make-perfect-rain-in-games ; https://forum.godotengine.org/t/game-feel-checklist-for-godot-4-hit-stop-trauma-shake-coyote-time-and-more/145340 ; https://godotengine.org/article/custom-sky-shaders-godot-4-0/
+- Next ideas: rain puddle ripples + SFX loop, lightning hits tall things (lightning rod build piece), aim reticle for slingshot, mine area/caves, grapple gadget.
+
 ### Research backlog 2026-11-25 (run 21; searches returned links only)
 - Weakest part vs comparables: the world is calm and static; Stardew/Valheim use weather as gameplay (rain waters crops, storms change mood) and Terraria/Core Keeper have constant ranged/melee threat. Added weather + slingshot this run.
 - Trauma-based shake + real-time hit-stop that stack (we already use FX.hit_stop + Game.shake): https://forum.godotengine.org/t/game-feel-effects-that-stack-without-fighting-your-code-trauma-shake-real-time-hit-stop-and-apply-the-difference/146379 ; checklist https://forum.godotengine.org/t/game-feel-checklist-for-godot-4-hit-stop-trauma-shake-coyote-time-and-more/145340

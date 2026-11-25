@@ -34,7 +34,7 @@ func _ready() -> void:
 func get_prompt(game: GameState) -> String:
 	var r := GameState.invention_ready(game.inventory)
 	if r.is_empty():
-		return "Invention Bench. Magnet Gloves: 2 Ingots + Gem + Plank. Spring Boots: 2 Pelts + Ingot + 2 Planks."
+		return "Invention Bench. Magnet Gloves: 2 Ingots + Gem + Plank. Spring Boots: 2 Pelts + Ingot + 2 Planks. Loot Vacuum: Magnet Gloves + 2 Ingots + Gem + Plank."
 	return "[E] Tinker %s (%d/%d)" % [GameState.ITEMS[r["id"]]["name"], _taps + 1, int(r["taps"])]
 
 

@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1508,7 +1508,7 @@ func test_invention() -> bool:
 	check(GameState.invention_ready({"copper_ingot": 2, "gem": 1, "plank": 1}).get("id", "") == "magnet_gloves", "gloves affordable")
 	check(GameState.invention_ready({"rabbit_pelt": 2, "copper_ingot": 1, "plank": 2}).get("id", "") == "spring_boots", "boots affordable")
 	check(GameState.invention_ready({"copper_ingot": 1}).is_empty(), "nothing affordable with 1 ingot")
-	check(GameState.invention_ready({"magnet_gloves": 1, "copper_ingot": 2, "gem": 1, "plank": 1}).is_empty(), "owned gadget is not built twice")
+	check(GameState.invention_ready({"magnet_gloves": 1, "loot_vacuum": 1, "copper_ingot": 2, "gem": 1, "plank": 1}).is_empty(), "owned gadget is not built twice")
 	check(GameState.magnet_range(true) > GameState.magnet_range(false) * 1.9, "gloves roughly double the magnet")
 	check(WoodLog.state_for(4.0, 5.0) == "idle" and WoodLog.state_for(4.0, 5.0, GameState.magnet_range(true)) == "magnet", "gloves pull from 4m")
 	check(GameState.jump_speed(true, false, 7.2) > GameState.jump_speed(false, false, 7.2), "boots jump higher")
@@ -1586,4 +1586,34 @@ func test_slingshot_weather() -> bool:
 	check(not grass.watered, "rain ignores bare grass")
 	plot.free()
 	grass.free()
+	return true
+
+
+func test_lightning_vacuum() -> bool:
+	check(Weather.lightning_gap(Weather.CLEAR, 0.5) < 0.0 and Weather.lightning_gap(Weather.RAIN, 0.5) < 0.0, "only storms strike")
+	check(Weather.lightning_gap(Weather.STORM, 0.0) == 5.0 and Weather.lightning_gap(Weather.STORM, 1.0) == 15.0, "storm gap 5..15s")
+	check(Weather.lightning_gap(Weather.STORM, 9.0) == 15.0, "roll is clamped")
+	check(Weather.thunder_delay(10.0) == 0.25 and Weather.thunder_delay(120.0) == 1.0 and Weather.thunder_delay(9999.0) == 3.5, "thunder lags by distance, clamped")
+	check(Weather.thunder_delay(300.0) > Weather.thunder_delay(60.0), "farther bolt, later rumble")
+	check(Weather.flash_level(-1.0) == 0.0 and Weather.flash_level(0.0) == 1.0, "flash starts at full")
+	check(Weather.flash_level(0.17) < 0.3 and Weather.flash_level(0.25) > 0.6, "second flicker after a dim gap")
+	check(Weather.flash_level(0.6) == 0.0, "flash ends")
+	for i in 80:
+		var f := Weather.flash_level(i * 0.01)
+		check(f >= 0.0 and f <= 1.0, "flash in range %d" % i)
+	check(Sfx.KINDS.has("thunder") and Sfx.KINDS.has("vacuum"), "thunder sfx exists")
+	# slingshot charge
+	check(Pebble.charge_power(0.0) == Pebble.MIN_POWER and Pebble.charge_power(5.0) == 1.0, "charge clamps")
+	check(Pebble.charge_power(0.4) > Pebble.MIN_POWER and Pebble.charge_power(0.4) < 1.0, "half draw is in between")
+	check(Pebble.launch_velocity(0.0, 0.0, 0.5).length() < Pebble.launch_velocity(0.0, 0.0).length(), "weak draw is slower")
+	check(absf(Pebble.launch_velocity(0.0, 0.0).length() - Pebble.SPEED) < 0.01, "default power unchanged")
+	# loot vacuum combine
+	var base := {"magnet_gloves": 1, "copper_ingot": 2, "gem": 1, "plank": 1}
+	check(GameState.invention_ready(base).get("id", "") == "loot_vacuum", "vacuum needs gloves + parts")
+	check(GameState.invention_ready({"copper_ingot": 2, "gem": 1, "plank": 1}).get("id", "") == "magnet_gloves", "no gloves: gloves first")
+	check(GameState.invention_ready({"loot_vacuum": 1, "magnet_gloves": 1, "copper_ingot": 2, "gem": 1, "plank": 1}).is_empty(), "vacuum not built twice")
+	check(GameState.magnet_range(true, true) > GameState.magnet_range(true) * 1.9, "vacuum doubles gloves reach")
+	check(GameState.magnet_range(false, true) == GameState.MAGNET_VACUUM, "vacuum alone works")
+	check(WoodLog.state_for(9.0, 5.0, GameState.magnet_range(true, true)) == "magnet", "vacuum pulls from 9m")
+	check(not GameState.stashable("loot_vacuum") and GameState.ITEMS.has("loot_vacuum"), "vacuum is a pocket gadget")
 	return true

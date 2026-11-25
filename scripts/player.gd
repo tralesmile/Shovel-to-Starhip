@@ -330,7 +330,10 @@ func _use() -> void:
 				play_action(a, 0.45)
 		return
 	if Game.current_tool == GameState.Tool.SLINGSHOT:
-		_fire_slingshot()
+		if _sling_charge < 0.0 and Pebble.can_fire(Game.count("slingshot"), Game.count("stone"), _sling_cd):
+			_sling_charge = 0.0   # start drawing; release fires
+		else:
+			_fire_slingshot(0.0)
 		return
 	if target == null and _action_time <= 0.0 and _smash_tool():
 		var cr := _crate_ahead()
@@ -386,17 +389,19 @@ func _use() -> void:
 
 
 var _sling_cd := 0.0
+var _sling_charge := -1.0   ## <0 = not drawing; else seconds held
 
 
 ## Slingshot: costs 1 stone, lobs a Pebble along the camera heading; missed stones can be picked up again.
-func _fire_slingshot() -> void:
+func _fire_slingshot(held: float = 0.0) -> void:
 	if not Pebble.can_fire(Game.count("slingshot"), Game.count("stone"), _sling_cd):
 		if Game.count("stone") <= 0:
 			Game.say("Out of pebbles! Mine some stone.")
 		return
 	Game.remove_item("stone", 1)
 	_sling_cd = Pebble.COOLDOWN
-	var v := Pebble.launch_velocity(_yaw, _pitch)
+	var power := Pebble.charge_power(held)
+	var v := Pebble.launch_velocity(_yaw, _pitch, power)
 	_model.rotation.y = atan2(v.x, v.z)
 	play_action("Throw", 0.35)
 	var pb := Pebble.new()
@@ -405,8 +410,8 @@ func _fire_slingshot() -> void:
 	pb.vel = v
 	get_parent().add_child(pb)
 	pb.global_position = global_position + Vector3(0, 1.3, 0) + Vector3(v.x, 0, v.z).normalized() * 0.5
-	Game.shake.emit(0.05)
-	Sfx.play_on(self, "boing", 1.9)
+	Game.shake.emit(0.03 + 0.07 * power)
+	Sfx.play_on(self, "boing", 1.5 + 0.6 * power)
 	var hs: Node3D = _hand_items.get(GameState.Tool.SLINGSHOT)
 	if hs != null:
 		var tw := create_tween()
@@ -520,6 +525,22 @@ func _drive(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_sling_cd = maxf(0.0, _sling_cd - delta)
+	if _sling_charge >= 0.0:
+		if Game.current_tool != GameState.Tool.SLINGSHOT or vehicle != null or mount != null:
+			_sling_charge = -1.0
+		elif Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_action_pressed("interact"):
+			_sling_charge += delta
+			var hs: Node3D = _hand_items.get(GameState.Tool.SLINGSHOT)
+			if hs != null:   # band stretches back as you draw
+				var p := Pebble.charge_power(_sling_charge)
+				hs.scale = Vector3(1.0, 1.0, 1.0 + 0.5 * p)
+		else:
+			var hs2: Node3D = _hand_items.get(GameState.Tool.SLINGSHOT)
+			if hs2 != null:
+				hs2.scale = Vector3.ONE
+			var held := _sling_charge
+			_sling_charge = -1.0
+			_fire_slingshot(held)
 	var look := Input.get_vector("look_left", "look_right", "look_down", "look_up")
 	if look.length() > 0.0:
 		_yaw -= look.x * PAD_LOOK_SPEED * delta

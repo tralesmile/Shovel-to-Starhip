@@ -23,11 +23,20 @@ static func can_fire(owned: int, stones: int, cooldown_left: float) -> bool:
 	return owned > 0 and stones > 0 and cooldown_left <= 0.0
 
 
+const CHARGE_TIME := 0.8
+const MIN_POWER := 0.45
+
+
+## Pure (tested): 0..1 draw strength after holding the sling for `held` seconds (a tap is a weak plink).
+static func charge_power(held: float) -> float:
+	return lerpf(MIN_POWER, 1.0, clampf(held / CHARGE_TIME, 0.0, 1.0))
+
+
 ## Pure (tested): launch velocity from camera yaw/pitch. Aim a touch above the crosshair so shots lob in.
-static func launch_velocity(yaw: float, pitch: float) -> Vector3:
+static func launch_velocity(yaw: float, pitch: float, power: float = 1.0) -> Vector3:
 	var fwd := Basis.from_euler(Vector3(pitch, yaw, 0)) * Vector3(0, 0, -1)
 	fwd.y += 0.1
-	return fwd.normalized() * SPEED
+	return fwd.normalized() * SPEED * power
 
 
 ## Pure (tested): one Euler step of the arc.
