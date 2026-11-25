@@ -432,6 +432,26 @@ func _log_ahead() -> WoodLog:
 	return best
 
 
+var _wing: Node3D
+
+
+## Pelt wings fan out from the back while gliding; a little wind puff when they open.
+func _set_glider_wing(on: bool) -> void:
+	if _wing == null:
+		_wing = Node3D.new()
+		for sx in [-1.0, 1.0]:
+			var w := Art.box(Vector3(0.9, 0.04, 0.55), Color(0.78, 0.62, 0.45))
+			w.position = Vector3(0.55 * sx, 1.15, -0.25)
+			w.rotation.z = -0.25 * sx
+			_wing.add_child(w)
+		_wing.visible = false
+		_model.add_child(_wing)
+	if on and not _wing.visible:
+		FX.burst(self, global_position + Vector3(0, 1.2, 0), Color(1, 1, 1, 0.6), 6, 0.1, 2.0, -0.5, "sphere", 120.0)
+	_wing.visible = on
+	_wing.scale = _wing.scale.lerp(Vector3.ONE if on else Vector3(0.3, 1, 0.3), 0.3)
+
+
 func _drive(delta: float) -> void:
 	var throttle := Input.get_axis("move_back", "move_forward")
 	var steer := Input.get_axis("move_right", "move_left")
@@ -468,6 +488,12 @@ func _physics_process(delta: float) -> void:
 			Sfx.play_on(self, "boing", 0.9 + randf() * 0.3)
 			FX.burst(self, global_position + Vector3(0, 0.1, 0), Color(0.72, 0.64, 0.5), 6, 0.1, 2.2, -2.0, "sphere", 90.0)
 
+	var gliding := false
+	if mount == null and Game.count("glider") > 0:
+		velocity.y = FX.glide_vy(velocity.y, true, Input.is_action_pressed("jump"), not is_on_floor())
+		gliding = not is_on_floor() and Input.is_action_pressed("jump") and velocity.y <= FX.GLIDE_FALL + 0.01
+	_set_glider_wing(gliding)
+
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var basis_yaw := Basis(Vector3.UP, _yaw)
 	var dir := (basis_yaw * Vector3(input.x, 0, input.y))
@@ -484,6 +510,7 @@ func _physics_process(delta: float) -> void:
 		speed *= FX.carry_speed_mult(Game.carry_weight(), Game.carry_free())
 	_squash = lerpf(_squash, 1.0, 10.0 * delta)
 	_model.scale.y = lerpf(_model.scale.y, (0.7 if crouching else 1.0) * _squash, 12.0 * delta)
+	speed *= FX.glide_speed_mult(gliding)
 	if global_position.y < Terrain.WATER_LEVEL + 0.2:
 		speed *= 0.45   # wading through the pond
 	if dir.length() > 0.01:

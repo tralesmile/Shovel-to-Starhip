@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1522,4 +1522,19 @@ func test_invention() -> bool:
 	g.add_item("gem", 1)
 	var bi := _recipe_index_of("invention_bench")
 	check(g.craft(bi) and g.count("invention_bench") == 1, "bench recipe crafts")
+	return true
+
+
+func test_glider_chips() -> bool:
+	check(GameState.invention_ready({"rabbit_pelt": 3, "plank": 2, "copper_ingot": 1}).get("id", "") != "", "glider affordable")
+	check(GameState.invention_ready({"rabbit_pelt": 3, "plank": 2, "copper_ingot": 1, "spring_boots": 1}).get("id", "") == "glider", "glider after boots owned")
+	check(FX.glide_vy(-9.0, true, true, true) == FX.GLIDE_FALL, "holding jump caps fall speed")
+	check(FX.glide_vy(-9.0, false, true, true) == -9.0, "no glider, no glide")
+	check(FX.glide_vy(-9.0, true, false, true) == -9.0, "must hold jump")
+	check(FX.glide_vy(-9.0, true, true, false) == -9.0, "grounded is not gliding")
+	check(FX.glide_vy(3.0, true, true, true) == 3.0, "rising is untouched")
+	check(FX.glide_speed_mult(true) > 1.3 and FX.glide_speed_mult(false) == 1.0, "glide drifts faster")
+	check(not GameState.stashable("glider"), "glider stays in pockets")
+	check(FX.stone_chip_count(4, 4) > FX.stone_chip_count(1, 4), "breaking hit sprays more chips")
+	check(FX.stone_chip_count(0, 4) >= 5 and FX.stone_chip_count(99, 4) <= 22, "chip count is clamped")
 	return true

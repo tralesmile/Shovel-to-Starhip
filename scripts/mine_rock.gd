@@ -122,7 +122,15 @@ func interact(game: GameState) -> void:
 	Sfx.play_on(self, "thud")
 	FX.burst(self, global_position + Vector3(0, 0.9, 0), STONE_COLOR.lightened(0.3), 8, 0.08, 3.5)
 	FX.burst(self, global_position + Vector3(0, 0.9, 0), Color(1, 0.9, 0.5), 4, 0.05, 5.0, -2.0, "sphere")   # sparks
-	if hits >= hits_needed(game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0):
+	var need := hits_needed(game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0)
+	var pl := get_tree().get_first_node_in_group("player") as Node3D
+	var toward := Vector3.UP
+	if pl != null:
+		toward = pl.global_position - global_position
+		toward.y = 0.0
+		toward = toward.normalized() if toward.length() > 0.01 else Vector3.UP
+	FX.stone_chips(self, global_position + Vector3(0, 0.9, 0), toward, hits, need, _mats[0].albedo_color if _mats.size() > 0 and "albedo_color" in _mats[0] else STONE_COLOR)
+	if hits >= need:
 		FX.hit_stop(get_tree(), 0.9)
 		game.shake.emit(0.5)
 		broken = true

@@ -60,6 +60,11 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (v1 DONE 2026-11-24: 4 crates + 2 barrels as RigidBody3D props around the farm, shoved by walking into them, axe/pickaxe smashes in 2 hits into plank pickups + loot (seeds/wood/ore/gem), hit-stop + shake + wobble; drop-from-inventory DONE v1 2026-11-24 via G; still to do: fences/other props, more prop kinds) Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
 
+### Research backlog 2026-11-25 (run 20; searches returned links only)
+- Weakest part vs comparables: mining hits only had generic sparks, and traversal gadgets stopped at jump height. Core Keeper/Terraria give every hit chunky debris; Zelda/Core Keeper-style gliding turns height into a toy. APPLIED: directional grey stone chips on every pickaxe hit (FX.stone_chips, more on the breaking hit) and a craftable Pelt Glider gadget (hold jump to float, 1.45x drift, wing flaps out).
+- Sources: https://www.thegamer.com/core-keeper-and-the-endless-craving-for-digging-holes/ ; https://supercraft.host/wiki/core-keeper/mining-guide ; https://docs.godotengine.org/en/4.5/tutorials/3d/particles/collision.html
+- Next ideas: ore veins/mine area with caves, GPUParticles3D collision for chips, loot vacuum + grapple gadgets, gadget HUD.
+
 ### Research backlog 2026-11-25 (run 19; searches returned links only)
 - Weakest part vs comparables: upgrades were only tool tiers; Terraria's Tinkerer's Workshop combines two items into a new accessory and Core Keeper gates gear on stations, so invention feels like discovery. APPLIED: Invention Bench with Magnet Gloves + Spring Boots (movement/gather gadgets).
 - Sources: https://terraria.wiki.gg/wiki/Crafting_101 ; https://core-keeper.fandom.com/wiki/Crafting ; https://docs.godotengine.org/en/4.5/tutorials/3d/particles/collision.html

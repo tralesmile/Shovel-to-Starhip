@@ -130,6 +130,52 @@ static func chips(parent: Node, pos: Vector3, toward: Vector3, hit: int, need: i
 	burst(parent, pos, Color(0.9, 0.8, 0.6, 0.8), 6, 0.14, 1.2, -0.5, "sphere", 80.0)
 
 
+## Pure (tested): Pelt Glider fall speed. Holding jump while falling caps the descent (Zelda/Valheim-style glide).
+const GLIDE_FALL := -2.4
+static func glide_vy(vy: float, has_glider: bool, holding: bool, airborne: bool) -> float:
+	if has_glider and holding and airborne and vy < GLIDE_FALL:
+		return GLIDE_FALL
+	return vy
+
+
+## Pure (tested): extra horizontal speed multiplier while gliding.
+static func glide_speed_mult(gliding: bool) -> float:
+	return 1.45 if gliding else 1.0
+
+
+## Pure (tested): stone chips per pickaxe hit; the breaking hit sprays more.
+static func stone_chip_count(hit: int, need: int) -> int:
+	return clampi(5 + hit * 2 + (8 if hit >= need else 0), 5, 22)
+
+
+## Directional flat grey stone chips (+ pale dust) flung back at the miner. Counterpart to chips().
+static func stone_chips(parent: Node, pos: Vector3, toward: Vector3, hit: int, need: int, tint: Color = Color(0.6, 0.6, 0.64)) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = stone_chip_count(hit, need)
+	p.lifetime = 1.0
+	p.mesh = _mesh("box", 0.06, false)
+	p.direction = (toward + Vector3.UP * 0.7).normalized()
+	p.spread = 40.0
+	p.initial_velocity_min = 2.5
+	p.initial_velocity_max = 6.5
+	p.gravity = Vector3(0, -14, 0)
+	p.angular_velocity_min = -720.0
+	p.angular_velocity_max = 720.0
+	p.color = tint
+	var host: Node = parent.get_tree().current_scene
+	if host == null:
+		host = parent
+	host.add_child(p)
+	p.global_position = pos
+	p.emitting = true
+	parent.get_tree().create_timer(1.5).timeout.connect(p.queue_free)
+	burst(parent, pos, Color(0.78, 0.76, 0.72, 0.7), 5, 0.16, 1.0, -0.4, "sphere", 80.0)
+
+
 static func hit_stop_scale(t: float, strength: float) -> float:
 	var dur := 0.04 + 0.06 * clampf(strength, 0.0, 1.0)
 	return 0.05 if t < dur else 1.0

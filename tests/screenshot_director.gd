@@ -378,7 +378,12 @@ func _run() -> void:
 		p._pitch = -0.3
 		p._zoom = 5.0
 		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
-		for i in 3:
+		rock.interact(Game)
+		await _wait(6)
+		await _shot("89_rock_chips.png")
+		Game.add_item("glider", 1)
+		p._set_glider_wing(true)
+		for i in 2:
 			rock.interact(Game)
 		await _wait(30)
 		await _shot("89_rock_cracked.png")
