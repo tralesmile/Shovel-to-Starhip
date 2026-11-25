@@ -21,12 +21,12 @@ static var last_pick := -10.0
 
 
 ## Pure helper (tested): should a pickup at `dist` and `age` be magnetised / collected?
-static func state_for(dist: float, age_s: float) -> String:
+static func state_for(dist: float, age_s: float, magnet_range: float = MAGNET_RANGE) -> String:
 	if age_s < ARM_TIME:
 		return "wait"
 	if dist <= COLLECT_RANGE:
 		return "collect"
-	if dist <= MAGNET_RANGE:
+	if dist <= magnet_range:
 		return "magnet"
 	return "idle"
 
@@ -230,7 +230,7 @@ func _physics_process(delta: float) -> void:
 	if pl == null:
 		return
 	var to := pl.global_position + Vector3(0, 0.8, 0) - global_position
-	var st := state_for(to.length(), age)
+	var st := state_for(to.length(), age, GameState.magnet_range(game.count("magnet_gloves") > 0 if game != null else false))
 	# Axe in hand: loose logs stay put so you can chop them into planks (walk over one to take it whole).
 	if st == "magnet" and wants_chop(item_id, game.current_tool if game != null else -1):
 		st = "idle"

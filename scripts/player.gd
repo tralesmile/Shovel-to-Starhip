@@ -462,7 +462,11 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	if jr["jump"]:
-		velocity.y = JUMP_VELOCITY if mount == null else Critter.MOUNT_JUMP
+		var boots := Game.count("spring_boots") > 0
+		velocity.y = GameState.jump_speed(boots, mount != null, Critter.MOUNT_JUMP)
+		if boots and mount == null:
+			Sfx.play_on(self, "boing", 0.9 + randf() * 0.3)
+			FX.burst(self, global_position + Vector3(0, 0.1, 0), Color(0.72, 0.64, 0.5), 6, 0.1, 2.2, -2.0, "sphere", 90.0)
 
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var basis_yaw := Basis(Vector3.UP, _yaw)

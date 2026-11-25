@@ -200,6 +200,44 @@ func _ready() -> void:
 		sp.interact_radius = 2.0
 		sp.face = face
 		add_child(sp)
+	elif def["style"] == "invention":
+		# Tinkerer's bench: slab top, tesla coil with a glowing bulb, a cog on a pole; E tinkers gadgets together.
+		var top := Art.box(Vector3(1.4, 0.12, 0.8), Art.WOOD)
+		top.position.y = 0.9
+		_mesh.add_child(top)
+		for lx in [-0.6, 0.6]:
+			var leg := Art.box(Vector3(0.12, 0.9, 0.6), Art.WOOD.darkened(0.2))
+			leg.position = Vector3(lx, 0.45, 0)
+			_mesh.add_child(leg)
+		var coil := Art.box(Vector3(0.14, 0.5, 0.14), Color(0.7, 0.45, 0.25))
+		coil.position = Vector3(-0.4, 1.21, 0)
+		_mesh.add_child(coil)
+		var bulb := MeshInstance3D.new()
+		var sph := SphereMesh.new()
+		sph.radius = 0.15
+		sph.height = 0.3
+		bulb.mesh = sph
+		var bm := StandardMaterial3D.new()
+		bm.albedo_color = Color(0.5, 0.9, 1.0)
+		bm.emission_enabled = true
+		bm.emission = Color(0.4, 0.85, 1.0)
+		bm.emission_energy_multiplier = 1.2
+		bulb.material_override = bm
+		bulb.position = Vector3(-0.4, 1.55, 0)
+		_mesh.add_child(bulb)
+		var cog := Art.box(Vector3(0.36, 0.36, 0.06), Color(0.85, 0.7, 0.2))
+		cog.position = Vector3(0.35, 1.25, -0.2)
+		_mesh.add_child(cog)
+		var cog2 := Art.box(Vector3(0.36, 0.36, 0.06), Color(0.85, 0.7, 0.2))
+		cog2.position = cog.position
+		cog2.rotation.z = PI / 4.0
+		_mesh.add_child(cog2)
+		var isp := InventionSpot.new()
+		isp.interact_radius = 2.0
+		isp.bulb = bulb
+		isp.cog = cog
+		isp.cog2 = cog2
+		add_child(isp)
 	elif def["style"] == "furnace":
 		# Chunky stone kiln: brick courses, glowing mouth, chimney with smoke; E smelts ore with wood fuel.
 		var body := Art.box(Vector3(1.0, 1.0, 0.9), c)

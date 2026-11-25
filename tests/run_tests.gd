@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1500,4 +1500,26 @@ func test_anvil() -> bool:
 	g.add_item("stone", 4)
 	check(g.craft(_recipe_index_of("anvil")) and g.count("anvil") == 1, "anvil recipe: 4 ingots + 4 stone")
 	g.free()
+	return true
+
+
+func test_invention() -> bool:
+	check(BuildWorld.is_furniture("invention_bench") and BuildWorld.PIECE_ORDER.has("invention_bench"), "invention bench is a furniture piece")
+	check(GameState.invention_ready({"copper_ingot": 2, "gem": 1, "plank": 1}).get("id", "") == "magnet_gloves", "gloves affordable")
+	check(GameState.invention_ready({"rabbit_pelt": 2, "copper_ingot": 1, "plank": 2}).get("id", "") == "spring_boots", "boots affordable")
+	check(GameState.invention_ready({"copper_ingot": 1}).is_empty(), "nothing affordable with 1 ingot")
+	check(GameState.invention_ready({"magnet_gloves": 1, "copper_ingot": 2, "gem": 1, "plank": 1}).is_empty(), "owned gadget is not built twice")
+	check(GameState.magnet_range(true) > GameState.magnet_range(false) * 1.9, "gloves roughly double the magnet")
+	check(WoodLog.state_for(4.0, 5.0) == "idle" and WoodLog.state_for(4.0, 5.0, GameState.magnet_range(true)) == "magnet", "gloves pull from 4m")
+	check(GameState.jump_speed(true, false, 7.2) > GameState.jump_speed(false, false, 7.2), "boots jump higher")
+	check(is_equal_approx(GameState.jump_speed(true, true, 7.2), 7.2), "mounted keeps mount jump")
+	check(InventionSpot.cog_speed(1.0) > InventionSpot.cog_speed(0.0) * 10.0, "cog spins fast while tinkering")
+	check(InventionSpot.bulb_energy(1.0) > InventionSpot.bulb_energy(0.0), "bulb flashes")
+	check(not GameState.stashable("spring_boots") and not GameState.stashable("magnet_gloves"), "gadgets stay in pockets")
+	var g := GameState.new()
+	g.add_item("plank", 6)
+	g.add_item("copper_ingot", 3)
+	g.add_item("gem", 1)
+	var bi := _recipe_index_of("invention_bench")
+	check(g.craft(bi) and g.count("invention_bench") == 1, "bench recipe crafts")
 	return true

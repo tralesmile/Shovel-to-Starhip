@@ -319,6 +319,30 @@ func _run() -> void:
 		await _shot("87_anvil_chips.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=86"):
+		var bw10: BuildWorld = main.get_node("BuildWorld")
+		Game.time_of_day = 0.8
+		Game.add_item("invention_bench", 1)
+		Game.add_item("copper_ingot", 2)
+		Game.add_item("gem", 1)
+		Game.add_item("plank", 1)
+		var p10: Player = main.player
+		p10.global_position = Vector3(4, Terrain.height_at(4, -2), -2)
+		p10._yaw = 1.0
+		p10._pitch = -0.35
+		p10._zoom = 5.0
+		p10._pivot.global_position = p10.global_position + Vector3(0, 1.4, 0)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(10)
+		bw10.place("invention_bench", Vector3(6, 0, -5), 0, Game)
+		await _wait(20)
+		for n in get_tree().get_nodes_in_group("interactable"):
+			if n is InventionSpot:
+				n.interact(Game)
+		await _wait(6)
+		await _shot("86_invention_bench.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=96"):
 		Game.time_of_day = 0.45
 		p.global_position = Vector3(Terrain.POND_CENTER.x + 8.0, 0.1, Terrain.POND_CENTER.y + 1.0)
