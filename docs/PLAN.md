@@ -60,6 +60,12 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (v1 DONE 2026-11-24: 4 crates + 2 barrels as RigidBody3D props around the farm, shoved by walking into them, axe/pickaxe smashes in 2 hits into plank pickups + loot (seeds/wood/ore/gem), hit-stop + shake + wobble; drop-from-inventory DONE v1 2026-11-24 via G; still to do: fences/other props, more prop kinds) Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
 
+### Research backlog 2026-11-25 (run 21; searches returned links only)
+- Weakest part vs comparables: the world is calm and static; Stardew/Valheim use weather as gameplay (rain waters crops, storms change mood) and Terraria/Core Keeper have constant ranged/melee threat. Added weather + slingshot this run.
+- Trauma-based shake + real-time hit-stop that stack (we already use FX.hit_stop + Game.shake): https://forum.godotengine.org/t/game-feel-effects-that-stack-without-fighting-your-code-trauma-shake-real-time-hit-stop-and-apply-the-difference/146379 ; checklist https://forum.godotengine.org/t/game-feel-checklist-for-godot-4-hit-stop-trauma-shake-coyote-time-and-more/145340
+- Core Keeper / Terraria digging and ore design: https://www.thegamer.com/core-keeper-and-the-endless-craving-for-digging-holes/ ; https://www.thegamer.com/core-keeper-terraria-similarities/
+- Ideas: rain SFX loop + puddle decals, lightning flash on storms, slingshot aim reticle + charge, mining cave biome with ore veins, enemy raccoon bandit at night.
+
 ### Research backlog 2026-11-25 (run 20; searches returned links only)
 - Weakest part vs comparables: mining hits only had generic sparks, and traversal gadgets stopped at jump height. Core Keeper/Terraria give every hit chunky debris; Zelda/Core Keeper-style gliding turns height into a toy. APPLIED: directional grey stone chips on every pickaxe hit (FX.stone_chips, more on the breaking hit) and a craftable Pelt Glider gadget (hold jump to float, 1.45x drift, wing flaps out).
 - Sources: https://www.thegamer.com/core-keeper-and-the-endless-craving-for-digging-holes/ ; https://supercraft.host/wiki/core-keeper/mining-guide ; https://docs.godotengine.org/en/4.5/tutorials/3d/particles/collision.html
@@ -131,7 +137,7 @@ Priority order for runs: weapons/hunting, friendship, odd jobs, pets with jobs, 
 ### Weapons, hunting and fighting (keep it funny: silly weapons, cartoon hits, no gore)
 - [ ] Weapon system: equip slot, swing/aim/shoot, damage, cooldown, ammo, hit-stop + knockback + impact particles
 - [ ] Melee: shovel (starter, funny bonk), axe, pickaxe, frying pan, baseball bat, fishing-rod whip
-- [ ] Ranged: slingshot, bow and arrows, throwable turnips/pies, later a toy blaster and rocket-launcher gag
+- [ ] (slingshot v1 DONE 2026-11-25 run 21: craftable one-off (2 planks + 1 pelt), tool [7], costs 1 stone, physics-arc Pebble bonks rabbits / smashes crates, missed stones land as pick-up stones 60%; still to do: bow, throwable turnips/pies, aim reticle, charge) Ranged: slingshot, bow and arrows, throwable turnips/pies, later a toy blaster and rocket-launcher gag
 - [ ] Wildlife to hunt: rabbits, deer, boars, birds (flee/alert AI), drops meat/hide/feathers; hunting skill + tracks
 - [ ] Hostile or grumpy fauna to fight: angry goose boss, wolves/bandit raccoons at night, cave critters, later jungle dinosaurs
 - [ ] Combat feel: dodge roll, block, health + stamina bars, enemy telegraphs, downed-and-wake-up penalty (lose a little cash, not the game)
@@ -144,7 +150,7 @@ Priority order for runs: weapons/hunting, friendship, odd jobs, pets with jobs, 
 - [ ] Community-centre-style collection goal whose rewards unlock rocket parts
 ### Valheim / Core Keeper style
 - [ ] (v1 DONE 2026-11-24: craftable Campfire build piece, E roasts Rabbit Meat in 3s -> Roast Rabbit pop-out pickup; still to do: more recipes, food buffs) Cooking with recipes and food buffs
-- [ ] Weather and temperature (rain, storms, cold nights, clothing)
+- [ ] (rain/storm v1 DONE 2026-11-25 run 21: Weather.for_day deterministic, first 3 days sunny, ~28% wet; rain particle curtain, overcast sky shader, thicker fog, greyer light, rain waters crops overnight; still to do: rain SFX, puddles/wet ground, lightning, cold nights, clothing) Weather and temperature (rain, storms, cold nights, clothing)
 - [ ] Bosses with a funny twist (giant angry goose etc.)
 - [ ] Underground caves/dungeons with loot
 ### GTA / Wobbly Life style

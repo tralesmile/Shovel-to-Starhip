@@ -118,6 +118,13 @@ func on_new_day(_game: GameState) -> void:
 	_refresh()
 
 
+## Rain overnight: planted/tilled soil is already wet in the morning.
+func rain_water() -> void:
+	if state != State.GRASS:
+		watered = true
+		_refresh()
+
+
 func to_dict() -> Dictionary:
 	return {"state": state, "watered": watered, "growth": growth, "crop": crop}
 

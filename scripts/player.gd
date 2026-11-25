@@ -95,6 +95,7 @@ func _build_model() -> void:
 	_hand_items[GameState.Tool.HOE] = _make_hoe()
 	_hand_items[GameState.Tool.PICKAXE] = _make_pickaxe()
 	_hand_items[GameState.Tool.BUILD] = _make_hammer()
+	_hand_items[GameState.Tool.SLINGSHOT] = _make_slingshot()
 	_hand_items[GameState.Tool.WATER] = Models.put(_hand, Models.MED + "bucket_water.gltf", Vector3(0, -0.05, 0), 3.2)
 	_hand_items[GameState.Tool.SEEDS] = Models.put(_hand, Models.MED + "sack.gltf", Vector3(0, 0, 0), 3.0)
 
@@ -121,6 +122,23 @@ func _make_hammer() -> Node3D:
 	head.position = Vector3(0, 0.68, 0)
 	h.add_child(head)
 	return h
+
+
+func _make_slingshot() -> Node3D:
+	var s := Node3D.new()
+	_hand.add_child(s)
+	var grip := Art.box(Vector3(0.07, 0.4, 0.07), Art.WOOD)
+	grip.position.y = 0.15
+	s.add_child(grip)
+	for sx in [-1.0, 1.0]:
+		var arm := Art.box(Vector3(0.06, 0.3, 0.06), Art.WOOD)
+		arm.position = Vector3(sx * 0.12, 0.42, 0)
+		arm.rotation.z = -sx * 0.4
+		s.add_child(arm)
+	var band := Art.box(Vector3(0.26, 0.022, 0.022), Color(0.85, 0.25, 0.2))
+	band.position = Vector3(0, 0.55, 0)
+	s.add_child(band)
+	return s
 
 
 func _make_hoe() -> Node3D:
@@ -189,7 +207,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		drop_item()
 	elif event.is_action_pressed("pause"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	for i in 6:
+	for i in 7:
 		if event.is_action_pressed("tool_%d" % (i + 1)):
 			Game.set_tool(i)
 
@@ -311,6 +329,9 @@ func _use() -> void:
 			if a != "":
 				play_action(a, 0.45)
 		return
+	if Game.current_tool == GameState.Tool.SLINGSHOT:
+		_fire_slingshot()
+		return
 	if target == null and _action_time <= 0.0 and _smash_tool():
 		var cr := _crate_ahead()
 		if cr != null:
@@ -362,6 +383,35 @@ func _use() -> void:
 	_model.rotation.y = atan2(to.x, to.z)
 	play_action(anim, 0.55)
 	target.interact(Game)
+
+
+var _sling_cd := 0.0
+
+
+## Slingshot: costs 1 stone, lobs a Pebble along the camera heading; missed stones can be picked up again.
+func _fire_slingshot() -> void:
+	if not Pebble.can_fire(Game.count("slingshot"), Game.count("stone"), _sling_cd):
+		if Game.count("stone") <= 0:
+			Game.say("Out of pebbles! Mine some stone.")
+		return
+	Game.remove_item("stone", 1)
+	_sling_cd = Pebble.COOLDOWN
+	var v := Pebble.launch_velocity(_yaw, _pitch)
+	_model.rotation.y = atan2(v.x, v.z)
+	play_action("Throw", 0.35)
+	var pb := Pebble.new()
+	pb.game = Game
+	pb.shooter = self
+	pb.vel = v
+	get_parent().add_child(pb)
+	pb.global_position = global_position + Vector3(0, 1.3, 0) + Vector3(v.x, 0, v.z).normalized() * 0.5
+	Game.shake.emit(0.05)
+	Sfx.play_on(self, "boing", 1.9)
+	var hs: Node3D = _hand_items.get(GameState.Tool.SLINGSHOT)
+	if hs != null:
+		var tw := create_tween()
+		tw.tween_property(hs, "scale", Vector3(1, 1.35, 1), 0.06)
+		tw.tween_property(hs, "scale", Vector3.ONE, 0.18)
 
 
 func _smash_tool() -> bool:
@@ -469,6 +519,7 @@ func _drive(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_sling_cd = maxf(0.0, _sling_cd - delta)
 	var look := Input.get_vector("look_left", "look_right", "look_down", "look_up")
 	if look.length() > 0.0:
 		_yaw -= look.x * PAD_LOOK_SPEED * delta

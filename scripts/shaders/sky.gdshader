@@ -5,6 +5,7 @@ uniform vec3 sun_dir = vec3(0.0, 1.0, 0.0);
 uniform float day = 1.0;
 uniform float sunset = 0.0;
 uniform float night = 0.0;
+uniform float overcast = 0.0;   // rain: 0 clear .. 1 grey storm
 
 uniform vec3 day_top : source_color = vec3(0.30, 0.55, 0.92);
 uniform vec3 day_horizon : source_color = vec3(0.72, 0.84, 0.95);
@@ -27,11 +28,13 @@ void sky() {
 	vec3 hor = (day_horizon * day + sunset_horizon * sunset + night_horizon * night) / w;
 	float h = clamp(d.y, 0.0, 1.0);
 	vec3 col = mix(hor, top, pow(h, 0.55));
+	vec3 grey = vec3(dot(col, vec3(0.33))) * vec3(0.78, 0.82, 0.9);
+	col = mix(col, grey, overcast * 0.85);
 	float sd = dot(d, normalize(sun_dir));
 	// Warm glow around the sun at sunrise/sunset.
 	col += vec3(1.0, 0.45, 0.2) * pow(max(sd, 0.0), 6.0) * sunset * 0.7;
 	// Sun disc + halo.
-	float sun = smoothstep(0.9990, 0.9994, sd);
+	float sun = smoothstep(0.9990, 0.9994, sd) * (1.0 - overcast);
 	col = mix(col, vec3(1.0, 0.95, 0.8), sun * (1.0 - night));
 	col += vec3(1.0, 0.9, 0.7) * pow(max(sd, 0.0), 120.0) * 0.4 * (1.0 - night);
 	// Moon opposite the sun.

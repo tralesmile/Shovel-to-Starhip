@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1537,4 +1537,53 @@ func test_glider_chips() -> bool:
 	check(not GameState.stashable("glider"), "glider stays in pockets")
 	check(FX.stone_chip_count(4, 4) > FX.stone_chip_count(1, 4), "breaking hit sprays more chips")
 	check(FX.stone_chip_count(0, 4) >= 5 and FX.stone_chip_count(99, 4) <= 22, "chip count is clamped")
+	return true
+
+
+func test_slingshot_weather() -> bool:
+	check(Pebble.can_fire(1, 3, 0.0), "slingshot fires with stone")
+	check(not Pebble.can_fire(0, 3, 0.0), "no slingshot, no shot")
+	check(not Pebble.can_fire(1, 0, 0.0), "no stone, no shot")
+	check(not Pebble.can_fire(1, 3, 0.2), "cooldown blocks")
+	var v := Pebble.launch_velocity(0.0, 0.0)
+	check(absf(v.length() - Pebble.SPEED) < 0.01, "launch speed is SPEED")
+	check(v.z < 0.0 and v.y > 0.0, "yaw 0 fires forward (-z) with a little lob")
+	check(Pebble.launch_velocity(0.0, -0.8).y < Pebble.launch_velocity(0.0, 0.0).y, "looking down aims down")
+	var r := Pebble.step_arc(Vector3.ZERO, Vector3(10, 0, 0), 0.1)
+	check(absf(r[0].x - 1.0) < 0.2 and r[1].y < 0.0, "arc falls under gravity")
+	check(Pebble.hits_target(Vector3(0, 0.4, 0.3), Vector3.ZERO), "close pebble hits")
+	check(not Pebble.hits_target(Vector3(0, 0.4, 3.0), Vector3.ZERO), "far pebble misses")
+	check(Pebble.recovers(0.1) and not Pebble.recovers(0.9), "60% of misses are recoverable")
+	check(Pebble.recoil_scale(0.125) > 1.1 and Pebble.recoil_scale(1.0) == 1.0, "recoil squash eases out")
+	# Crafting + gating
+	check(GameState.RECIPES.any(func(r2): return r2["id"] == "slingshot"), "slingshot recipe exists")
+	check(GameState.TOOL_NAMES.size() == GameState.Tool.SLINGSHOT + 1, "slingshot is the last tool")
+	game.set_tool(GameState.Tool.SLINGSHOT)
+	check(game.current_tool != GameState.Tool.SLINGSHOT, "cannot equip an unowned slingshot")
+	game.add_item("slingshot", 1)
+	game.set_tool(GameState.Tool.SLINGSHOT)
+	check(game.current_tool == GameState.Tool.SLINGSHOT, "owned slingshot equips")
+	check(not GameState.stashable("slingshot"), "slingshot stays in pockets")
+	# Weather
+	for d in 3:
+		check(Weather.for_day(d) == Weather.CLEAR, "first days are sunny (%d)" % d)
+	var wet := 0
+	for d in range(3, 203):
+		if Weather.is_wet(Weather.for_day(d)):
+			wet += 1
+		check(Weather.for_day(d) == Weather.for_day(d), "deterministic")
+	check(wet > 20 and wet < 90, "roughly a quarter of days are wet (%d/200)" % wet)
+	check(Weather.gloom(Weather.STORM) > Weather.gloom(Weather.RAIN) and Weather.gloom(Weather.CLEAR) == 0.0, "gloom ordering")
+	check(Weather.fog_density(Weather.RAIN, 0.004) > 0.004, "rain thickens fog")
+	check(Weather.drops(Weather.STORM) > Weather.drops(Weather.RAIN) and Weather.drops(Weather.CLEAR) == 0, "drop counts")
+	# Rain waters tilled soil overnight
+	var plot := FarmPlot.new()
+	plot.state = FarmPlot.State.TILLED
+	plot.rain_water()
+	check(plot.watered, "rain waters tilled soil")
+	var grass := FarmPlot.new()
+	grass.rain_water()
+	check(not grass.watered, "rain ignores bare grass")
+	plot.free()
+	grass.free()
 	return true

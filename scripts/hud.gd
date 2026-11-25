@@ -73,7 +73,7 @@ func _ready() -> void:
 	bar.add_theme_constant_override("separation", 12)
 	bar.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(bar)
-	_place(bar, 0.5, 1, 0.5, 1, -500, -100, 500, -24)
+	_place(bar, 0.5, 1, 0.5, 1, -600, -100, 600, -24)
 	for i in GameState.TOOL_NAMES.size():
 		var p := PanelContainer.new()
 		p.custom_minimum_size = Vector2(150, 68)
@@ -142,6 +142,7 @@ func _build_icons() -> void:
 		Models.put(Node3D.new(), Models.CHAR + "axe_1handed.gltf", Vector3.ZERO, 1.0),
 		_pickaxe_model(),
 		_hammer_model(),
+		_slingshot_model(),
 	]
 	for m in models:
 		var root3d: Node3D = m.get_parent() if m.get_parent() else m
@@ -198,6 +199,20 @@ func _hammer_model() -> Node3D:
 	head.rotation.z = 0.5
 	h.add_child(head)
 	return h
+
+
+func _slingshot_model() -> Node3D:
+	var s := Node3D.new()
+	s.add_child(Art.box(Vector3(0.07, 0.55, 0.07), Art.WOOD))
+	for sx in [-1.0, 1.0]:
+		var arm := Art.box(Vector3(0.06, 0.38, 0.06), Art.WOOD)
+		arm.position = Vector3(sx * 0.16, 0.42, 0)
+		arm.rotation.z = -sx * 0.4
+		s.add_child(arm)
+	var band := Art.box(Vector3(0.34, 0.025, 0.025), Color(0.85, 0.25, 0.2))
+	band.position = Vector3(0, 0.6, 0)
+	s.add_child(band)
+	return s
 
 
 func _hoe_model() -> Node3D:

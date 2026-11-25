@@ -10,6 +10,8 @@ var _sky_mat: ShaderMaterial
 var _lamps: Array[OmniLight3D] = []
 var _lamp_mat: ShaderMaterial
 var _fireflies: Array[CPUParticles3D] = []
+var _rain: CPUParticles3D
+var _rain_level := 0.0   ## eased 0..1 so rain fades in/out
 var _day_critters: Array[Node3D] = []
 var _npcs: Array[Npc] = []
 var _police: Police
@@ -194,6 +196,7 @@ func _update_daylight() -> void:
 	for lt in get_tree().get_nodes_in_group("lantern"):
 		lt.visible = dark > 0.3
 		lt.light_energy = 3.2 * dark
+	_update_weather(day, sunset, night)
 	Toon.set_night(dark)
 	for c in get_tree().get_nodes_in_group("car"):
 		if c.has_method("set_dark"):
@@ -202,6 +205,27 @@ func _update_daylight() -> void:
 		f.emitting = night > 0.5
 	for c in _day_critters:
 		c.visible = day + sunset > 0.4
+
+
+func _update_weather(day: float, sunset: float, night: float) -> void:
+	var w := Game.weather()
+	var want := Weather.gloom(w)
+	_rain_level = lerpf(_rain_level, want, 0.02)
+	_sky_mat.set_shader_parameter("overcast", _rain_level)
+	env.fog_density = Weather.fog_density(w, 0.0035) if _rain_level >= want else 0.0035 * (1.0 + 2.2 * _rain_level)
+	# Grey the light and colours when it rains.
+	sun.light_energy *= 1.0 - 0.45 * _rain_level
+	env.adjustment_saturation = lerpf(env.adjustment_saturation, 0.78, _rain_level * 0.8)
+	env.fog_light_color = env.fog_light_color.lerp(Color(0.5, 0.54, 0.6) * (1.0 - night * 0.8), _rain_level * 0.7)
+	if _rain == null:
+		_rain = Weather.make_rain()
+		add_child(_rain)
+	_rain.emitting = _rain_level > 0.05
+	var n := Weather.drops(w)
+	if n > 0 and _rain.amount != n:
+		_rain.amount = n
+	if player != null and player.camera != null:
+		_rain.global_position = player.global_position + Vector3(0, 10, 0)
 
 
 func _build_environment() -> void:

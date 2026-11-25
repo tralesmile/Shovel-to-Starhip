@@ -319,6 +319,28 @@ func _run() -> void:
 		await _shot("87_anvil_chips.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=85"):
+		var d85 := 3
+		while Weather.for_day(d85) != Weather.RAIN:
+			d85 += 1
+		Game.day = d85
+		Game.time_of_day = 0.45
+		Game.add_item("slingshot", 1)
+		Game.add_item("stone", 5)
+		Game.set_tool(GameState.Tool.SLINGSHOT)
+		var p85: Player = main.player
+		p85.global_position = Vector3(4, Terrain.height_at(4, -2), -2)
+		p85._yaw = 1.0
+		p85._pitch = -0.2
+		p85._zoom = 5.0
+		main._rain_level = 0.55
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(10)
+		p85._fire_slingshot()
+		await _wait(8)
+		await _shot("85_rain_slingshot.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=86"):
 		var bw10: BuildWorld = main.get_node("BuildWorld")
 		Game.time_of_day = 0.8

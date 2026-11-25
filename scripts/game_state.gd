@@ -17,8 +17,8 @@ const DAY_LENGTH := 120.0          ## real seconds per in-game day
 const START_TIME := 0.25           ## 0..1 of a day; 0.25 = 6:00
 const SAVE_PATH := "user://save.json"
 
-enum Tool { HOE, SEEDS, WATER, AXE, PICKAXE, BUILD }
-const TOOL_NAMES := ["Hoe", "Turnip Seeds", "Watering Can", "Axe", "Pickaxe", "Builder"]
+enum Tool { HOE, SEEDS, WATER, AXE, PICKAXE, BUILD, SLINGSHOT }
+const TOOL_NAMES := ["Hoe", "Turnip Seeds", "Watering Can", "Axe", "Pickaxe", "Builder", "Slingshot"]
 
 ## Crop table: seed item, harvest item, watered nights to ripen, ripe model.
 const CROPS := {
@@ -70,6 +70,7 @@ const ITEMS := {
 	"rocket_plate": {"name": "Rocket Hull Plate", "buy": 0, "sell": 0},
 	"copper_pickaxe": {"name": "Copper Pickaxe", "buy": 0, "sell": 0},
 	"gem_pickaxe": {"name": "Gem Pickaxe", "buy": 0, "sell": 0},
+	"slingshot": {"name": "Slingshot", "buy": 0, "sell": 0},
 	"copper_axe": {"name": "Copper Axe", "buy": 0, "sell": 0},
 	"wheelbarrow": {"name": "Wheelbarrow", "buy": 0, "sell": 0},
 	"wood_table": {"name": "Wood Table", "buy": 0, "sell": 0},
@@ -120,13 +121,14 @@ const RECIPES := [
 	{"id": "offroad_wheels", "name": "Big Wheels", "in": {"plank": 4, "rabbit_pelt": 1, "copper_ingot": 1}, "out": {"offroad_wheels": 1}, "once": true},
 	{"id": "rocket_booster", "name": "Rocket Booster", "in": {"rocket_plate": 1, "copper_ingot": 2, "gem": 1}, "out": {"rocket_booster": 1}, "once": true},
 	{"id": "gem_pickaxe", "name": "Gem Pickaxe", "in": {"gem": 2, "copper_ingot": 2, "plank": 1}, "out": {"gem_pickaxe": 1}, "once": true},
+	{"id": "slingshot", "name": "Slingshot", "in": {"plank": 2, "rabbit_pelt": 1}, "out": {"slingshot": 1}, "once": true},
 	{"id": "invention_bench", "name": "Invention Bench", "in": {"plank": 6, "copper_ingot": 3, "gem": 1}, "out": {"invention_bench": 1}},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
 	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "anvil": 10.0, "invention_bench": 9.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
-	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0}
+	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -389,7 +391,7 @@ func drop_candidate() -> String:
 
 
 ## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
-const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider"]
+const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot"]
 
 
 ## Pure (tested): can this item go in a chest?
@@ -590,7 +592,11 @@ func set_tool(index: int) -> void:
 	if index == Tool.SEEDS and current_tool == Tool.SEEDS:
 		cycle_crop()
 		return
-	current_tool = clampi(index, 0, TOOL_NAMES.size() - 1)
+	index = clampi(index, 0, TOOL_NAMES.size() - 1)
+	if index == Tool.SLINGSHOT and count("slingshot") <= 0:
+		say("Craft a Slingshot at the workbench first (2 planks + 1 rabbit pelt).")
+		return
+	current_tool = index
 	tool_changed.emit(current_tool)
 
 
@@ -673,9 +679,22 @@ func advance_day() -> void:
 	fence_sold_today = 0
 	for node in get_tree().get_nodes_in_group("daily"):
 		node.on_new_day(self)
+	var w := weather()
+	if Weather.is_wet(w):
+		for node in get_tree().get_nodes_in_group("daily"):
+			if node.has_method("rain_water"):
+				node.rain_water()
 	day_changed.emit(day)
-	say("Day %d. %s" % [day, NEW_DAY_JOKES[day % NEW_DAY_JOKES.size()]])
+	if Weather.is_wet(w):
+		say(Weather.morning_line(w))
+	else:
+		say("Day %d. %s" % [day, NEW_DAY_JOKES[day % NEW_DAY_JOKES.size()]])
 	save_game()
+
+
+## Today's weather (deterministic from the day number).
+func weather() -> String:
+	return Weather.for_day(day)
 
 
 ## Skip to the next morning (used by the bed).
@@ -817,6 +836,7 @@ func setup_input() -> void:
 	_key_action("tool_4", [KEY_4])
 	_key_action("tool_5", [KEY_5])
 	_key_action("tool_6", [KEY_6])
+	_key_action("tool_7", [KEY_7])
 	_key_action("build_cycle", [KEY_F])
 	_key_action("craft_next", [KEY_Q])
 	_key_action("help", [KEY_H, KEY_F1])
@@ -836,7 +856,7 @@ const PAD_BUTTONS := {
 	"jump": [JOY_BUTTON_A], "interact": [JOY_BUTTON_X], "interact_click": [JOY_BUTTON_RIGHT_SHOULDER],
 	"sprint": [JOY_BUTTON_LEFT_STICK], "crouch": [JOY_BUTTON_B], "help": [JOY_BUTTON_Y], "pause": [JOY_BUTTON_START],
 	"tool_1": [JOY_BUTTON_DPAD_UP], "tool_2": [JOY_BUTTON_DPAD_RIGHT],
-	"craft_next": [JOY_BUTTON_BACK], "tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER], "tool_6": [JOY_BUTTON_RIGHT_STICK], "build_cycle": [JOY_BUTTON_LEFT_STICK], "drop_item": [JOY_BUTTON_PADDLE1],
+	"craft_next": [JOY_BUTTON_BACK], "tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER], "tool_6": [JOY_BUTTON_RIGHT_STICK], "tool_7": [JOY_BUTTON_LEFT_STICK], "build_cycle": [JOY_BUTTON_LEFT_STICK], "drop_item": [JOY_BUTTON_PADDLE1],
 }
 const PAD_AXES := {
 	"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],
