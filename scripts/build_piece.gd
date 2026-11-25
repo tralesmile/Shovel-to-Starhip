@@ -182,6 +182,25 @@ func _ready() -> void:
 		var spot := CampfireSpot.new()
 		spot.interact_radius = 2.0
 		add_child(spot)
+	elif def["style"] == "furnace":
+		# Chunky stone kiln: brick courses, glowing mouth, chimney with smoke; E smelts ore with wood fuel.
+		var body := Art.box(Vector3(1.0, 1.0, 0.9), c)
+		body.position.y = 0.5
+		_mesh.add_child(body)
+		for row in 3:
+			var brick := Art.box(Vector3(1.04, 0.05, 0.94), c.darkened(0.25))
+			brick.position.y = 0.25 + row * 0.3
+			_mesh.add_child(brick)
+		var chim := Art.box(Vector3(0.3, 0.5, 0.3), c.darkened(0.15))
+		chim.position = Vector3(0.25, 1.25, -0.2)
+		_mesh.add_child(chim)
+		var mouth := Art.box(Vector3(0.44, 0.32, 0.08), Color(1.0, 0.55, 0.12))
+		mouth.position = Vector3(0, 0.35, 0.46)
+		_mesh.add_child(mouth)
+		var fs := FurnaceSpot.new()
+		fs.interact_radius = 2.0
+		fs.mouth = mouth
+		add_child(fs)
 	elif def["style"] == "roof":
 		# Gable: two tilted slabs meeting at a ridge, shingle rows, gable cap hides the seam.
 		for side in [-1, 1]:
