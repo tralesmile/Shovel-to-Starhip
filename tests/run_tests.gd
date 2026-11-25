@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1482,5 +1482,22 @@ func test_furnace() -> bool:
 	g.add_item("wood", 2)
 	check(g.craft(_recipe_index_of("furnace")) and g.count("furnace") == 1, "furnace recipe: 8 stone + 2 wood")
 	check(GameState.SMELTABLE["copper_ore"]["ore"] < GameState.RECIPES[_recipe_index_of("copper_ingot")]["in"]["copper_ore"], "furnace is cheaper than hand-smelting")
+	g.free()
+	return true
+
+
+func test_anvil() -> bool:
+	check(BuildWorld.is_furniture("anvil") and BuildWorld.PIECE_ORDER.has("anvil"), "anvil is a furniture piece")
+	check(AnvilSpot.ready_recipe({"copper_ingot": 2}).get("out", "") == "rocket_plate", "2 ingots can be hammered")
+	check(AnvilSpot.ready_recipe({"copper_ingot": 1}).is_empty(), "1 ingot is not enough")
+	var r: Dictionary = GameState.ANVIL_RECIPES[0]
+	var wb: Dictionary = GameState.RECIPES[_recipe_index_of("rocket_plate")]
+	check(int(r["in"]["copper_ingot"]) < int(wb["in"]["copper_ingot"]), "anvil plate is cheaper than workbench plate")
+	check(AnvilSpot.strike_squash(0.0) < 1.0 and is_equal_approx(AnvilSpot.strike_squash(1.0), 1.0), "face squashes then recovers")
+	check(FX.chip_count(3, 3) > FX.chip_count(1, 3) and FX.chip_count(99, 3) <= 20, "chips grow per hit, capped")
+	var g := GameState.new()
+	g.add_item("copper_ingot", 4)
+	g.add_item("stone", 4)
+	check(g.craft(_recipe_index_of("anvil")) and g.count("anvil") == 1, "anvil recipe: 4 ingots + 4 stone")
 	g.free()
 	return true

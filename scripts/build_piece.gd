@@ -182,6 +182,24 @@ func _ready() -> void:
 		var spot := CampfireSpot.new()
 		spot.interact_radius = 2.0
 		add_child(spot)
+	elif def["style"] == "anvil":
+		# Stump base, waisted body, flat face, pointed horn; E hammers ingots into hull plates.
+		var stump := Art.box(Vector3(0.5, 0.35, 0.4), Art.WOOD)
+		stump.position.y = 0.175
+		_mesh.add_child(stump)
+		var waist := Art.box(Vector3(0.32, 0.25, 0.28), c.darkened(0.2))
+		waist.position.y = 0.47
+		_mesh.add_child(waist)
+		var face := Art.box(Vector3(0.9, 0.2, 0.36), c)
+		face.position.y = 0.69
+		_mesh.add_child(face)
+		var horn := Art.box(Vector3(0.3, 0.12, 0.2), c.lightened(0.05))
+		horn.position = Vector3(0.58, 0.67, 0)
+		_mesh.add_child(horn)
+		var sp := AnvilSpot.new()
+		sp.interact_radius = 2.0
+		sp.face = face
+		add_child(sp)
 	elif def["style"] == "furnace":
 		# Chunky stone kiln: brick courses, glowing mouth, chimney with smoke; E smelts ore with wood fuel.
 		var body := Art.box(Vector3(1.0, 1.0, 0.9), c)

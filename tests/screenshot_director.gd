@@ -291,6 +291,34 @@ func _run() -> void:
 		await _shot("98_timber_chest.png")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=87"):
+		var bw9: BuildWorld = main.get_node("BuildWorld")
+		Game.time_of_day = 0.45
+		Game.add_item("anvil", 1)
+		Game.add_item("copper_ingot", 2)
+		var p9: Player = main.player
+		p9.global_position = Vector3(4, Terrain.height_at(4, -2), -2)
+		p9._yaw = 1.0
+		p9._pitch = -0.4
+		p9._zoom = 6.0
+		p9._pivot.global_position = p9.global_position + Vector3(0, 1.4, 0)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(10)
+		bw9.place("anvil", Vector3(6, 0, -5), 0, Game)
+		await _wait(20)
+		var tr9 := ChoppableTree.new()
+		main.add_child(tr9)
+		tr9.global_position = Vector3(2.5, Terrain.height_at(2.5, -7), -7)
+		await _wait(5)
+		Game.current_tool = GameState.Tool.AXE
+		tr9.interact(Game)
+		for n in get_tree().get_nodes_in_group("interactable"):
+			if n is AnvilSpot:
+				n.interact(Game)
+		await _wait(8)
+		await _shot("87_anvil_chips.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=96"):
 		Game.time_of_day = 0.45
 		p.global_position = Vector3(Terrain.POND_CENTER.x + 8.0, 0.1, Terrain.POND_CENTER.y + 1.0)

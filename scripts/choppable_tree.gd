@@ -67,6 +67,15 @@ func get_prompt(game: GameState) -> String:
 	return "A tree. Use the Axe [4] for wood."
 
 
+func pl_dir_to_player() -> Vector3:
+	var pl := get_tree().get_first_node_in_group("player") as Node3D
+	if pl == null:
+		return Vector3.BACK
+	var d := pl.global_position - global_position
+	d.y = 0.0
+	return d.normalized() if d.length() > 0.01 else Vector3.BACK
+
+
 func interact(game: GameState) -> void:
 	if felled:
 		game.say("You pat the stump. Emotional support for stumps.")
@@ -79,6 +88,7 @@ func interact(game: GameState) -> void:
 	_wobble = 1.0
 	Sfx.play_on(self, "chop")
 	FX.burst(self, global_position + Vector3(0, 0.8, 0), Art.WOOD.lightened(0.25), 10, 0.1, 3.5)
+	FX.chips(self, global_position + Vector3(0, 0.9, 0), pl_dir_to_player(), hits, need)
 	FX.hit_stop(get_tree(), 0.3 if hits < need else 0.8)
 	if hits >= need:
 		felled = true

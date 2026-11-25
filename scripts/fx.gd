@@ -96,6 +96,40 @@ static func emitter(parent: Node, color: Color, amount: int, lifetime: float, si
 
 
 ## Hit-stop (pure helper, tested): time scale to use `t` seconds after an impact of `strength` 0..1.
+## Pure (tested): wood chips per chop; later hits spit more, capped.
+static func chip_count(hit: int, need: int) -> int:
+	return clampi(4 + hit * 2 + (6 if hit >= need else 0), 4, 20)
+
+
+## Directional flat wood chips flung back toward the chopper + a sawdust puff (Valheim-style hit debris).
+static func chips(parent: Node, pos: Vector3, toward: Vector3, hit: int, need: int) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
+	var n := chip_count(hit, need)
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = n
+	p.lifetime = 0.9
+	p.mesh = _mesh("box", 0.07, false)
+	p.direction = (toward + Vector3.UP * 0.6).normalized()
+	p.spread = 35.0
+	p.initial_velocity_min = 2.0
+	p.initial_velocity_max = 5.5
+	p.gravity = Vector3(0, -12, 0)
+	p.angular_velocity_min = -540.0
+	p.angular_velocity_max = 540.0
+	p.color = Art.WOOD.lightened(0.35)
+	var host: Node = parent.get_tree().current_scene
+	if host == null:
+		host = parent
+	host.add_child(p)
+	p.global_position = pos
+	p.emitting = true
+	parent.get_tree().create_timer(1.4).timeout.connect(p.queue_free)
+	burst(parent, pos, Color(0.9, 0.8, 0.6, 0.8), 6, 0.14, 1.2, -0.5, "sphere", 80.0)
+
+
 static func hit_stop_scale(t: float, strength: float) -> float:
 	var dur := 0.04 + 0.06 * clampf(strength, 0.0, 1.0)
 	return 0.05 if t < dur else 1.0

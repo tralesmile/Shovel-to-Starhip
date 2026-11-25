@@ -48,6 +48,7 @@ const ITEMS := {
 	"egg": {"name": "Happy Egg", "buy": 0, "sell": 15},
 	"campfire": {"name": "Campfire", "buy": 0, "sell": 0},
 	"furnace": {"name": "Stone Furnace", "buy": 0, "sell": 0},
+	"anvil": {"name": "Iron-ish Anvil", "buy": 0, "sell": 0},
 	"saddle": {"name": "Goat Saddle", "buy": 0, "sell": 0},
 	"turbo_engine": {"name": "Turbo Engine", "buy": 0, "sell": 0},
 	"offroad_wheels": {"name": "Big Wheels", "buy": 0, "sell": 0},
@@ -107,6 +108,7 @@ const RECIPES := [
 	{"id": "lantern", "name": "Lantern Post", "in": {"plank": 1, "copper_ingot": 1, "gem": 1}, "out": {"lantern": 1}},
 	{"id": "campfire", "name": "Campfire", "in": {"stone": 3, "wood": 2}, "out": {"campfire": 1}},
 	{"id": "furnace", "name": "Stone Furnace", "in": {"stone": 8, "wood": 2}, "out": {"furnace": 1}},
+	{"id": "anvil", "name": "Anvil", "in": {"copper_ingot": 4, "stone": 4}, "out": {"anvil": 1}},
 	{"id": "rabbit_stew", "name": "Rabbit Stew", "in": {"rabbit_meat": 2, "carrot": 1}, "out": {"rabbit_stew": 1}},
 	{"id": "storage_chest", "name": "Storage Chest", "in": {"plank": 6, "copper_ingot": 1}, "out": {"storage_chest": 1}},
 	{"id": "saddle", "name": "Goat Saddle", "in": {"plank": 2, "rabbit_pelt": 2}, "out": {"saddle": 1}, "once": true},
@@ -118,7 +120,7 @@ const RECIPES := [
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
-	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
+	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "anvil": 10.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
 	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
@@ -127,6 +129,8 @@ const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 const COOKABLE := {"rabbit_meat": "cooked_meat"}
 const COOK_TIME := 3.0
 ## Furnace smelting (Terraria-style station tier): 1 ore + 1 wood fuel -> 1 ingot in 4s (workbench hand-smelting needs 2 ore).
+## Anvil (Terraria-style tier): hammer ingots into hull plates, 3 strikes. Cheaper than the workbench plate (no planks, 2 ingots).
+const ANVIL_RECIPES := [{"id": "rocket_plate", "in": {"copper_ingot": 2}, "out": "rocket_plate", "strikes": 3}]
 const SMELTABLE := {"copper_ore": {"out": "copper_ingot", "ore": 1, "fuel": 1}}
 const SMELT_TIME := 4.0
 
