@@ -16,12 +16,32 @@ var days_broken: int = 0
 var ore_rich := false   ## copper streaks visible; better drops
 
 var _mesh: Node3D
+var _cracks: Node3D
+var _mats: Array = []
 var _wobble := 0.0
 
 
 ## Pure (tested): hits needed to break; the copper pickaxe cracks rocks a hit sooner.
-static func hits_needed(upgraded: bool) -> int:
-	return HITS_TO_BREAK - 1 if upgraded else HITS_TO_BREAK
+static func hits_needed(upgraded: bool, gem: bool = false) -> int:
+	var n := HITS_TO_BREAK - 1 if upgraded else HITS_TO_BREAK
+	if gem:
+		n -= 1   # Gem Pickaxe tier (research: Core Keeper/Terraria pickaxe tiers)
+	return maxi(n, 1)
+
+
+## Pure (tested): the rock's tint darkens as it cracks (stage 0..1).
+static func crack_tint(c: float) -> Color:
+	return STONE_COLOR.lerp(Color(0.22, 0.2, 0.22), clampf(c, 0.0, 1.0) * 0.7)
+
+
+## Pure (tested): how many dark crack lines are visible after h hits.
+static func crack_line_count(h: int) -> int:
+	return clampi(h, 0, HITS_TO_BREAK) * 2
+
+
+## Pure (tested): the pickaxe tier from what the player owns.
+static func tier_args(game: GameState) -> Array:
+	return [game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0]
 
 
 ## Pure (tested): which drops does a break give? roll1/roll2 are 0..1 randoms.
@@ -54,6 +74,8 @@ func _ready() -> void:
 	add_child(body)
 	_mesh = Node3D.new()
 	add_child(_mesh)
+	_cracks = Node3D.new()
+	_mesh.add_child(_cracks)
 	var big := Art.box(Vector3(1.5, 1.1, 1.3), STONE_COLOR)
 	big.position.y = 0.55
 	big.rotation.y = randf() * TAU
@@ -62,6 +84,9 @@ func _ready() -> void:
 	top.position = Vector3(0.1, 1.2, 0.0)
 	top.rotation = Vector3(0.15, randf() * TAU, 0.1)
 	_mesh.add_child(top)
+	for mi in [big, top]:
+		mi.material_override = mi.material_override.duplicate()   # Toon materials are cached/shared; tint per rock
+		_mats.append(mi.material_override)
 	if ore_rich:
 		for i in 3:
 			var vein := Art.box(Vector3(0.28, 0.28, 0.28), ORE_COLOR)
@@ -81,7 +106,7 @@ func get_prompt(game: GameState) -> String:
 	if broken:
 		return "Gravel dust. It'll regrow in %d day(s)." % (REGROW_DAYS - days_broken)
 	if game.current_tool == GameState.Tool.PICKAXE:
-		return "[E] Mine %s(%d/%d)" % ["copper-streaked rock " if ore_rich else "rock ", hits, hits_needed(game.count("copper_pickaxe") > 0)]
+		return "[E] Mine %s(%d/%d)" % ["copper-streaked rock " if ore_rich else "rock ", hits, hits_needed(game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0)]
 	return "A big rock. Use the Pickaxe [5]."
 
 
@@ -97,7 +122,7 @@ func interact(game: GameState) -> void:
 	Sfx.play_on(self, "thud")
 	FX.burst(self, global_position + Vector3(0, 0.9, 0), STONE_COLOR.lightened(0.3), 8, 0.08, 3.5)
 	FX.burst(self, global_position + Vector3(0, 0.9, 0), Color(1, 0.9, 0.5), 4, 0.05, 5.0, -2.0, "sphere")   # sparks
-	if hits >= hits_needed(game.count("copper_pickaxe") > 0):
+	if hits >= hits_needed(game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0):
 		FX.hit_stop(get_tree(), 0.9)
 		game.shake.emit(0.5)
 		broken = true
@@ -117,6 +142,7 @@ func _spawn_chunks(game: GameState) -> void:
 		return
 	FX.burst(self, global_position + Vector3(0, 0.8, 0), STONE_COLOR, 22, 0.14, 5.0, -9.0)
 	FX.burst(self, global_position + Vector3(0, 0.4, 0), Color(0.7, 0.68, 0.62), 14, 0.2, 2.0, -2.0, "sphere")   # dust cloud
+	_spawn_shards(host)
 	var drops := drops_for(ore_rich, randf(), randf())
 	for i in drops.size():
 		var d: Dictionary = drops[i]
@@ -129,6 +155,22 @@ func _spawn_chunks(game: GameState) -> void:
 		var a := TAU * float(i) / float(drops.size())
 		c.global_position = global_position + Vector3(cos(a) * 0.6, 0.9 + i * 0.1, sin(a) * 0.6)
 		c.pop(Vector3(cos(a), 0, sin(a)) * 1.2)
+
+
+## The rock visibly splits: three big shards slide apart, tip over and sink away.
+func _spawn_shards(host: Node) -> void:
+	for i in 3:
+		var a := TAU * float(i) / 3.0 + randf() * 0.5
+		var sh := Art.box(Vector3(0.7, 0.6, 0.6), STONE_COLOR.darkened(0.15 * i))
+		host.add_child(sh)
+		sh.global_position = global_position + Vector3(0, 0.55, 0)
+		sh.rotation.y = randf() * TAU
+		var tw := sh.create_tween().set_parallel(true)
+		var tgt := sh.global_position + Vector3(cos(a), -0.15, sin(a)) * 0.9
+		tw.tween_property(sh, "global_position", tgt, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(sh, "rotation", sh.rotation + Vector3(randf_range(-1, 1), 0, randf_range(-1, 1)), 0.35)
+		tw.chain().tween_property(sh, "scale", Vector3.ONE * 0.05, 0.45).set_delay(0.5)
+		tw.chain().tween_callback(sh.queue_free)
 
 
 func on_new_day(_game: GameState) -> void:
@@ -158,6 +200,18 @@ func _refresh() -> void:
 	# Cracks: the rock shrinks a little with every hit.
 	var c := crack_amount(hits)
 	_mesh.scale = Vector3.ONE * (1.0 - 0.12 * c)
+	for m in _mats:
+		(m as ShaderMaterial).set_shader_parameter("albedo_color", crack_tint(c))
+	if _cracks != null:
+		for k in _cracks.get_children():
+			k.queue_free()
+		var n := crack_line_count(hits)
+		for i in n:
+			var side := 1.0 if i % 2 == 0 else -1.0
+			var ln := Art.box(Vector3(0.05, 0.5 + 0.1 * i, 0.04), Color(0.08, 0.07, 0.09))
+			ln.position = Vector3(-0.5 + 0.17 * i, 0.7, 0.66 * side)
+			ln.rotation.z = 0.5 * sin(float(i) * 2.3)
+			_cracks.add_child(ln)
 	for b in get_children():
 		if b is StaticBody3D:
 			b.process_mode = Node.PROCESS_MODE_DISABLED if broken else Node.PROCESS_MODE_INHERIT

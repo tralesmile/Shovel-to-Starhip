@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1393,4 +1393,38 @@ func test_timber_chest() -> bool:
 	root.add_child(bp)
 	check(bp.get_child_count() > 0, "chest piece builds")
 	bp.queue_free()
+	return true
+
+
+func test_gem_pickaxe_cracks() -> bool:
+	check(MineRock.hits_needed(true, true) == MineRock.hits_needed(true) - 1, "gem pickaxe breaks a hit sooner than copper")
+	check(MineRock.hits_needed(false, true) >= 1 and MineRock.hits_needed(true, true) >= 1, "never below 1 hit")
+	check(MineRock.crack_line_count(0) == 0 and MineRock.crack_line_count(3) == 6, "crack lines grow with hits")
+	check(MineRock.crack_line_count(99) == MineRock.HITS_TO_BREAK * 2, "crack lines capped")
+	check(MineRock.crack_tint(1.0).v < MineRock.crack_tint(0.0).v, "rock darkens as it cracks")
+	var game := GameState.new()
+	var idx := _recipe_index("gem_pickaxe")
+	check(idx >= 0, "gem pickaxe recipe exists")
+	game.add_item("gem", 2)
+	game.add_item("copper_ingot", 2)
+	game.add_item("plank", 1)
+	check(game.craft(idx), "craft gem pickaxe")
+	check(game.count("gem_pickaxe") == 1, "gem pickaxe owned")
+	game.add_item("gem", 2)
+	game.add_item("copper_ingot", 2)
+	game.add_item("plank", 1)
+	check(not game.can_craft(idx), "gem pickaxe is one-off")
+	check(MineRock.tier_args(game)[1] == true, "tier args see gem pickaxe")
+	var rock := MineRock.new()
+	rock.name = "R"
+	rock._ready()
+	rock.hits = 3
+	rock._refresh()
+	check(rock._cracks.get_child_count() == 6, "rock shows 6 crack lines after 3 hits")
+	var other := MineRock.new()
+	other.name = "R2"
+	other._ready()
+	check(rock._mats[0] != other._mats[0], "rocks tint independently")
+	rock.free()
+	other.free()
 	return true

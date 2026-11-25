@@ -295,22 +295,22 @@ func _run() -> void:
 		await _shot("97_workbench.png")
 		get_tree().quit()
 		return
-	if OS.get_cmdline_user_args().has("--only=98"):
+	if OS.get_cmdline_user_args().has("--only=89"):
 		var rock: MineRock = main.get_node("Rocks/Rock_00")
 		Game.set_tool(GameState.Tool.PICKAXE)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
 		p.global_position = rock.global_position + Vector3(0, 0.1, -3.5)
-		p._yaw = PI
+		p._yaw = 0.0
 		p._pitch = -0.3
-		p._zoom = 8.0
+		p._zoom = 5.0
 		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
-		for i in 2:
+		for i in 3:
 			rock.interact(Game)
 		await _wait(30)
-		await _shot("98_rock_cracked.png")
-		for i in 2:
-			rock.interact(Game)
-		await _wait(60)
-		await _shot("98_rock_broken.png")
+		await _shot("89_rock_cracked.png")
+		rock.interact(Game)
+		await _wait(12)
+		await _shot("89_rock_broken.png")
 		print("CHUNKS ", get_tree().get_nodes_in_group("pickup").size())
 		get_tree().quit()
 		return

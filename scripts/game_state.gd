@@ -62,6 +62,7 @@ const ITEMS := {
 	"wood_roof": {"name": "Wood Roof", "buy": 0, "sell": 18},
 	"rocket_plate": {"name": "Rocket Hull Plate", "buy": 0, "sell": 0},
 	"copper_pickaxe": {"name": "Copper Pickaxe", "buy": 0, "sell": 0},
+	"gem_pickaxe": {"name": "Gem Pickaxe", "buy": 0, "sell": 0},
 	"copper_axe": {"name": "Copper Axe", "buy": 0, "sell": 0},
 	"wheelbarrow": {"name": "Wheelbarrow", "buy": 0, "sell": 0},
 	"wood_table": {"name": "Wood Table", "buy": 0, "sell": 0},
@@ -109,12 +110,13 @@ const RECIPES := [
 	{"id": "turbo_engine", "name": "Turbo Engine", "in": {"copper_ingot": 3, "plank": 2}, "out": {"turbo_engine": 1}, "once": true},
 	{"id": "offroad_wheels", "name": "Big Wheels", "in": {"plank": 4, "rabbit_pelt": 1, "copper_ingot": 1}, "out": {"offroad_wheels": 1}, "once": true},
 	{"id": "rocket_booster", "name": "Rocket Booster", "in": {"rocket_plate": 1, "copper_ingot": 2, "gem": 1}, "out": {"rocket_booster": 1}, "once": true},
+	{"id": "gem_pickaxe", "name": "Gem Pickaxe", "in": {"gem": 2, "copper_ingot": 2, "plank": 1}, "out": {"gem_pickaxe": 1}, "once": true},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
 	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
-	"copper_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0}
+	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -315,7 +317,7 @@ func drop_candidate() -> String:
 
 
 ## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
-const NO_STASH := ["copper_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster"]
+const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster"]
 
 
 ## Pure (tested): can this item go in a chest?
