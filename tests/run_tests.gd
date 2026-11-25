@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1427,4 +1427,46 @@ func test_gem_pickaxe_cracks() -> bool:
 	check(rock._mats[0] != other._mats[0], "rocks tint independently")
 	rock.free()
 	other.free()
+	return true
+
+
+func test_story() -> bool:
+	check(Story.act_count() == 5 and game.story_act == 0, "story starts at act 1 of 5")
+	check(not Story.act_complete(0, game), "act 1 not done at start")
+	check(Story.progress(0, game)[0]["cur"] == 0, "progress counter starts at 0")
+	check(not game.check_story(), "no advance without goals")
+	game.total_earned = 9999
+	check(Story.progress(0, game)[0]["cur"] == 150 and Story.progress(0, game)[0]["done"], "progress clamps at target")
+	var m := game.money
+	check(game.check_story() and game.story_act == 1, "act 1 completes and advances")
+	check(game.money == m + 50, "act reward paid")
+	game.reputation = -3.4
+	check(Story.goal_value(Story.ACTS[1]["goals"][0], game) == 3, "outlaw rep counts as fame")
+	check(game.check_story() and game.story_act == 2, "act 2 via infamy")
+	game.add_item("rocket_plate", 2)
+	check(not game.check_story(), "act 3 needs gems too")
+	game.add_item("gem", 2)
+	check(game.check_story() and game.story_act == 3, "act 3 completes")
+	game.car_owned = true
+	game.car_parts = ["rocket_booster"]
+	check(game.check_story() and game.story_act == 4, "act 4 completes with car + booster")
+	game.stash["rocket_plate"] = 2
+	game.add_item("polished_gem", 2)
+	check(game.check_story() and Story.is_finished(game.story_act), "act 5 counts stashed plates and finishes")
+	check(not game.check_story(), "finished story never advances")
+	check(Story.hud_text(game.story_act, game).find("Starship") >= 0, "finished text")
+	check(Story.hud_text(0, game).begins_with("Act 1/5"), "hud header")
+	var d := game.to_dict()
+	check(int(d["story_act"]) == 5, "story saved")
+	game.story_act = 0
+	game.from_dict(d)
+	check(game.story_act == 5, "story restored")
+	check(GranRocket.lean_for(0) > GranRocket.lean_for(2) and GranRocket.lean_for(4) == 0.0, "rocket straightens")
+	check(GranRocket.smoke_for(0) == 1.0 and GranRocket.smoke_for(5) == 0.0, "smoke fades")
+	var r := GranRocket.new()
+	root.add_child(r)
+	check(r.stage == 0 or r.stage == game.story_act, "rocket builds")
+	r.set_stage(3, false)
+	check(r._parts[2].visible and not r._parts[3].visible, "parts appear per stage")
+	r.queue_free()
 	return true

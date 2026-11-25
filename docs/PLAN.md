@@ -51,7 +51,7 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] Tool upgrades and invention bench (combine parts into funny gadgets)
 ### World and story
 - [ ] Bigger world: chunked/streamed terrain, biomes (meadow, forest, quarry, beach, desert), landmarks, day/night + weather
-- [ ] Story spine: "Gran's busted rocket": 5 acts (farm money -> town trust or infamy -> parts quests -> build the starship -> Moon). Quest log, memorable funny NPC arcs, 2 endings (Lawful hero / Notorious legend)
+- [ ] (v1 DONE 2026-11-25 run 16: Story.ACTS 5-act bundle-style checklist with HUD tracker, cash rewards, saved story_act, Gran's Rocket landmark at the spaceport that straightens/gains parts per act; still to do: quest NPCs/dialogue, launch cutscene, 2 endings) Story spine: "Gran's busted rocket": 5 acts (farm money -> town trust or infamy -> parts quests -> build the starship -> Moon). Quest log, memorable funny NPC arcs, 2 endings (Lawful hero / Notorious legend)
 - [ ] Jobs and side activities: delivery, fishing contests, racing, treasure maps
 ### Graphics and physics polish (every run, pick one)
 - [ ] (colour grading per time of day DONE v1 2026-11-19 via FX.grade_for; SSAO/glow/fog already High mode) Lighting: SSAO/SSIL, soft shadows, fog, bloom, colour grading per time of day
@@ -59,6 +59,11 @@ Goal: make the sandbox feel like the best of the genre (Stardew Valley, Core Kee
 - [ ] (hit-stop DONE v1 on chop + mining; camera shake DONE) Hit-stop, squash and stretch, impact particles, camera shake, sound for every action
 - [ ] (v1 DONE 2026-11-24: 4 crates + 2 barrels as RigidBody3D props around the farm, shoved by walking into them, axe/pickaxe smashes in 2 hits into plank pickups + loot (seeds/wood/ore/gem), hit-stop + shake + wobble; drop-from-inventory DONE v1 2026-11-24 via G; still to do: fences/other props, more prop kinds) Ragdoll or physics props for crates, barrels, fences; destructible small props
 - [ ] LOD/occlusion and performance budget (60 fps Low mode)
+
+### Research backlog 2026-11-25 (run 16; searches returned links only)
+- Weakest part vs comparables: no visible long-term goal. Stardew's Community Center bundles give a checklist with counters that pulls every system together. APPLIED: Story spine v1 (5 acts, HUD checklist, rewards) + staged Gran's Rocket landmark.
+- Sources: https://stardewvalleywiki.com/Bundles ; https://medium.com/super-jump/what-makes-a-game-about-mundane-chores-hopelessly-addictive ; https://terraria.wiki.gg/wiki/Crafting_stations ; https://docs.godotengine.org/en/4.7/tutorials/3d/particles/index.html
+- Next ideas: crafting-station tiers (Terraria anvil-style gating for iron), quest givers with dialogue, GPUParticles3D collision debris, per-act NPC reactions.
 
 ### Research backlog 2026-11-25 (run 15; searches returned links only)
 - Weakest part vs comparables: mining is five rocks with one tool tier; Core Keeper/Terraria make digging the core loop with ore tiers gating progress and per-hit crack feedback. APPLIED: visible crack stages + shard split, Gem Pickaxe tier.

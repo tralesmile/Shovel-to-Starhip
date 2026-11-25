@@ -9,6 +9,7 @@ var _clock: Label
 var _inv: Label
 var _prompt: Label
 var _heat: Label
+var _story: Label
 var _job: Label
 var _stam: ProgressBar
 var _toast_box: VBoxContainer
@@ -46,6 +47,9 @@ func _ready() -> void:
 	_job = _label(root, 22)
 	_job.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_place(_job, 0.5, 0, 0.5, 0, -400, 8, 400, 40)
+	_story = _label(root, 18)
+	_story.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_place(_story, 1, 0, 1, 0, -524, 94, -24, 200)
 	_stam = ProgressBar.new()
 	_stam.show_percentage = false
 	_stam.max_value = FX.STAMINA_MAX
@@ -260,6 +264,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	_refresh_help()
+	_story.text = Story.hud_text(Game.story_act, Game)
 	_job.text = ""
 	var dep := get_tree().get_first_node_in_group("delivery_depot")
 	if dep and dep.job.active:

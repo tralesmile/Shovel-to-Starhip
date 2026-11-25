@@ -10,6 +10,7 @@ signal day_changed(day: int)
 signal tool_changed(index: int)
 signal shake(amount: float)
 signal built_loaded
+signal story_advanced(act: int)
 signal hint_event(name: String)  ## context events for one-time tutorial hints
 
 const DAY_LENGTH := 120.0          ## real seconds per in-game day
@@ -150,6 +151,8 @@ var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the a
 
 var car_owned: bool = false
 var stash: Dictionary = {}  ## shared contents of every Storage Chest (Gran's magic stash)
+var story_act: int = 0   ## index into Story.ACTS (saved)
+var _story_timer := 0.0
 var car_parts: Array = []   ## installed Car.PARTS ids
 var car_pos: Array = [8.0, 0.0, 14.0, 1.5708]   ## x, y, z, heading of the parked car
 
@@ -172,12 +175,31 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_story_timer += delta
+	if _story_timer >= 0.5:
+		_story_timer = 0.0
+		check_story()
 	if not clock_running:
 		return
 	time_of_day += delta / DAY_LENGTH
 	if time_of_day >= 1.0:
 		time_of_day -= 1.0
 		advance_day()
+
+
+## Advance the story when the current act's checklist is complete. Returns true if it advanced.
+func check_story() -> bool:
+	if not Story.act_complete(story_act, self):
+		return false
+	var done: Dictionary = Story.ACTS[story_act]
+	story_act += 1
+	earn(int(done["reward"]))
+	say("Act complete: %s! +$%d" % [done["title"], int(done["reward"])])
+	if not Story.is_finished(story_act):
+		say(str(Story.ACTS[story_act]["intro"]))
+	shake.emit(0.6)
+	story_advanced.emit(story_act)
+	return true
 
 
 # ---------------------------------------------------------------- money & items
@@ -653,6 +675,7 @@ func to_dict() -> Dictionary:
 		"reputation": reputation,
 		"car_owned": car_owned,
 		"car_parts": car_parts,
+		"story_act": story_act,
 		"stash": stash,
 		"car_pos": car_pos,
 		"world": world,
@@ -681,6 +704,7 @@ func from_dict(data: Dictionary) -> void:
 	fence_sold_today = int(data.get("fence_sold_today", 0))
 	car_owned = bool(data.get("car_owned", false))
 	car_parts = data.get("car_parts", [])
+	story_act = clampi(int(data.get("story_act", 0)), 0, Story.act_count())
 	stash = {}
 	var st: Dictionary = data.get("stash", {})
 	for k in st.keys():

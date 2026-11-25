@@ -87,6 +87,28 @@ func _run() -> void:
 		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=88"):
+		var gr: GranRocket = main.get_node("Spaceport/GranRocket")
+		Game.time_of_day = 0.45
+		Game.total_earned = 200
+		var rp := gr.global_position + Vector3(-9, 0.1, 2)
+		p.global_position = rp
+		p._yaw = -1.57
+		p._pitch = -0.15
+		p._zoom = 9.0
+		p._pivot.global_position = rp + Vector3(0, 1.4, 0)
+		await _wait(45)
+		await _shot("88_rocket_wreck.png")
+		Game.story_act = 4
+		gr.set_stage(4, false)
+		await _wait(30)
+		await _shot("88_rocket_almost.png")
+		Game.story_act = 5
+		gr.set_stage(5, true)
+		await _wait(50)
+		await _shot("88_rocket_done.png")
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=95"):
 		var bw: BuildWorld = main.get_node("BuildWorld")
 		Game.time_of_day = 16.5

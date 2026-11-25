@@ -685,6 +685,10 @@ func _build_spaceport() -> void:
 	Models.solid(port, Models.SPACE + "cargo_B_stacked.gltf", Vector3(-9, 0, 7), 3.0, 0.3)
 	Models.solid(port, Models.SPACE + "solarpanel.gltf", Vector3(9, 0, 6), 4.0, 0.2)
 	Models.solid(port, Models.SPACE + "spacetruck.gltf", Vector3(6, 0, 10), 4.4, 2.6)
+	var gran := GranRocket.new()
+	gran.name = "GranRocket"
+	gran.position = Vector3(-5.5, 0, -8.0)
+	port.add_child(gran)
 	var station := Station.new()
 	station.name = "RocketTease"
 	station.kind = Station.Kind.ROCKET

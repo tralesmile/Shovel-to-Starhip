@@ -17,6 +17,7 @@ const KINDS := {
 	"splash": [400.0, 150.0, 0.3, 0.7],
 	"sizzle": [2200.0, 1400.0, 0.4, 0.92],
 	"happy": [620.0, 980.0, 0.14, 0.0],
+	"fanfare": [523.0, 1046.0, 0.5, 0.0],
 }
 
 var _cache := {}
@@ -164,6 +165,7 @@ func _ready() -> void:
 	var g: Node = get_node("/root/Game")
 	g.money_changed.connect(_on_money)
 	g.toast.connect(func(_t): play("blip"))
+	g.story_advanced.connect(func(_a): play("fanfare"); get_tree().create_timer(0.18).timeout.connect(func(): play("fanfare", 0.8, 1.5)))
 	g.shake.connect(func(a: float): if a >= 0.25: play("thud"))
 
 
