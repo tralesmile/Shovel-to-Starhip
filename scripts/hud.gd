@@ -12,6 +12,9 @@ var _heat: Label
 var _story: Label
 var _job: Label
 var _stam: ProgressBar
+var _dash: PanelContainer
+var _dash_speed: Label
+var _dash_bars: Array = []   ## [row, bar] for condition, drift charge, rocket fuel
 var _fish_box: PanelContainer
 var _fish_title: Label
 var _fish_catch: ProgressBar
@@ -71,6 +74,7 @@ func _ready() -> void:
 	_place(_stam, 0.5, 1, 0.5, 1, -120, -116, 120, -106)
 	_stam.visible = false
 	_build_fish_meter(root)
+	_build_dashboard(root)
 	_prompt = _label(root, 26)
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_place(_prompt, 0.5, 1, 0.5, 1, -600, -156, 600, -116)
@@ -293,6 +297,7 @@ func _process(_delta: float) -> void:
 		if who:
 			_job.text = dep.job.hud_line(Vector2(who.global_position.x, who.global_position.z))
 	_update_fish_meter()
+	_update_dashboard()
 	_clock.text = "Day %d   %s" % [Game.day, Game.clock_text()]
 	if Game.crime_suspicion > 0.02:
 		_heat.text = "Someone is watching... [%s%s]" % ["#".repeat(int(Game.crime_suspicion * 10)), "-".repeat(10 - int(Game.crime_suspicion * 10))]
@@ -322,6 +327,68 @@ func _process(_delta: float) -> void:
 		_prompt.text = "Hidden in tall grass"
 	else:
 		_prompt.text = ""
+
+
+## Bottom-right dashboard while driving: speed, car condition, drift charge and rocket fuel.
+func _build_dashboard(root: Control) -> void:
+	_dash = PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.07, 0.1, 0.18, 0.82)
+	sb.set_corner_radius_all(12)
+	sb.set_content_margin_all(10)
+	_dash.add_theme_stylebox_override("panel", sb)
+	_dash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var col := VBoxContainer.new()
+	_dash.add_child(col)
+	_dash_speed = Label.new()
+	_dash_speed.add_theme_font_size_override("font_size", 32)
+	_dash_speed.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(_dash_speed)
+	for row_name in ["Body", "Drift", "Rocket"]:
+		var row := HBoxContainer.new()
+		var l := Label.new()
+		l.text = row_name
+		l.custom_minimum_size = Vector2(70, 0)
+		l.add_theme_font_size_override("font_size", 17)
+		row.add_child(l)
+		var bar := ProgressBar.new()
+		bar.show_percentage = false
+		bar.max_value = 1.0
+		bar.step = 0.0
+		bar.custom_minimum_size = Vector2(150, 14)
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		for part in ["fill", "background"]:
+			var s := StyleBoxFlat.new()
+			s.set_corner_radius_all(5)
+			s.bg_color = Color(0.4, 0.9, 0.45) if part == "fill" else Color(0.2, 0.22, 0.3)
+			bar.add_theme_stylebox_override(part, s)
+		row.add_child(bar)
+		col.add_child(row)
+		_dash_bars.append([row, bar])
+	root.add_child(_dash)
+	_place(_dash, 1, 1, 1, 1, -272, -262, -24, -120)
+	_dash.visible = false
+
+
+func _update_dashboard() -> void:
+	var car: Car = player.vehicle if player != null else null
+	_dash.visible = car != null
+	if car == null:
+		return
+	_dash_speed.text = CarPhysics.speed_text(car.speed)
+	var health := 1.0 - car.damage
+	_set_dash_bar(0, health, Color(1.0, 0.25, 0.15).lerp(Color(0.4, 0.9, 0.45), health))
+	var tier := CarPhysics.tier_for(car.drift_charge)
+	var tint := Color(1.0, 0.55, 0.1) if tier == 2 else (Color(0.35, 0.75, 1.0) if tier == 1 else Color(0.75, 0.78, 0.85))
+	_set_dash_bar(1, car.drift_charge / CarPhysics.TIER2_CHARGE, tint)
+	(_dash_bars[2][0] as Control).visible = car.has_part("rocket_booster")
+	_set_dash_bar(2, car.boost, Color(1.0, 0.4, 0.7))
+
+
+func _set_dash_bar(i: int, value: float, color: Color) -> void:
+	var bar := _dash_bars[i][1] as ProgressBar
+	bar.value = clampf(value, 0.0, 1.0)
+	(bar.get_theme_stylebox("fill") as StyleBoxFlat).bg_color = color
 
 
 ## Cast power while winding up; "catch" and "line strain" bars during a fight.

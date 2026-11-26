@@ -37,7 +37,7 @@ static func caught(dist: float) -> bool:
 
 
 func setup() -> void:
-	Models.put(self, Models.CITY + "car_police.gltf", Vector3.ZERO, 4.4, 0.0)
+	Models.put(self, Models.CITY + "car_police.gltf", Vector3(0, CarPhysics.ASPHALT_Y + 0.27 - 0.1, 0), 4.4, 0.0)
 	visible = false
 
 

@@ -16,12 +16,15 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models", "test_car_physics", "test_car_damage_parts", "test_street_props",
 	]:
 		_fresh_game()
 		var ok = call(test)
 		check(ok == true, "%s ran to the end (no script error)" % test)
 		game.free()
+	_fresh_game()
+	check(await test_car_on_real_ground() == true, "test_car_on_real_ground ran to the end (no script error)")
+	game.free()
 	print("\n%d checks passed, %d failed" % [passes, failures.size()])
 	for f in failures:
 		print("  FAIL: ", f)
@@ -2093,4 +2096,205 @@ func test_boom_turnip() -> bool:
 	check(broke == 1 and near.broken and not far.broken, "blast breaks only rocks in range, geodes included")
 	check(crate._smashed, "blast smashes crates")
 	check(bomb.explode() == 0, "a bomb explodes once")
+	return true
+
+
+func test_car_physics() -> bool:
+	var dt := 1.0 / 60.0
+	check(CarPhysics.road_height(0.0, 16.0) == CarPhysics.ASPHALT_Y, "asphalt under the road centre")
+	check(CarPhysics.road_height(0.0, 20.4) == CarPhysics.CURB_Y, "kerb at the road edge")
+	check(CarPhysics.road_height(0.0, 8.0) == 0.0 and CarPhysics.road_height(200.0, 16.0) == 0.0, "no road on the grass")
+	check(CarPhysics.wants_drift(12.0, 1.0, true), "handbrake + steer at speed drifts")
+	check(not CarPhysics.wants_drift(12.0, 0.0, true) and not CarPhysics.wants_drift(3.0, 1.0, true) and not CarPhysics.wants_drift(12.0, 1.0, false), "otherwise no drift")
+	var gripped := 0.0
+	var slid := 0.0
+	for i in 60:
+		gripped = CarPhysics.slip_step(gripped, 14.0, -2.0 * dt, CarPhysics.GRIP, dt)
+		slid = CarPhysics.slip_step(slid, 14.0, -2.0 * dt, CarPhysics.DRIFT_GRIP, dt)
+	check(slid > gripped * 2.5 and CarPhysics.is_sliding(slid, 14.0) and not CarPhysics.is_sliding(gripped, 14.0), "low grip slides, normal grip does not (%.1f vs %.1f)" % [slid, gripped])
+	check(slid > 0.0, "turning right (negative yaw) leaves momentum to the left")
+	check(absf(CarPhysics.slip_step(99.0, 10.0, 0.0, 0.0, dt)) <= 10.0 * CarPhysics.MAX_SLIP_RATIO + 0.001, "slip is capped")
+	check(CarPhysics.grip_step(CarPhysics.GRIP, true, false, dt) == CarPhysics.DRIFT_GRIP, "the tail steps out at once")
+	var back := CarPhysics.grip_step(CarPhysics.DRIFT_GRIP, false, false, dt)
+	check(back > CarPhysics.DRIFT_GRIP and back < CarPhysics.GRIP, "grip returns gradually")
+	check(CarPhysics.grip_step(CarPhysics.GRIP, true, true, dt) < CarPhysics.DRIFT_GRIP, "drift tyres slide more")
+	check(CarPhysics.charge_step(0.0, false, 8.0, false, 1.0) == 0.0, "no charge without a slide")
+	check(CarPhysics.charge_step(0.0, true, 6.0, true, 0.5) > CarPhysics.charge_step(0.0, true, 6.0, false, 0.5), "drift tyres charge faster")
+	check(CarPhysics.tier_for(0.2) == 0 and CarPhysics.tier_for(1.0) == 1 and CarPhysics.tier_for(2.0) == 2, "charge tiers")
+	# Springs settle on their target even through a very long frame.
+	var s := Vector2(0.0, 3.0)
+	for i in 240:
+		s = CarPhysics.spring_step(s.x, s.y, 0.1, dt)
+	check(absf(s.x - 0.1) < 0.005 and absf(s.y) < 0.05, "spring settles")
+	var big := CarPhysics.spring_step(0.0, 0.0, 0.1, 0.5)
+	check(absf(big.x) < 0.3, "spring survives a lag spike")
+	check(CarPhysics.roll_target(1.5, 14.0) > 0.0 and CarPhysics.roll_target(-1.5, 14.0) < 0.0 and absf(CarPhysics.roll_target(9.0, 30.0)) <= CarPhysics.MAX_ROLL, "body rolls to the outside, clamped")
+	check(CarPhysics.pitch_target(9.0) < 0.0 and CarPhysics.pitch_target(-20.0) > 0.0, "squat and dive")
+	check(CarPhysics.speed_text(10.0) == "36 km/h" and CarPhysics.speed_text(-5.0) == "18 km/h  R", "speedometer")
+	check(is_equal_approx(SkidMarks.alpha_for(0.0), 1.0) and SkidMarks.alpha_for(SkidMarks.LIFE + 1.0) == 0.0, "skid marks fade")
+	var sk := SkidMarks.new()
+	root.add_child(sk)
+	for i in SkidMarks.CAPACITY + 20:
+		sk.add_segment(Vector3(i, 0, 0), Vector3(i + 0.4, 0, 0), SkidMarks.RUBBER)
+	check(sk.used == SkidMarks.CAPACITY, "skid ring buffer wraps")
+	sk.add_segment(Vector3.ZERO, Vector3(50, 0, 0), SkidMarks.RUBBER)
+	check(sk._next == 20, "teleports leave no mark")
+	sk.free()
+	return true
+
+
+func test_car_damage_parts() -> bool:
+	var n := Vector2(-1, 0)
+	check(CarPhysics.impact_speed(Vector2(10, 0), n) == 10.0 and CarPhysics.impact_speed(Vector2(-10, 0), n) == 0.0, "impact is speed into the wall")
+	var out := CarPhysics.bounce_velocity(Vector2(10, 4), n, 0.25, 0.8)
+	check(out.x < 0.0 and out.y > 3.0, "bounce back, keep sliding along")
+	check(CarPhysics.damage_for(3.0, false) == 0.0, "gentle bumps never dent")
+	check(CarPhysics.damage_for(16.0, false) > 0.2 and CarPhysics.damage_for(16.0, true) < CarPhysics.damage_for(16.0, false) * 0.5, "bull bar protects")
+	check(CarPhysics.speed_mult(0.0) == 1.0 and is_equal_approx(CarPhysics.speed_mult(1.0), 0.6), "a wreck still limps")
+	check(CarPhysics.smoke_stage(0.1) == 0 and CarPhysics.smoke_stage(0.5) == 1 and CarPhysics.smoke_stage(0.9) == 2, "smoke stages")
+	var car := Car.new()
+	root.add_child(car)
+	car.setup()
+	check(car._wheels.size() == 4, "model splits into four wheels")
+	check(car._wheels.filter(func(w): return w["front"]).size() == 2, "two steering wheels")
+	for i in 20:
+		car.crash(18.0, Vector3.ZERO)
+	check(car.damage == CarPhysics.MAX_DAMAGE, "damage caps")
+	car.animate(0.1)
+	check(car._smoke.emitting, "wreck smokes")
+	car.repair()
+	check(car.damage < 0.5 and car.damage > 0.0, "one kit is not a full rebuild from a wreck")
+	car.repair()
+	car.animate(0.1)
+	check(car.damage == 0.0 and not car._smoke.emitting, "two kits fix it")
+	# A charged drift released at speed gives a kick.
+	car.speed = 10.0
+	car.drift_charge = 2.0
+	check(car.release_drift() == 2 and car.speed > 16.0 and car.turbo_time > 1.0 and car.drift_charge == 0.0, "orange turbo")
+	car.speed = 10.0
+	car.drift_charge = 0.3
+	check(car.release_drift() == 0 and car.speed == 10.0, "weak drift gives nothing")
+	# Steering: +1 is screen-right. Facing +Z the chase camera's right is -X.
+	car.halt()
+	car.heading = 0.0
+	car.speed = 8.0
+	car.drive(0.1, 1.0, 1.0, false)
+	check(sin(car.heading) < 0.0, "steer right turns toward screen right")
+	check(car._chassis != null and car.install_part("bull_bar") and car.install_part("drift_tyres") and car.install_part("offroad_wheels"), "new parts bolt on")
+	car.queue_free()
+	# Recipes, one-off rules, repair at the door, saving.
+	var kit := _recipe_index_of("repair_kit")
+	var bar := _recipe_index_of("bull_bar")
+	var tyres := _recipe_index_of("drift_tyres")
+	check(kit >= 0 and bar >= 0 and tyres >= 0, "car recipes exist")
+	game.add_item("copper_ingot", 6)
+	game.add_item("stone", 8)
+	game.add_item("plank", 4)
+	check(game.craft(bar) and game.count("bull_bar") == 1, "bull bar crafts")
+	game.remove_item("bull_bar", 1)
+	game.car_parts = ["bull_bar"]
+	check(not game.can_craft(bar) and bar in game.owned_once_recipes(), "a bolted-on part cannot be crafted twice")
+	check(game.craft(kit) and game.count("repair_kit") == 1, "repair kit crafts")
+	var seat := Car.CarSeat.new()
+	var wreck := Car.new()
+	root.add_child(wreck)
+	wreck.setup()
+	seat.car = wreck
+	wreck.damage = 0.5
+	check(seat.get_prompt(game).contains("Repair Kit"), "dented car offers repair")
+	seat.interact(game)
+	check(wreck.damage == 0.0 and game.count("repair_kit") == 0 and game.car_damage == 0.0, "repair consumes the kit")
+	check(not seat.get_prompt(game).contains("Hammer"), "mint car just offers a drive")
+	seat.free()
+	wreck.queue_free()
+	game.car_damage = 0.45
+	var saved := game.to_dict()
+	game.car_damage = 0.0
+	game.from_dict(saved)
+	check(is_equal_approx(game.car_damage, 0.45), "damage saves")
+	return true
+
+
+func test_street_props() -> bool:
+	var p := Vector3.ZERO
+	check(CarPhysics.in_bumper_zone(p, 0.0, 10.0, Vector3(0, 0, 2.6), 0.4), "prop just ahead is clipped")
+	check(not CarPhysics.in_bumper_zone(p, 0.0, 10.0, Vector3(0, 0, 4.5), 0.4), "prop far ahead is not")
+	check(not CarPhysics.in_bumper_zone(p, 0.0, 10.0, Vector3(2.2, 0, 0), 0.4), "prop to the side is not")
+	check(CarPhysics.in_bumper_zone(p, PI / 2, 10.0, Vector3(2.6, 0, 0), 0.4), "zone follows the heading")
+	var v := CarPhysics.launch_velocity(Vector3(0, 0, 12), Vector3(1, 0, 1), false)
+	check(v.y > 3.0 and v.z > 8.0 and v.x > 0.0, "clipped props fly up and away")
+	check(CarPhysics.launch_velocity(Vector3(0, 0, 12), Vector3(1, 0, 1), true).length() > v.length(), "bull bar flings further")
+	var rows := KnockProp.street_layout()
+	check(rows.size() >= 20, "street is furnished")
+	for r in rows:
+		check(KnockProp.KINDS.has(r[0]) and CarPhysics.road_height(r[1], r[2]) != CarPhysics.ASPHALT_Y, "no prop blocks the traffic lanes: %s" % r[0])
+	check(not KnockProp.may_respawn(5.0, 100.0) and not KnockProp.may_respawn(100.0, 2.0) and KnockProp.may_respawn(100.0, 50.0), "tidies up only when you are away")
+	var holder := Node3D.new()
+	root.add_child(holder)
+	var made: Array = []
+	for i in 3:
+		var kp := KnockProp.new()
+		kp.kind = "bale"
+		kp.cluster = "t"
+		kp.position = Vector3(i, 1, 0)
+		holder.add_child(kp)
+		made.append(kp)
+	check(made[0].freeze, "props rest frozen")
+	var car := Car.new()
+	root.add_child(car)
+	check(made[0].knock(Vector3(5, 3, 0), car), "knock it")
+	check(made.all(func(k): return k.knocked and not k.freeze), "the whole stack tumbles")
+	check(not made[0].knock(Vector3.ONE, car), "no double knock")
+	for k in made:
+		k.reset_prop()
+	check(made.all(func(k): return k.freeze and not k.knocked and k.position.is_equal_approx(Vector3(made.find(k), 1, 0))), "reset restores the stack")
+	car.queue_free()
+	holder.queue_free()
+	return true
+
+
+## Needs real physics frames. Regression: the floor contact used to count as a crash every
+## frame, which capped the car at about 3 m/s from the day it was built.
+func test_car_on_real_ground() -> bool:
+	var ground := StaticBody3D.new()
+	var gs := CollisionShape3D.new()
+	var gb := BoxShape3D.new()
+	gb.size = Vector3(40, 1, 400)
+	gs.shape = gb
+	gs.position = Vector3(0, -0.5, 0)
+	ground.add_child(gs)
+	root.add_child(ground)
+	var wall := StaticBody3D.new()
+	var ws := CollisionShape3D.new()
+	var wb := BoxShape3D.new()
+	wb.size = Vector3(40, 4, 1)
+	ws.shape = wb
+	ws.position = Vector3(0, 2, 60)
+	wall.add_child(ws)
+	root.add_child(wall)
+	var car := Car.new()
+	car.position = Vector3(0, 0.1, 0)
+	root.add_child(car)
+	car.setup()
+	var bumps := [0]
+	car.bumped.connect(func(): bumps[0] += 1)
+	await physics_frame
+	var dt := 1.0 / Engine.physics_ticks_per_second
+	for i in 150:
+		await physics_frame
+		car.drive(dt, 1.0, 0.0, false)
+	check(car.speed > 11.0 and car.position.z > 14.0, "car really accelerates on the ground (%.1f m/s, %.1f m)" % [car.speed, car.position.z])
+	check(bumps[0] == 0 and car.damage == 0.0, "driving on flat ground never bumps")
+	var rebounded := false
+	for i in 360:
+		await physics_frame
+		car.drive(dt, 1.0 if not rebounded else 0.0, 0.0, false)
+		if car.speed < -0.5:
+			rebounded = true
+			break
+	check(rebounded and bumps[0] == 1, "hitting a wall bounces the car back once")
+	check(car.damage > 0.1, "a flat-out crash dents it (%.2f)" % car.damage)
+	car.free()
+	ground.free()
+	wall.free()
 	return true

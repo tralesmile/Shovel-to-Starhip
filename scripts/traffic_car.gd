@@ -47,7 +47,8 @@ func setup() -> void:
 	shape.shape = box
 	shape.position.y = 0.7
 	add_child(shape)
-	Models.put(self, Models.CITY + model, Vector3.ZERO, 4.4, 0.0)
+	# The model's wheels hang below its origin: lift it so they roll on the asphalt, not under it.
+	Models.put(self, Models.CITY + model, Vector3(0, CarPhysics.ASPHALT_Y + 0.27 - 0.1, 0), 4.4, 0.0)
 	rotation.y = PI / 2.0 if dir > 0.0 else -PI / 2.0
 	sync_to_physics = false
 	add_to_group("traffic")

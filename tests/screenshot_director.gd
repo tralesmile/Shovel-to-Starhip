@@ -87,6 +87,14 @@ func _run() -> void:
 		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=40"):
+		await _car_before_shot(p)
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=41,42,43,44,45"):
+		await _car_shots(p)
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=50,51,52,53,54,55,56,57"):
 		await _fishing_shots(p)
 		get_tree().quit()
@@ -810,3 +818,130 @@ func _fishing_shots(p: Player) -> void:
 	await _wait(10)
 	await _shot("57_catch_models.png")
 	mc.queue_free()
+
+
+func _spawn_shot_car(at: Vector3, heading: float) -> Car:
+	Game.car_owned = true
+	Game.car_pos = [at.x, at.y, at.z, heading]
+	var old := get_tree().get_first_node_in_group("car")
+	if old != null:
+		old.free()
+	main._spawn_player_car()
+	return get_tree().get_first_node_in_group("car") as Car
+
+
+func _car_before_shot(p: Player) -> void:
+	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+	Game.time_of_day = 0.45
+	var car := _spawn_shot_car(Vector3(4.0, 0.1, 9.0), PI / 2)
+	p.global_position = Vector3(4.0, 0.1, 3.0)
+	await _wait(40)
+	_free_cam(car.global_position + Vector3(3.6, 1.9, -4.6), car.global_position + Vector3(0, 0.6, 0), 50.0)
+	await _shot("40_car_grass.png")
+	car.global_position = Vector3(4.0, 0.6, 14.4)
+	await _wait(40)
+	_free_cam(car.global_position + Vector3(3.6, 1.9, -4.6), car.global_position + Vector3(0, 0.6, 0), 50.0)
+	await _shot("40_car_road.png")
+	print("CARY ", car.global_position.y)
+
+
+## Drives the car for `secs` of physics time with fixed inputs.
+func _drive_for(car: Car, secs: float, throttle: float, steer: float, hand: bool) -> void:
+	var dt := 1.0 / Engine.physics_ticks_per_second
+	var t := 0.0
+	while t < secs:
+		await get_tree().physics_frame
+		car.drive(dt, throttle, steer, hand)
+		t += dt
+
+
+## The player's real driving path: scripted key presses, chase camera and dashboard.
+func _hold(actions: Array, secs: float) -> void:
+	for a in actions:
+		Input.action_press(a)
+	var t := 0.0
+	while t < secs:
+		await get_tree().physics_frame
+		t += 1.0 / Engine.physics_ticks_per_second
+	for a in actions:
+		Input.action_release(a)
+
+
+func _car_shots(p: Player) -> void:
+	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+	Game.time_of_day = 0.45
+	for t in get_tree().get_nodes_in_group("traffic"):
+		t.free()
+	# 41: drifting on the road through the real player input path.
+	var car := _spawn_shot_car(Vector3(-56.0, 0.1, 15.2), PI / 2)
+	p.global_position = car.global_position + Vector3(0, 0, -2)
+	await _wait(10)
+	p.enter_car(car)
+	await _hold(["move_forward"], 2.6)
+	print("SPEED before drift ", car.speed)
+	for a in ["move_forward", "jump", "move_right"]:
+		Input.action_press(a)
+	var t := 0.0
+	while t < 0.62:
+		await get_tree().physics_frame
+		t += 1.0 / Engine.physics_ticks_per_second
+	Engine.time_scale = 0.04
+	await _grab("42_drift_chasecam.png")
+	var fwd := Vector3(sin(car.heading), 0, cos(car.heading))
+	var cam := _free_cam(car.global_position + Vector3(5.0, 4.2, -6.0), car.global_position + Vector3(-2.2, 0.2, 0), 60.0)
+	await _grab("41_drift.png")
+	print("DRIFT lat=", car.lat, " v=", car.speed, " charge=", car.drift_charge, " marks=", car.skids.used, " dmg=", car.damage)
+	for a in ["move_forward", "jump", "move_right"]:
+		Input.action_release(a)
+	Engine.time_scale = 1.0
+	cam.queue_free()
+	p.camera.current = true
+	p.exit_car()
+	car.global_position = Vector3(-60, 0.1, -40)
+	# 43: cones and the bale pyramid getting bowled over.
+	car = _spawn_shot_car(Vector3(30.0, 0.1, 8.6), PI / 2)
+	car.speed = 13.0
+	car.set_parts(["bull_bar", "drift_tyres"])
+	var cam2 := _free_cam(Vector3(48.5, 3.4, 16.5), Vector3(44.5, 1.1, 8.4), 52.0)
+	var dt := 1.0 / Engine.physics_ticks_per_second
+	var hit := false
+	var after := 0.0
+	while after < 0.28 and car.global_position.x < 52.0:
+		await get_tree().physics_frame
+		car.drive(dt, 1.0, 0.0, false)
+		hit = hit or get_tree().get_nodes_in_group("knockable").any(func(k): return k.cluster == "pyramid" and k.knocked)
+		if hit:
+			after += dt
+	Engine.time_scale = 0.04
+	car.driven = false
+	await _grab("43_bowling.png")
+	Engine.time_scale = 1.0
+	cam2.queue_free()
+	# 44: the new bolt-on parts, parked.
+	car.halt()
+	car.global_position = Vector3(2.0, 0.1, 9.0)
+	car.heading = PI / 2
+	car.rotation.y = car.heading
+	await _wait(60)
+	var cam3 := _free_cam(car.global_position + Vector3(4.6, 1.7, -3.4), car.global_position + Vector3(0.4, 0.6, 0), 48.0)
+	await _shot("44_parts.png")
+	cam3.queue_free()
+	# 45: a wreck at dusk, smoking, brake lights on.
+	car.set_parts(["offroad_wheels"])
+	car.global_position = Vector3(-8.0, 0.4, 15.0)
+	car.damage = 0.85
+	car.driven = true
+	car.braking = true
+	Game.time_of_day = 0.76
+	var cam4 := _free_cam(car.global_position + Vector3(-5.2, 2.2, -3.6), car.global_position + Vector3(0, 1.0, 0), 52.0)
+	await _wait(100)
+	await _shot("45_wreck_dusk.png")
+	cam4.queue_free()
+
+
+## Grab the next rendered frame without the long settle that _shot uses (for things in motion).
+func _grab(file: String) -> void:
+	await _wait(3)
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png(out_dir.path_join(file))
+	print("saved ", file)

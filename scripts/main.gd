@@ -48,6 +48,7 @@ func _ready() -> void:
 	_build_rocks()
 	_build_mine()
 	_build_crates()
+	_build_street_props()
 	add_child(BuildWorld.new())
 	var bug_life := BugLife.new()
 	bug_life.name = "BugLife"
@@ -552,6 +553,7 @@ func _spawn_player_car() -> void:
 	add_child(car)
 	car.setup()
 	car.set_parts(Game.car_parts)
+	car.damage = Game.car_damage
 
 
 func _build_workbench() -> void:
@@ -725,6 +727,23 @@ func _spawn_traffic(parent: Node3D) -> void:
 		t.setup()
 
 
+## Cones, picket panels, mailboxes and a bale pyramid: things that exist to be driven into.
+func _build_street_props() -> void:
+	var holder := Node3D.new()
+	holder.name = "StreetProps"
+	add_child(holder)
+	for row in KnockProp.street_layout():
+		var kp := KnockProp.new()
+		kp.kind = row[0]
+		kp.game = Game
+		kp.cluster = row[5]
+		var y: float = Terrain.height_at(row[1], row[2]) + CarPhysics.road_height(row[1], row[2]) \
+			+ KnockProp.KINDS[row[0]]["size"].y * 0.5 + float(row[4])
+		kp.position = Vector3(row[1], y, row[2])
+		kp.rotation.y = row[3]
+		holder.add_child(kp)
+
+
 func _build_road_and_signs() -> void:
 	var town := Node3D.new()
 	town.name = "Town"
@@ -740,10 +759,10 @@ func _build_road_and_signs() -> void:
 		Models.solid(town, Models.CITY + names[k] + ".gltf", Vector3(x, 0, 27), 4.8, PI, 0.95)
 	for k in range(-5, 6):
 		Models.put(town, Models.CITY + "streetlight.gltf", Vector3(k * 10.0 + 3.0, 0, 21.2), 4.0, PI)
-	Models.solid(town, Models.CITY + "car_police.gltf", Vector3(-14, 0, 19.2), 4.4, PI / 2)
-	Models.solid(town, Models.CITY + "car_taxi.gltf", Vector3(8, 0, 19.2), 4.4, -PI / 2)
-	Models.solid(town, Models.CITY + "car_sedan.gltf", Vector3(24, 0, 12.8), 4.4, PI / 2)
-	Models.solid(town, Models.CITY + "car_hatchback.gltf", Vector3(-30, 0, 12.8), 4.4, -PI / 2)
+	Models.solid(town, Models.CITY + "car_police.gltf", Vector3(-14, 0.62, 19.2), 4.4, PI / 2)
+	Models.solid(town, Models.CITY + "car_taxi.gltf", Vector3(8, 0.62, 19.2), 4.4, -PI / 2)
+	Models.solid(town, Models.CITY + "car_sedan.gltf", Vector3(24, 0.62, 12.8), 4.4, PI / 2)
+	Models.solid(town, Models.CITY + "car_hatchback.gltf", Vector3(-30, 0.62, 12.8), 4.4, -PI / 2)
 	_spawn_traffic(town)
 	Models.solid(town, Models.CITY + "bench.gltf", Vector3(-4, 0, 21.4), 4.0, PI)
 	Models.solid(town, Models.CITY + "firehydrant.gltf", Vector3(2, 0, 21.4), 4.0)

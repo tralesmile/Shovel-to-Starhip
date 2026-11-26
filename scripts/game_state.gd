@@ -74,6 +74,9 @@ const ITEMS := {
 	"turbo_engine": {"name": "Turbo Engine", "buy": 0, "sell": 0},
 	"offroad_wheels": {"name": "Big Wheels", "buy": 0, "sell": 0},
 	"rocket_booster": {"name": "Rocket Booster", "buy": 0, "sell": 0},
+	"bull_bar": {"name": "Bull Bar", "buy": 0, "sell": 0},
+	"drift_tyres": {"name": "Drift Tyres", "buy": 0, "sell": 0},
+	"repair_kit": {"name": "Repair Kit", "buy": 0, "sell": 20},
 	# Crafted at the workbench.
 	"plank": {"name": "Plank", "buy": 0, "sell": 4},
 	"copper_ingot": {"name": "Copper Ingot", "buy": 0, "sell": 50},
@@ -148,6 +151,9 @@ const RECIPES := [
 	{"id": "firefly_jar", "name": "Firefly Jar", "in": {"firefly": 4, "plank": 1, "copper_ingot": 1}, "out": {"firefly_jar": 1}},
 	{"id": "sunmint_bait", "name": "Sunmint Bait", "in": {"sunmint": 1, "hay": 1}, "out": {"sunmint_bait": 3}},
 	{"id": "springy_rod", "name": "Springy Rod", "in": {"plank": 3, "copper_ingot": 1, "hay": 2}, "out": {"springy_rod": 1}, "once": true},
+	{"id": "repair_kit", "name": "Repair Kit", "in": {"copper_ingot": 1, "plank": 2}, "out": {"repair_kit": 1}},
+	{"id": "bull_bar", "name": "Bull Bar", "in": {"copper_ingot": 2, "stone": 4}, "out": {"bull_bar": 1}, "once": true},
+	{"id": "drift_tyres", "name": "Drift Tyres", "in": {"hay": 4, "copper_ingot": 2, "plank": 1}, "out": {"drift_tyres": 1}, "once": true},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
@@ -157,7 +163,8 @@ const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, 
 	"glow_crystal": 0.5, "boom_turnip": 0.5, "miner_helmet": 0.0,
 	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0,
 	"butterfly": 0.05, "grasshopper": 0.05, "frog": 0.3, "firefly": 0.02, "bug_net": 0.0, "firefly_jar": 2.0,
-	"sunmint_bait": 0.05, "springy_rod": 0.0}
+	"sunmint_bait": 0.05, "springy_rod": 0.0,
+	"bull_bar": 4.0, "drift_tyres": 4.0, "repair_kit": 1.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -214,6 +221,7 @@ var story_act: int = 0   ## index into Story.ACTS (saved)
 var meadow_cut: Dictionary = {}  ## cut grass tuft index (as text) -> day it was cut (saved)
 var _story_timer := 0.0
 var car_parts: Array = []   ## installed Car.PARTS ids
+var car_damage: float = 0.0   ## 0 mint .. 1 wreck
 var car_pos: Array = [8.0, 0.0, 14.0, 1.5708]   ## x, y, z, heading of the parked car
 
 var reputation: float = 0.0     ## -MAX_REP (Outlaw) .. +MAX_REP (Lawful)
@@ -301,7 +309,7 @@ func owned_once_recipes() -> Array:
 	for i in RECIPES.size():
 		if RECIPES[i].get("once", false):
 			for id in RECIPES[i]["out"]:
-				if count(id) > 0:
+				if count(id) > 0 or id in car_parts:
 					out.append(i)
 	return out
 
@@ -326,8 +334,8 @@ func can_craft(idx: int) -> bool:
 		return false
 	if RECIPES[idx].get("once", false):
 		for id in RECIPES[idx]["out"]:
-			if count(id) > 0:
-				return false   # one-off tool upgrade already owned
+			if count(id) > 0 or id in car_parts:
+				return false   # one-off upgrade already owned (or bolted to the car)
 	for id in RECIPES[idx]["in"]:
 		if count_with_stash(id) < int(RECIPES[idx]["in"][id]):
 			return false
@@ -427,7 +435,7 @@ func drop_candidate() -> String:
 
 
 ## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
-const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet", "scythe", "bug_net"]
+const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet", "scythe", "bug_net", "bull_bar", "drift_tyres"]
 
 
 ## Pure (tested): can this item go in a chest?
@@ -757,6 +765,7 @@ func buy_car() -> bool:
 		return false
 	car_owned = true
 	car_parts = []
+	car_damage = 0.0
 	car_pos = [8.0, 0.0, 14.0, 1.5708]
 	return true
 
@@ -783,6 +792,7 @@ func to_dict() -> Dictionary:
 		"reputation": reputation,
 		"car_owned": car_owned,
 		"car_parts": car_parts,
+		"car_damage": car_damage,
 		"story_act": story_act,
 		"stash": stash,
 		"meadow_cut": meadow_cut.duplicate(),
@@ -817,6 +827,7 @@ func from_dict(data: Dictionary) -> void:
 	fence_sold_today = int(data.get("fence_sold_today", 0))
 	car_owned = bool(data.get("car_owned", false))
 	car_parts = data.get("car_parts", [])
+	car_damage = clampf(float(data.get("car_damage", 0.0)), 0.0, 1.0)
 	story_act = clampi(int(data.get("story_act", 0)), 0, Story.act_count())
 	stash = {}
 	var st: Dictionary = data.get("stash", {})

@@ -618,6 +618,8 @@ func enter_car(car: Car) -> void:
 	vehicle = car
 	if not car.bumped.is_connected(_on_car_bump):
 		car.bumped.connect(_on_car_bump)
+		car.bumped_prop.connect(func(): Game.shake.emit(0.14))
+		car.smoke_started.connect(func(stage: int): Game.say("Your car is making soup noises." if stage == 1 else "Black smoke! The car would like a Repair Kit."))
 	car.driven = true
 	_shape.set_deferred("disabled", true)
 	_model.visible = false
@@ -625,7 +627,7 @@ func enter_car(car: Car) -> void:
 	in_cover = false
 	velocity = Vector3.ZERO
 	_yaw = car.heading + PI
-	Game.say("Vroom. Mind the goat.")
+	Game.say("Vroom. Hold Space while steering to drift; let go for a turbo.")
 	Game.hint_event.emit("drive")
 
 
@@ -658,7 +660,8 @@ func dismount() -> void:
 
 
 func _on_car_bump() -> void:
-	Game.shake.emit(0.3)
+	var hit := vehicle.last_impact if vehicle != null else 6.0
+	Game.shake.emit(clampf(hit * 0.04, 0.12, 0.6))
 
 
 func exit_car() -> void:
@@ -667,7 +670,7 @@ func exit_car() -> void:
 	var car := vehicle
 	vehicle = null
 	car.driven = false
-	car.speed = 0.0
+	car.halt()
 	global_position = car.exit_position()
 	_shape.set_deferred("disabled", false)
 	_model.visible = true
@@ -874,15 +877,16 @@ func _set_glider_wing(on: bool) -> void:
 
 func _drive(delta: float) -> void:
 	var throttle := Input.get_axis("move_back", "move_forward")
-	var steer := Input.get_axis("move_right", "move_left")
+	var steer := Input.get_axis("move_left", "move_right")
 	vehicle.drive(delta, throttle, steer, Input.is_action_pressed("jump"), Input.is_action_pressed("sprint"))
+	Game.car_damage = vehicle.damage
 	if vehicle.boosting:
 		Game.shake.emit(0.06)
 	global_position = vehicle.global_position
 	# Chase camera drifts behind the car unless the mouse is being used.
 	_yaw = lerp_angle(_yaw, vehicle.heading + PI, 2.0 * delta)
 	_zoom = max(_zoom, 8.0)
-	camera.fov = lerp(camera.fov, 65.0 + absf(vehicle.speed) * 0.6 + (10.0 if vehicle.boosting else 0.0), 4.0 * delta)
+	camera.fov = lerp(camera.fov, 65.0 + absf(vehicle.speed) * 0.6 + (10.0 if vehicle.boosting or vehicle.turbo_time > 0.0 else 0.0), 4.0 * delta)
 	_dust.emitting = false
 	_update_camera(delta)
 	target = null
