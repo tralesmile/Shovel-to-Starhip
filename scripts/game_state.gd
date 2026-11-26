@@ -39,6 +39,13 @@ const ITEMS := {
 	"hay": {"name": "Hay Bundle", "buy": 0, "sell": 3},
 	"sunmint": {"name": "Sunmint", "buy": 0, "sell": 14},
 	"scythe": {"name": "Scythe", "buy": 0, "sell": 0},
+	# Meadow critters (caught by hand or with the Bug Net).
+	"butterfly": {"name": "Butterfly", "buy": 0, "sell": 12},
+	"grasshopper": {"name": "Grasshopper", "buy": 0, "sell": 8},
+	"frog": {"name": "Frog", "buy": 0, "sell": 22},
+	"firefly": {"name": "Firefly", "buy": 0, "sell": 10},
+	"bug_net": {"name": "Bug Net", "buy": 0, "sell": 0},
+	"firefly_jar": {"name": "Firefly Jar", "buy": 0, "sell": 0},
 	"hay_bale": {"name": "Bouncy Hay Bale", "buy": 0, "sell": 0},
 	# Mining drops.
 	"stone": {"name": "Stone", "buy": 0, "sell": 4},
@@ -135,6 +142,8 @@ const RECIPES := [
 	{"id": "miner_helmet", "name": "Miner's Helmet", "in": {"copper_ingot": 2, "glow_crystal": 2}, "out": {"miner_helmet": 1}, "once": true},
 	{"id": "scythe", "name": "Scythe", "in": {"plank": 2, "stone": 2}, "out": {"scythe": 1}, "once": true},
 	{"id": "hay_bale", "name": "Bouncy Hay Bale", "in": {"hay": 6, "plank": 1}, "out": {"hay_bale": 1}},
+	{"id": "bug_net", "name": "Bug Net", "in": {"plank": 2, "hay": 4}, "out": {"bug_net": 1}, "once": true},
+	{"id": "firefly_jar", "name": "Firefly Jar", "in": {"firefly": 4, "plank": 1, "copper_ingot": 1}, "out": {"firefly_jar": 1}},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
@@ -142,7 +151,8 @@ const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, 
 	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "anvil": 10.0, "invention_bench": 9.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
 	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0, "loot_vacuum": 0.0,
 	"glow_crystal": 0.5, "boom_turnip": 0.5, "miner_helmet": 0.0,
-	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0}
+	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0,
+	"butterfly": 0.05, "grasshopper": 0.05, "frog": 0.3, "firefly": 0.02, "bug_net": 0.0, "firefly_jar": 2.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -411,7 +421,7 @@ func drop_candidate() -> String:
 
 
 ## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
-const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet", "scythe"]
+const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet", "scythe", "bug_net"]
 
 
 ## Pure (tested): can this item go in a chest?

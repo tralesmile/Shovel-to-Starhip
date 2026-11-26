@@ -142,6 +142,16 @@ func _ready() -> void:
 		var spot := BedSpot.new()
 		spot.interact_radius = 2.2
 		add_child(spot)
+	elif def["style"] == "firejar":
+		var stake := Art.box(Vector3(0.1, 0.85, 0.1), c)
+		stake.position.y = 0.42
+		_mesh.add_child(stake)
+		var shelf := Art.box(Vector3(0.42, 0.07, 0.42), c.lightened(0.12))
+		shelf.position.y = 0.86
+		_mesh.add_child(shelf)
+		var jar := FireflyJar.new()
+		jar.position.y = 1.13
+		_mesh.add_child(jar)
 	elif def["style"] == "lantern":
 		var post := Art.box(Vector3(0.1, 1.2, 0.1), c)
 		post.position.y = 0.6

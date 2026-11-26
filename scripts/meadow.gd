@@ -317,6 +317,7 @@ func cut(ids: Array, from: Vector3, rolls: Array = []) -> int:
 	var n := 0
 	var sum := Vector3.ZERO
 	var finds: Array = []
+	var spots: Array = []
 	for i in ids:
 		if not tufts[i]["tall"] or not _standing(i):
 			continue
@@ -326,6 +327,7 @@ func cut(ids: Array, from: Vector3, rolls: Array = []) -> int:
 		_apply(i)
 		var p: Vector3 = tufts[i]["pos"]
 		sum += p
+		spots.append(p)
 		if n % 3 == 0:
 			_blade_burst(p + Vector3(0, 0.35, 0), from, float(tufts[i]["tint"]))
 		var roll: float = rolls[n] if n < rolls.size() else randf()
@@ -338,6 +340,10 @@ func cut(ids: Array, from: Vector3, rolls: Array = []) -> int:
 	var r := hay_from(_hay_progress, n)
 	_hay_progress = r[0]
 	var centre := sum / n
+	if is_inside_tree():
+		var life := get_tree().get_first_node_in_group("bug_life") as BugLife
+		if life != null:
+			life.flush(spots, from)
 	for b in int(r[1]):
 		var src: Vector3 = tufts[ids[(b * TUFTS_PER_HAY) % ids.size()]]["pos"]
 		_drop("hay", src.lerp(centre, 0.3), from)

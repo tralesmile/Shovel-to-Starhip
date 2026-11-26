@@ -48,6 +48,10 @@ func _ready() -> void:
 	_build_mine()
 	_build_crates()
 	add_child(BuildWorld.new())
+	var bug_life := BugLife.new()
+	bug_life.name = "BugLife"
+	bug_life.game = Game
+	add_child(bug_life)
 	_build_road_and_signs()
 	_build_interiors()
 	_build_spaceport()

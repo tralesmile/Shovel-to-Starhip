@@ -21,6 +21,7 @@ var _stump: Node3D
 var _wobble: float = 0.0
 var _falling: bool = false
 var _leaves: CPUParticles3D
+var trunk: FelledTrunk = null   ## the fallen trunk waiting to be bucked (the stump waits for it)
 
 
 func _ready() -> void:
@@ -61,6 +62,8 @@ func _process(delta: float) -> void:
 
 func get_prompt(game: GameState) -> String:
 	if felled:
+		if has_trunk():
+			return "A stump. Buck its trunk with the Axe so it can regrow."
 		return "A stump. It'll regrow in %d day(s)." % (REGROW_DAYS - days_felled)
 	if game.current_tool == GameState.Tool.AXE:
 		return "[E] Chop tree (%d/%d)" % [hits, hits_needed(game.count("copper_axe") > 0)]
@@ -99,14 +102,53 @@ func interact(game: GameState) -> void:
 	_refresh()
 
 
-func _fall(game: GameState) -> void:
+func has_trunk() -> bool:
+	return trunk != null and is_instance_valid(trunk) and not trunk.is_queued_for_deletion() and trunk.sections > 0
+
+
+## Pure (tested): another tree's trunk clips this one. It counts as one swing; a notched tree goes over too.
+static func domino(hits_now: int, need: int) -> Dictionary:
+	var h := hits_now + 1
+	return {"hits": 0 if h >= need else h, "falls": h >= need}
+
+
+## A falling neighbour slammed into us.
+func domino_hit(game: GameState, dir: Vector3) -> bool:
+	if felled:
+		return false
+	var r := domino(hits, hits_needed(game.count("copper_axe") > 0))
+	hits = r["hits"]
+	_wobble = 1.0
+	FX.burst(self, global_position + Vector3(0, 2.6, 0), Color(0.16, 0.62, 0.42), 18, 0.12, 2.2, -2.0, "box", 160.0)
+	Sfx.play_on(self, "thud", 0.8)
+	if r["falls"]:
+		felled = true
+		days_felled = 0
+		game.say("DOMINO! Two trees for the price of one!")
+		_fall(game, dir)
+	else:
+		game.say("The falling trunk notched its neighbour (%d/%d)." % [hits, hits_needed(game.count("copper_axe") > 0)])
+	_refresh()
+	return true
+
+
+func _knock_neighbours(game: GameState, dir: Vector3) -> void:
+	for n in get_parent().get_children():
+		var other := n as ChoppableTree
+		if other != null and other != self and not other.felled and FX.in_fall_zone(global_position, dir, other.global_position, 5.0, 1.2):
+			other.domino_hit(game, dir)
+
+
+func _fall(game: GameState, forced_dir: Vector3 = Vector3.ZERO) -> void:
 	if not is_inside_tree():
 		return
 	_falling = true
 	_wobble = 0.0
 	# Valheim-style: topples away from whoever swung the axe.
 	var pl := get_tree().get_first_node_in_group("player") as Node3D
-	var dir := FX.fall_dir(global_position, pl.global_position if pl != null else global_position - Vector3.RIGHT)
+	var dir := forced_dir
+	if dir == Vector3.ZERO:
+		dir = FX.fall_dir(global_position, pl.global_position if pl != null else global_position - Vector3.RIGHT)
 	var axis := FX.fall_axis(dir)
 	var dist := pl.global_position.distance_to(global_position) if pl != null else 3.0
 	# Warning: a red strip on the ground along the fall line, and a shout if you are standing in it.
@@ -117,9 +159,9 @@ func _fall(game: GameState) -> void:
 	var tw := create_tween()
 	tw.tween_method(func(a: float): _trunk.basis = Basis(axis, a), 0.0, PI * 0.5, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func():
-		_spawn_logs(game, dir)
 		game.shake.emit(FX.fall_shake(dist))
 		_crush(game, dir)
+		_knock_neighbours(game, dir)
 		FX.burst(self, global_position + dir * 2.5 + Vector3(0, 0.3, 0), Color(0.45, 0.62, 0.25), 24, 0.16, 4.0, -6.0)
 		FX.burst(self, global_position + dir * 2.5 + Vector3(0, 0.2, 0), Color(0.75, 0.68, 0.55), 16, 0.2, 2.0, -2.0, "sphere")
 		# Leaves flutter down slowly (low gravity, wide spread) for a long moment.
@@ -127,29 +169,24 @@ func _fall(game: GameState) -> void:
 	# Thud rebound: bounces back a few degrees and settles.
 	tw.tween_method(func(a: float): _trunk.basis = Basis(axis, a), PI * 0.5, PI * 0.46, 0.09).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tw.tween_method(func(a: float): _trunk.basis = Basis(axis, a), PI * 0.46, PI * 0.5, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tw.tween_property(_trunk, "scale", Vector3.ONE * 0.01, 0.35).set_delay(0.25)
+	# The standing model hands over to a physical trunk that stays until you buck it.
 	tw.tween_callback(func():
 		_falling = false
 		_trunk.basis = Basis.IDENTITY
+		_spawn_trunk(game, dir)
 		_refresh())
 
 
-## Logs are real rigid bodies that tumble out along the line the trunk fell.
-func _spawn_logs(game: GameState, dir: Vector3) -> void:
-	var host: Node = get_parent()
-	if host == null:
+func _spawn_trunk(game: GameState, dir: Vector3) -> void:
+	if get_parent() == null or has_trunk():
 		return
-	var side := dir.cross(Vector3.UP)
-	for i in WOOD_DROP:
-		var lg := WoodLog.new()
-		lg.game = game
-		host.add_child(lg)
-		lg.global_position = global_position + dir * (1.2 + i * 0.9) + side * randf_range(-0.3, 0.3) + Vector3(0, 0.6 + i * 0.2, 0)
-		lg.pop(dir * 1.5)
+	trunk = FelledTrunk.new()
+	trunk.setup(global_position, dir, WOOD_DROP, game)
+	get_parent().add_child(trunk)
 
 
 func on_new_day(_game: GameState) -> void:
-	if felled:
+	if felled and not has_trunk():
 		days_felled += 1
 		if days_felled >= REGROW_DAYS:
 			felled = false
@@ -158,13 +195,29 @@ func on_new_day(_game: GameState) -> void:
 
 
 func to_dict() -> Dictionary:
-	return {"hits": hits, "felled": felled, "days_felled": days_felled}
+	var d := {"hits": hits, "felled": felled, "days_felled": days_felled}
+	if has_trunk():
+		d["trunk"] = trunk.to_dict()
+	elif _falling:   # saved mid-fall: keep the wood
+		d["trunk_pending"] = true
+	return d
 
 
 func from_dict(d: Dictionary) -> void:
 	hits = int(d.get("hits", 0))
 	felled = bool(d.get("felled", false))
 	days_felled = int(d.get("days_felled", 0))
+	if has_trunk():
+		trunk.queue_free()
+	trunk = null
+	if felled and get_parent() != null:
+		var saved: Dictionary = d.get("trunk", {})
+		if not saved.is_empty():
+			trunk = FelledTrunk.new()
+			trunk.restore(saved, get_node_or_null("/root/Game") as GameState)
+			get_parent().add_child.call_deferred(trunk)
+		elif d.get("trunk_pending", false):
+			_spawn_trunk.call_deferred(get_node_or_null("/root/Game") as GameState, Vector3.RIGHT)
 	_refresh()
 
 

@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -46,6 +46,121 @@ func check(cond: bool, label: String) -> void:
 
 
 # ---------------------------------------------------------------- tests
+
+func test_felled_trunk() -> bool:
+	check(FelledTrunk.cuts_needed(true) == FelledTrunk.cuts_needed(false) - 1, "copper axe bucks faster")
+	var ax := Vector3(0, 0, 1)
+	check(FelledTrunk.closest_on_axis(Vector3.ZERO, ax, 3.0, Vector3(1, 0, 0.4)).is_equal_approx(Vector3(0, 0, 0.4)), "nearest point along the trunk")
+	check(FelledTrunk.closest_on_axis(Vector3.ZERO, ax, 3.0, Vector3(0, 0, 9)).is_equal_approx(Vector3(0, 0, 1.5)), "clamped to the end")
+	var rc := FelledTrunk.rest_centre(Vector3.ZERO, Vector3.RIGHT, 3)
+	check(rc.x > 1.5 and rc.y > FelledTrunk.RADIUS, "trunk rests past the stump, above ground")
+	check((FelledTrunk.lie_basis(Vector3.RIGHT) * Vector3(0, 0, 1)).is_equal_approx(Vector3.RIGHT), "trunk lies along the fall line")
+	check(ChoppableTree.domino(0, 3) == {"hits": 1, "falls": false}, "domino notches a fresh tree")
+	check(ChoppableTree.domino(2, 3) == {"hits": 0, "falls": true}, "domino topples a notched tree")
+	var holder := Node3D.new()
+	root.add_child(holder)
+	var t := FelledTrunk.new()
+	t.setup(Vector3.ZERO, Vector3.RIGHT, 3, game)
+	holder.add_child(t)
+	game.set_tool(GameState.Tool.HOE)
+	t.interact(game)
+	check(t.cuts == 0 and t.sections == 3, "only the axe bucks a trunk")
+	game.set_tool(GameState.Tool.AXE)
+	var butt: Vector3 = t.body.global_position - t.axis() * 1.5
+	for i in FelledTrunk.CUTS_PER_SECTION:
+		t.interact(game)
+	var logs := holder.get_children().filter(func(n): return n is WoodLog)
+	check(t.sections == 2 and logs.size() == 1, "two swings free one log")
+	check((t.body.global_position - t.axis() * 1.0).is_equal_approx(butt), "the butt end stays put as it shortens")
+	check((logs[0].global_basis.y.normalized()).abs().is_equal_approx(t.axis().abs()), "the freed log lies along the trunk")
+	var saved := t.to_dict()
+	var t2 := FelledTrunk.new()
+	t2.restore(saved, game)
+	holder.add_child(t2)
+	check(t2.sections == 2 and t2.axis().is_equal_approx(t.axis()), "trunk survives a save roundtrip")
+	for i in FelledTrunk.CUTS_PER_SECTION * 2:
+		t.interact(game)
+	logs = holder.get_children().filter(func(n): return n is WoodLog)
+	check(t.sections == 0 and logs.size() == ChoppableTree.WOOD_DROP and t.is_queued_for_deletion(), "a whole trunk gives 3 logs")
+	t.interact(game)
+	check(holder.get_children().filter(func(n): return n is WoodLog).size() == 3, "no bonus logs from an empty trunk")
+	# A stump waits for its trunk before regrowing, and a save keeps the trunk.
+	var tree := ChoppableTree.new()
+	tree.name = "Tree_W"
+	holder.add_child(tree)
+	tree.felled = true
+	tree._spawn_trunk(game, Vector3.RIGHT)
+	check(tree.has_trunk() and tree.to_dict().has("trunk"), "felled tree owns and saves its trunk")
+	for d in ChoppableTree.REGROW_DAYS + 1:
+		tree.on_new_day(game)
+	check(tree.felled and tree.days_felled == 0, "stump waits for the trunk to be cleared")
+	tree.trunk.sections = 0
+	for d in ChoppableTree.REGROW_DAYS:
+		tree.on_new_day(game)
+	check(not tree.felled, "cleared stump regrows")
+	# Domino: a notched neighbour goes over when clipped.
+	var nb := ChoppableTree.new()
+	nb.name = "Tree_N"
+	holder.add_child(nb)
+	check(nb.domino_hit(game, Vector3.RIGHT) and nb.hits == 1 and not nb.felled, "clipped tree is notched")
+	nb.hits = 2
+	nb.domino_hit(game, Vector3.RIGHT)
+	check(nb.felled and not nb.domino_hit(game, Vector3.RIGHT), "notched tree dominoes once")
+	holder.free()
+	return true
+
+
+func test_bugs() -> bool:
+	for k in Bug.KINDS:
+		check(GameState.ITEMS.has(k) and int(GameState.ITEMS[k]["sell"]) > 0, "%s is a sellable item" % k)
+		check(Bug.catch_chance(k, true, false) == 1.0, "net always catches %s" % k)
+		check(Bug.catch_chance(k, false, true) > Bug.catch_chance(k, false, false), "sneaking helps with %s" % k)
+	check(Bug.reach(true) > Bug.reach(false), "net reaches further")
+	check(Bug.target_rank(1.8, false) < Bug.target_rank(0.1, true) and Bug.target_rank(0.2, true) < Bug.target_rank(1.0, true), "bugs never steal E from solid targets")
+	check(Bug.scare_radius(8.0, false) > Bug.scare_radius(3.0, false) and Bug.scare_radius(3.0, false) > Bug.scare_radius(2.0, true), "running scares more than walking than sneaking")
+	check(Bug.scare_radius(2.0, true) < Bug.HAND_REACH, "a sneak can get within grabbing range")
+	check(Bug.hop_point(Vector3.ZERO, Vector3(2, 0, 0), 0.5, 0.75).is_equal_approx(Vector3(1, 0.75, 0)), "hop arcs")
+	check(Bug.hop_point(Vector3.ZERO, Vector3(2, 0, 0), 1.0, 0.75).is_equal_approx(Vector3(2, 0, 0)), "hop lands")
+	for i in 20:
+		var b := Bug.blink(i * 0.4, 1.0)
+		check(b >= 0.35 and b <= 1.0, "blink in range")
+	check(BugLife.ambient_kind(0.45, false) == "butterfly" and BugLife.ambient_kind(0.9, false) == "firefly", "butterflies by day, fireflies by night")
+	check(BugLife.ambient_kind(0.1, false) == "firefly" and BugLife.ambient_kind(0.45, true) == "", "none in the rain")
+	check(BugLife.flush_for(0.02, true) == "frog" and BugLife.flush_for(0.02, false) == "grasshopper" and BugLife.flush_for(0.9, false) == "", "frogs love rain")
+	check(BugLife.flush_list([0.9, 0.9], false).is_empty(), "a tiny snip flushes nothing")
+	check(BugLife.flush_list([0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9], false) == ["grasshopper"], "a big swing always flushes something")
+	var life := BugLife.new()
+	life.game = game
+	root.add_child(life)
+	var n := life.flush([Vector3(-9.5, 0, -4), Vector3(-9, 0, -4)], Vector3(-8, 0, -4), [0.02, 0.9])
+	check(n == 1 and life.bugs("grasshopper").size() == 1, "cut grass flushes a hopper")
+	var many: Array = []
+	var spots: Array = []
+	for i in 40:
+		many.append(0.02)
+		spots.append(Vector3(-9.5, 0, -4))
+	life.flush(spots, Vector3.ZERO, many)
+	check(life.bugs().size() == BugLife.MAX_FLUSHED, "hoppers are capped")
+	var b: Bug = life.bugs()[0]
+	check(not b.try_catch(game, false, 0.99) and game.count(b.kind) == 0, "bare hands can miss")
+	game.add_item("bug_net", 1)
+	var k: String = b.kind
+	check(b.try_catch(game, false, 0.99) and game.count(k) == 1, "the net does not miss")
+	check(not b.try_catch(game, false, 0.0) and game.count(k) == 1, "no double catch")
+	var idx := _recipe_index_of("firefly_jar")
+	game.add_item("firefly", 4)
+	game.add_item("plank", 1)
+	game.add_item("copper_ingot", 1)
+	check(idx >= 0 and game.craft(idx) and game.count("firefly_jar") == 1 and game.count("firefly") == 0, "craft a Firefly Jar")
+	check(_recipe_index_of("bug_net") >= 0 and not GameState.stashable("bug_net"), "net recipe; net stays with you")
+	check(BuildWorld.is_furniture("firefly_jar") and BuildWorld.PIECE_ORDER.has("firefly_jar"), "jar is placeable furniture")
+	var bp := BuildPiece.new()
+	bp.piece_id = "firefly_jar"
+	root.add_child(bp)
+	check(bp.find_children("*", "FireflyJar", true, false).size() >= 0 and bp.get_child_count() > 0, "jar piece builds")
+	check(FireflyJar.darkness(0.95) > 0.95 and FireflyJar.darkness(0.45) < 0.2, "jar shines at night")
+	return true
+
 
 func test_meadow() -> bool:
 	check(not Meadow.spot_ok(0, 0), "no grass on the farm")

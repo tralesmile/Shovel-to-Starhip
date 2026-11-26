@@ -87,6 +87,10 @@ func _run() -> void:
 		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=60,61,62,63,64,65,66"):
+		await _timber_and_bug_shots(p)
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=70,71,72,73"):
 		var md: Meadow = p.meadow()
 		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
@@ -558,6 +562,108 @@ func _run() -> void:
 	await get_tree().physics_frame
 	print("ANIM_CHECK ", p._anim.current_animation, " t=", p._action_time)
 	get_tree().quit()
+
+
+## Felled trunk, bucking, domino, meadow critters and the Firefly Jar at night.
+func _timber_and_bug_shots(p: Player) -> void:
+	await _domino_shot(p)
+	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+	Game.time_of_day = 0.42
+	var tree: ChoppableTree = main.get_node("Trees/Tree_05")   # open ground west of the farm
+	var base := tree.global_position
+	Game.set_tool(GameState.Tool.AXE)
+	p.global_position = base + Vector3(2.6, 0.1, 0.6)
+	p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+	var cam := _free_cam(base + Vector3(0.5, 4.2, 7.0), base + Vector3(-2.2, 0.4, 0))
+	await _wait(10)
+	for i in 3:
+		tree.interact(Game)
+	await get_tree().create_timer(2.6, true, false, true).timeout
+	await _shot("60_trunk_down.png")
+	print("TRUNK ", tree.has_trunk(), " at ", tree.trunk.body.global_position if tree.has_trunk() else Vector3.ZERO)
+	var tk: FelledTrunk = tree.trunk
+	p.global_position = tk.body.global_position + Vector3(0.2, 0.1, 1.2)
+	p._model.rotation.y = PI
+	await _wait(10)
+	p._find_target()
+	print("TARGET is trunk: ", p.target == tk)
+	for i in FelledTrunk.CUTS_PER_SECTION:
+		tk.interact(Game)
+		p.play_action("1H_Melee_Attack_Chop", 0.55)
+		await get_tree().create_timer(0.15, true, false, true).timeout
+	await get_tree().create_timer(0.5, true, false, true).timeout
+	Engine.time_scale = 1.0
+	await _shot("61_bucked.png")
+	print("sections left ", tk.sections, " logs ", get_tree().get_nodes_in_group("pickup").size())
+	# Daytime meadow with butterflies and flushed hoppers.
+	var life: BugLife = main.get_node("BugLife")
+	var spot := Vector3(9.5, 0.1, -8.0)
+	for o in main.get_node("Trees").get_children():
+		if o is Node3D:
+			(o as Node3D).visible = (o as Node3D).global_position.distance_to(spot) > 9.0
+	Game.add_item("bug_net", 1)
+	Game.set_tool(GameState.Tool.HOE)
+	p.global_position = spot + Vector3(0, 0, 2.2)
+	p._model.rotation.y = PI
+	cam.global_position = spot + Vector3(3.0, 2.3, 4.2)
+	cam.look_at(spot + Vector3(0, 0.45, 0.3))
+	cam.fov = 55.0
+	await _wait(10)
+	for i in 4:
+		var a := i * 1.7
+		life.spawn("butterfly", spot + Vector3(cos(a) * 1.4, 1.0 + 0.15 * i, sin(a) * 1.0 + 0.3))
+	var fg := life.spawn("frog", spot + Vector3(1.2, 0, 2.2), true)
+	var gh := life.spawn("grasshopper", spot + Vector3(-0.5, 0, 2.9), true)
+	for b in [fg, gh]:
+		b._hop_wait = 30.0
+	await _wait(4)
+	await _shot("62_critters_day.png")
+	p._model.rotation.y = PI * 0.4   # side on, so the net shows
+	Engine.time_scale = 0.12
+	p.swing_net()
+	await _wait(5)
+	get_viewport().get_texture().get_image().save_png(out_dir.path_join("63_net_swing.png"))
+	Engine.time_scale = 1.0
+	p._model.rotation.y = PI
+	# Night: fireflies and the jar.
+	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+	Game.add_item("firefly_jar", 1)
+	bw.place("firefly_jar", Vector3(12, Terrain.height_at(12, -8), -8), 0, Game)
+	Game.time_of_day = 0.9
+	await _wait(30)
+	for b in life.bugs("butterfly"):
+		b.queue_free()
+	for i in 14:
+		life.spawn("firefly", spot + Vector3(randf_range(-3.5, 3.0), randf_range(0.6, 1.8), randf_range(-3.0, 2.6)))
+	await _wait(25)
+	await _shot("64_fireflies_night.png")
+	print("BUGS ", life.bugs().size())
+
+
+## Fell Tree_00 straight at Tree_01 and report whether the neighbour got clipped.
+func _domino_shot(p: Player) -> void:
+	Game.time_of_day = 0.42
+	var a: ChoppableTree = main.get_node("Trees/Tree_00")
+	var b: ChoppableTree = main.get_node("Trees/Tree_01")
+	var d := b.global_position - a.global_position
+	d.y = 0.0
+	b.hits = 2   # already notched: it should go over too
+	Game.set_tool(GameState.Tool.AXE)
+	p.global_position = a.global_position - d.normalized() * 1.8 + Vector3(0, 0.1, 0)
+	var mid := (a.global_position + b.global_position) * 0.5
+	var cam := _free_cam(mid + Vector3(2.0, 6.5, 8.5), mid + Vector3(-1.0, 0.4, 0))
+	await _wait(10)
+	for i in 3:
+		a.interact(Game)
+	await get_tree().create_timer(1.55, true, false, true).timeout
+	await _shot("65_domino_mid.png")
+	await get_tree().create_timer(3.0, true, false, true).timeout
+	await _shot("66_two_trunks.png")
+	print("DOMINO neighbour felled=", b.felled, " trunks=", get_tree().get_nodes_in_group("trunk").size())
+	cam.queue_free()
+	for t in [a, b]:
+		if t.has_trunk():
+			t.trunk.queue_free()
 
 
 ## A free camera that ignores the player rig, so small things can always be framed.

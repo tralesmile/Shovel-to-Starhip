@@ -17,6 +17,7 @@ const PIECES := {
 	"wood_chair": {"name": "Wood Chair", "size": Vector3(0.6, 0.95, 0.6), "color": Color(0.76, 0.54, 0.34), "style": "chair"},
 	"wood_bed": {"name": "Wood Bed", "size": Vector3(1.1, 0.6, 1.9), "color": Color(0.7, 0.46, 0.28), "style": "bed"},
 	"hay_bale": {"name": "Bouncy Hay Bale", "size": Vector3(1.5, 0.7, 1.1), "color": Color(0.92, 0.76, 0.3), "style": "bale"},
+	"firefly_jar": {"name": "Firefly Jar", "size": Vector3(0.45, 1.4, 0.45), "color": Color(0.55, 0.38, 0.22), "style": "firejar"},
 	"lantern": {"name": "Lantern Post", "size": Vector3(0.3, 1.5, 0.3), "color": Color(0.3, 0.3, 0.34), "style": "lantern"},
 	"storage_chest": {"name": "Storage Chest", "size": Vector3(1.1, 0.8, 0.7), "color": Color(0.62, 0.4, 0.22), "style": "chest"},
 	"campfire": {"name": "Campfire", "size": Vector3(1.0, 0.4, 1.0), "color": Color(0.5, 0.48, 0.5), "style": "campfire"},
@@ -25,7 +26,7 @@ const PIECES := {
 	"anvil": {"name": "Anvil", "size": Vector3(1.0, 0.9, 0.6), "color": Color(0.32, 0.33, 0.38), "style": "anvil"},
 	"wood_roof": {"name": "Wood Roof", "size": Vector3(2.3, 0.7, 2.3), "color": Color(0.62, 0.28, 0.22), "style": "roof", "y": 2.2},
 }
-const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern", "storage_chest", "campfire", "furnace", "anvil", "invention_bench", "hay_bale"]
+const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern", "storage_chest", "campfire", "furnace", "anvil", "invention_bench", "hay_bale", "firefly_jar"]
 
 var pieces := {}   ## cell key -> BuildPiece
 var piece_id := "fence_panel"
@@ -68,7 +69,7 @@ static func key_for(id: String, p: Vector3, r: int) -> String:
 
 ## Pure (tested): furniture lives in its own key space (one per cell, stands on floors).
 static func is_furniture(id: String) -> bool:
-	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed", "campfire", "chest", "furnace", "anvil", "invention", "bale"]
+	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed", "campfire", "chest", "furnace", "anvil", "invention", "bale", "firejar"]
 
 
 ## Pure (tested): height above the ground a piece sits at (roofs rest on top of 2.2m walls).

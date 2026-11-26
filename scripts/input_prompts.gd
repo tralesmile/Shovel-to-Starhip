@@ -27,6 +27,7 @@ Chop trees with the Axe for wood. Craft fence panels, then [6] Builder to place 
 Gran's Old Mine is north-west of the farm. {throw_bomb}  throw a Boom Turnip.
 
 Cut tall grass with the Hoe (craft a Scythe!) for hay. Crouch in it to hide.
+Felled trees leave a trunk: buck it with the Axe. Catch meadow critters (craft a Bug Net!).
 Pet the chickens and the goat. They like it.
 
 {save} save (also saves every morning and on quit)

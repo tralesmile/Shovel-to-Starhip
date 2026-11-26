@@ -132,6 +132,63 @@ func _make_scythe() -> Node3D:
 	return s
 
 
+var _net: Node3D
+
+
+## Whoosh the Bug Net through the air: the net pops into your hand for the swing.
+func swing_net() -> void:
+	if mount != null or vehicle != null:
+		return
+	if _net == null:
+		_net = _make_net()
+	_net.visible = true
+	var held: Node3D = _hand_items.get(Game.current_tool)
+	if held != null:
+		held.visible = false
+	play_action("1H_Melee_Attack_Slice_Horizontal", 0.55)
+	Sfx.play_on(self, "swish", 1.5)
+	_sweep_arc(1.7, 150.0)
+	get_tree().create_timer(0.6).timeout.connect(func():
+		_net.visible = false
+		_on_tool_changed(Game.current_tool))
+
+
+func _make_net() -> Node3D:
+	var n := Node3D.new()
+	_hand.add_child(n)
+	var handle := Art.cylinder(0.03, 0.03, 1.4, Art.WOOD, 6)
+	handle.position.y = 0.45
+	n.add_child(handle)
+	var hoop := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.28
+	tm.outer_radius = 0.34
+	tm.rings = 16
+	tm.ring_segments = 6
+	hoop.mesh = tm
+	hoop.material_override = Art.mat(Color(0.82, 0.62, 0.3))
+	hoop.rotation.z = PI * 0.5
+	hoop.position.y = 1.45
+	n.add_child(hoop)
+	var bag := MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.02
+	cone.bottom_radius = 0.29
+	cone.height = 0.55
+	cone.radial_segments = 10
+	cone.cap_bottom = false
+	bag.mesh = cone
+	var bm := StandardMaterial3D.new()
+	bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bm.albedo_color = Color(1, 1, 1, 0.38)
+	bm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	bag.material_override = bm
+	bag.rotation.z = PI * 0.5
+	bag.position = Vector3(-0.27, 1.45, 0)
+	n.add_child(bag)
+	return n
+
+
 ## Owning the Scythe swaps it in for the hoe model (the hoe still tills farm plots).
 func _refresh_hoe_model() -> void:
 	var scythe := Game.count("scythe") > 0
@@ -580,7 +637,7 @@ func _use() -> void:
 	if target == null or _action_time > 0.0:
 		return
 	var anim := "Interact"
-	if (target is ChoppableTree and Game.current_tool == GameState.Tool.AXE) or (target is MineRock and Game.current_tool == GameState.Tool.PICKAXE):
+	if ((target is ChoppableTree or target is FelledTrunk) and Game.current_tool == GameState.Tool.AXE) or (target is MineRock and Game.current_tool == GameState.Tool.PICKAXE):
 		anim = "1H_Melee_Attack_Chop"
 	elif target is FarmPlot:
 		if (target as FarmPlot).is_ripe():
@@ -936,7 +993,8 @@ func _find_target() -> void:
 		if it == null or not it.is_visible_in_tree():
 			continue
 		var d := Vector2(probe.x - it.global_position.x, probe.z - it.global_position.z).length()
-		if d < it.interact_radius and d < best_d:
+		var rank := Bug.target_rank(d, it is Bug)
+		if d < it.interact_radius and rank < best_d:
 			best = it
-			best_d = d
+			best_d = rank
 	target = best if Game.current_tool != GameState.Tool.BUILD else null
