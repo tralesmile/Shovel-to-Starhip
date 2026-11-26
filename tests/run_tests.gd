@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -46,6 +46,133 @@ func check(cond: bool, label: String) -> void:
 
 
 # ---------------------------------------------------------------- tests
+
+## Plays a fight with a player who lets go whenever the fish thrashes (or always holds).
+func _fight_out(species: String, careful: bool, rod: bool = false, catches: int = 99, seed_value: int = 5) -> String:
+	var f := FishFight.new(species, rod, catches, seed_value)
+	for i in 4000:
+		var hold := true
+		if careful:
+			hold = not f.surging and f.tension < 0.85
+		if f.tick(0.02, hold) != "":
+			break
+	return f.result
+
+
+func test_fish_fight() -> bool:
+	for species in FishFight.SPECIES:
+		check(Fishing.SIZES.has(species), "fight species has sizes: " + species)
+		for s in 8:
+			check(_fight_out(species, true, false, 99, s) == "landed", "careful angler lands " + species)
+	var snaps := 0
+	for s in 20:
+		if _fight_out("golden_carp", false, false, 99, s) == "snapped":
+			snaps += 1
+	check(snaps >= 18, "hauling blindly on a golden carp snaps the line")
+	check(_fight_out("boot", false) == "landed", "a boot never fights")
+	check(_fight_out("minnow", false) == "landed", "minnows are forgiving even when you just hold")
+	var idle := FishFight.new("carp")
+	for i in 2000:
+		idle.tick(0.05, false)
+	check(idle.result == "escaped", "never reeling loses the fish")
+	check(FishFight.strain_rate(1.0, true, true, 1.0) < FishFight.strain_rate(1.0, true, false, 1.0), "springy rod eases strain")
+	check(FishFight.new("carp", false, 0).ease < FishFight.new("carp", false, 10).ease, "beginner's luck on first catches")
+	var calm := FishFight.new("golden_carp")
+	calm._phase_left = INF
+	for i in 100:
+		calm.tick(0.02, true)
+		calm.progress = 0.5
+	check(calm.result == "", "a calm fish never snaps the line")
+	return true
+
+
+func test_pond_life() -> bool:
+	check(Fishing.cast_power(0.0) == 0.0 and Fishing.cast_power(5.0) == 1.0, "cast power clamps")
+	check(Fishing.cast_distance(1.0, true) > Fishing.cast_distance(1.0, false), "springy rod casts further")
+	var spot2d := Vector2(-17.8, 1.0)
+	var to_pond := Terrain.POND_CENTER - spot2d
+	check(FishingSpot.aim_dir(Vector2(1, 0), to_pond).is_equal_approx(to_pond.normalized()), "looking away still casts at the pond")
+	var look := to_pond.normalized().rotated(0.4)
+	check(FishingSpot.aim_dir(look, to_pond).is_equal_approx(look), "looking at the water steers the cast")
+	for power in [0.0, 0.5, 1.0]:
+		var at := FishingSpot.landing(spot2d, look, Fishing.cast_distance(power, true))
+		check(Terrain.is_water(at.x, at.y), "casts always land in water %s" % power)
+	var v := FishingSpot.lob_velocity(Vector3.ZERO, Vector3(3, 1, 0), 1.0, 9.8)
+	check(is_equal_approx(v.y - 4.9, 1.0) and is_equal_approx(v.x, 3.0), "catch lob reaches its target")
+	var list := [PondLife.new_fish("carp", Vector2(0, 0), 0.0, 40), PondLife.new_fish("minnow", Vector2(5, 0), 0.0, 8)]
+	check(PondLife.pick_fish(list, Vector2(4, 0)) == 1, "the nearest shadow gets curious, so aim matters")
+	check(PondLife.interest_delay(0.5, true, false) < PondLife.interest_delay(0.5, false, false), "bait speeds bites")
+	check(PondLife.interest_delay(0.5, false, true) < PondLife.interest_delay(0.5, false, false), "rain speeds bites")
+	check(PondLife.nibble_count(0.99, false) == 3 and PondLife.nibble_count(0.99, true) == 1, "bait means fewer fake-outs")
+	check(PondLife.shadow_length("golden_carp", 80) > PondLife.shadow_length("minnow", 6), "bigger fish, bigger shadow")
+	var pond := PondLife.new()
+	root.add_child(pond)
+	check(pond.fish.size() == PondLife.COUNT, "pond is stocked")
+	var target := Terrain.POND_CENTER + Vector2(2, 1)
+	pond.set_bobber(target, false)
+	var events: Array = []
+	for i in 1500:
+		var ev := pond.tick(0.02)
+		if ev != "":
+			events.append(ev)
+		if ev == "bite":
+			break
+	check(events.size() >= 1 and events[-1] == "bite" and events.size() <= 4, "a fish swims over, maybe nibbles, then bites")
+	check(pond.hooked_species() != "", "the biter is a known fish")
+	for f in pond.fish:
+		check((f["pos"] as Vector2).distance_to(Terrain.POND_CENTER) <= PondLife.RADIUS + 0.01, "fish stay in the pond")
+	var n := pond.fish.size()
+	var taken := pond.take_hooked()
+	check(pond.fish.size() == n - 1 and taken.has("cm"), "hooked fish leaves the shadows")
+	pond.restock()
+	check(pond.fish.size() == PondLife.COUNT, "pond restocks")
+	for i in 40:
+		pond.add_ripple(target)
+	check(pond.ripples.size() == PondLife.MAX_RIPPLES, "ripples are capped for the shader")
+	pond._process(PondLife.RIPPLE_LIFE + 0.1)
+	check(pond.ripples.is_empty(), "ripples fade out")
+	pond.free()
+	return true
+
+
+func test_fish_log_and_models() -> bool:
+	var book := {}
+	check(Fishing.log_catch(book, "carp", 30) == "new", "first carp is new")
+	check(Fishing.log_catch(book, "carp", 45) == "best", "bigger carp is a best")
+	check(Fishing.log_catch(book, "carp", 31) == "" and book["carp"]["best"] == 45 and book["carp"]["n"] == 3, "journal keeps the best")
+	for species in Fishing.SIZES:
+		var lo := Fishing.size_for(species, 0.0)
+		var hi := Fishing.size_for(species, 1.0)
+		check(lo == Fishing.SIZES[species][0] and hi == Fishing.SIZES[species][1], "size range " + species)
+		var m := FishModel.build(species)
+		check(m.get_child_count() >= 4, "model built " + species)
+		m.free()
+	check(WoodLog.flops("carp") and not WoodLog.flops("boot") and not WoodLog.flops("wood"), "only live fish flop")
+	game.fish_log = book
+	var saved: Dictionary = JSON.parse_string(JSON.stringify(game.to_dict()))
+	game.fish_log = {}
+	game.from_dict(saved)
+	check(game.fish_log["carp"]["best"] == 45, "journal survives save/load")
+	for id in ["sunmint_bait", "springy_rod"]:
+		var idx := -1
+		for i in GameState.RECIPES.size():
+			if GameState.RECIPES[i]["id"] == id:
+				idx = i
+		check(idx >= 0 and GameState.ITEMS.has(id), "recipe and item exist: " + id)
+		for need in GameState.RECIPES[idx]["in"]:
+			game.add_item(need, GameState.RECIPES[idx]["in"][need])
+		check(game.craft(idx) and game.count(id) >= 1, "can craft " + id)
+	var spot := FishingSpot.new()
+	root.add_child(spot)
+	var bait := game.count("sunmint_bait")
+	spot.launch(game, 0.5, Vector2.ZERO)
+	check(spot.baited and game.count("sunmint_bait") == bait - 1, "each cast uses one bait")
+	check(spot.get_prompt(game) == "Wheee...", "prompt follows the cast")
+	spot.phase = FishingSpot.Phase.IDLE
+	check(spot.get_prompt(game).contains("Fish Journal 1/6"), "idle prompt shows journal progress")
+	spot.free()
+	return true
+
 
 func test_felled_trunk() -> bool:
 	check(FelledTrunk.cuts_needed(true) == FelledTrunk.cuts_needed(false) - 1, "copper axe bucks faster")
@@ -823,7 +950,7 @@ func test_fishing() -> bool:
 	f.cast()
 	f.tick(f.bite_time + 0.01)
 	check(f.state == "bite", "bite arrives")
-	check(f.reel() == "caught", "reel in window catches")
+	check(f.reel() == "hooked", "reel in window sets the hook")
 	f.cast()
 	f.tick(f.bite_time + 0.01)
 	f.tick(Fishing.BITE_WINDOW + 0.1)
@@ -833,17 +960,30 @@ func test_fishing() -> bool:
 		check(GameState.ITEMS.has(e[0]), "fish item defined: " + e[0])
 	var spot := FishingSpot.new()
 	root.add_child(spot)
+	spot.held_override = 0
 	spot.interact(game)
-	check(spot.fishing.state == "waiting", "spot casts")
-	spot.fishing.tick(spot.fishing.bite_time + 0.01)
+	check(spot.phase == FishingSpot.Phase.CHARGING, "E winds up a cast")
+	spot._process(0.016)
+	check(spot.phase == FishingSpot.Phase.FLYING, "letting go throws the bobber")
+	spot._process(FishingSpot.FLIGHT_TIME + 0.01)
+	check(spot.phase == FishingSpot.Phase.LINE and spot.fishing.state == "waiting", "spot casts")
+	spot._process(spot.fishing.bite_time + 0.01)
+	spot.interact(game)
+	check(spot.phase == FishingSpot.Phase.FIGHT and spot.fight != null, "hook starts the fight")
 	var before: int = 0
 	for e in Fishing.FISH_TABLE:
 		before += game.count(e[0])
-	spot.interact(game)
+	for i in 2000:
+		if spot.fight == null:
+			break
+		spot.held_override = 0 if spot.fight.surging or spot.fight.tension > 0.8 else 1
+		spot._process(0.05)
 	var after: int = 0
 	for e in Fishing.FISH_TABLE:
 		after += game.count(e[0])
-	check(after == before + 1, "spot catch adds a fish")
+	check(after == before + 1 and spot.phase == FishingSpot.Phase.IDLE, "spot catch adds a fish")
+	check(Fishing.total_catches(game.fish_log) == 1, "journal records the catch")
+	spot.free()
 	var w := Terrain.is_water(-17.8, 1.0)
 	check(not w, "fishing spot is on dry land")
 	return true

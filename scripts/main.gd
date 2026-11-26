@@ -18,6 +18,7 @@ var _bolt_dist := 0.0
 var _rain_level := 0.0   ## eased 0..1 so rain fades in/out
 var _day_critters: Array[Node3D] = []
 var _npcs: Array[Npc] = []
+var _water_mat: ShaderMaterial
 var _police: Police
 var _police_car: PoliceCar
 
@@ -318,6 +319,7 @@ func _build_ground() -> void:
 	wm.shader = load("res://scripts/shaders/water.gdshader")
 	wm.set_shader_parameter("shore_tex", ImageTexture.create_from_image(Terrain.shore_map(256)))
 	wm.set_shader_parameter("world_size", Terrain.SIZE)
+	_water_mat = wm
 	water.material_override = wm
 	water.position.y = Terrain.WATER_LEVEL
 	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -595,6 +597,12 @@ func _build_fishing_spot() -> void:
 	spot.position = Vector3(-17.8, 0, 1.0)
 	spot.position.y = Terrain.height_at(spot.position.x, spot.position.z)
 	spot.interact_radius = 2.2
+	var pond := PondLife.new()
+	pond.name = "PondLife"
+	pond.water_mat = _water_mat
+	pond.game = Game
+	add_child(pond)
+	spot.pond = pond
 	add_child(spot)
 	var l := Art.label("FISHING\n(bring patience)", 40, Color(0.7, 0.9, 1.0))
 	l.position.y = 1.8

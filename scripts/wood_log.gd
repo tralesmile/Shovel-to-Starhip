@@ -11,6 +11,8 @@ const LIFETIME := 240.0
 var item_id := "wood"
 var chunk_color := Color(0, 0, 0, 0)   ## alpha 0 = a wooden log; otherwise a small rock chunk of this colour
 var amount := 1
+var catch_cm := 0          ## length of a fished-up catch (0 = not from the rod)
+var _flop := 0.5
 var age := 0.0
 var game: GameState
 var _collected := false
@@ -62,6 +64,9 @@ func _ready() -> void:
 	phys.bounce = 0.35
 	phys.friction = 0.8
 	physics_material_override = phys
+	if FishModel.has_model(item_id):
+		_build_catch()
+		return
 	if item_id == "hay":
 		_build_hay()
 		return
@@ -106,6 +111,38 @@ func _ready() -> void:
 		cap.mesh = d
 		cap.position.y = 0.4 * s
 		add_child(cap)
+
+
+## A fished-up catch: the real shape, sized by its length.
+func _build_catch() -> void:
+	mass = 0.7
+	angular_damp = 2.5
+	var sc := FishModel.scale_for(catch_cm if catch_cm > 0 else Fishing.size_for(item_id, 0.5))
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(0.55, 0.26, 0.2) * sc
+	cs.shape = bx
+	add_child(cs)
+	var model := FishModel.build(item_id)
+	model.scale = Vector3.ONE * sc
+	add_child(model)
+
+
+## Pure (tested): only living fish flop; boots and hats just sit there dripping.
+static func flops(id: String) -> bool:
+	return FishModel.has_model(id) and not id in Fishing.JUNK
+
+
+## A fish out of water slaps about every half second.
+func _flop_tick(delta: float) -> void:
+	_flop -= delta
+	if _flop > 0.0 or age < 0.2 or absf(linear_velocity.y) > 0.35:
+		return
+	_flop = randf_range(0.35, 0.75)
+	apply_central_impulse(Vector3(randf_range(-0.5, 0.5), randf_range(1.8, 2.8), randf_range(-0.5, 0.5)) * mass)
+	apply_torque_impulse((global_basis.x * randf_range(-1.0, 1.0) + Vector3.UP * randf_range(-0.5, 0.5)) * 0.16)
+	FX.burst(self, global_position, Color(0.75, 0.92, 1.0), 4, 0.04, 1.6, -7.0, "sphere", 70.0)
+	Sfx.play_on(self, "step_wood", randf_range(1.5, 2.1))
 
 
 ## A tied sheaf of straw.
@@ -295,6 +332,8 @@ func _physics_process(delta: float) -> void:
 			if _magnet:
 				_magnet = false
 				gravity_scale = 1.0
+			if flops(item_id):
+				_flop_tick(delta)
 
 
 func collect() -> void:

@@ -46,6 +46,8 @@ const ITEMS := {
 	"firefly": {"name": "Firefly", "buy": 0, "sell": 10},
 	"bug_net": {"name": "Bug Net", "buy": 0, "sell": 0},
 	"firefly_jar": {"name": "Firefly Jar", "buy": 0, "sell": 0},
+	"sunmint_bait": {"name": "Sunmint Bait", "buy": 0, "sell": 4},
+	"springy_rod": {"name": "Springy Rod", "buy": 0, "sell": 0},
 	"hay_bale": {"name": "Bouncy Hay Bale", "buy": 0, "sell": 0},
 	# Mining drops.
 	"stone": {"name": "Stone", "buy": 0, "sell": 4},
@@ -144,6 +146,8 @@ const RECIPES := [
 	{"id": "hay_bale", "name": "Bouncy Hay Bale", "in": {"hay": 6, "plank": 1}, "out": {"hay_bale": 1}},
 	{"id": "bug_net", "name": "Bug Net", "in": {"plank": 2, "hay": 4}, "out": {"bug_net": 1}, "once": true},
 	{"id": "firefly_jar", "name": "Firefly Jar", "in": {"firefly": 4, "plank": 1, "copper_ingot": 1}, "out": {"firefly_jar": 1}},
+	{"id": "sunmint_bait", "name": "Sunmint Bait", "in": {"sunmint": 1, "hay": 1}, "out": {"sunmint_bait": 3}},
+	{"id": "springy_rod", "name": "Springy Rod", "in": {"plank": 3, "copper_ingot": 1, "hay": 2}, "out": {"springy_rod": 1}, "once": true},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
@@ -152,7 +156,8 @@ const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, 
 	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0, "loot_vacuum": 0.0,
 	"glow_crystal": 0.5, "boom_turnip": 0.5, "miner_helmet": 0.0,
 	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0,
-	"butterfly": 0.05, "grasshopper": 0.05, "frog": 0.3, "firefly": 0.02, "bug_net": 0.0, "firefly_jar": 2.0}
+	"butterfly": 0.05, "grasshopper": 0.05, "frog": 0.3, "firefly": 0.02, "bug_net": 0.0, "firefly_jar": 2.0,
+	"sunmint_bait": 0.05, "springy_rod": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -198,6 +203,7 @@ var selected_recipe: int = 0         ## workbench picker choice (not saved)
 var selected_crop: String = "turnip"   ## which seed the Seeds tool plants
 var clock_running: bool = true
 var total_earned: int = 0
+var fish_log: Dictionary = {}   ## species -> {n, best (cm)}
 var crime_suspicion: float = 0.0   ## highest witness meter right now (HUD only)
 var fence_sold_today: int = 0   ## items fenced today (resets each morning)
 var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the alarm
@@ -771,6 +777,7 @@ func to_dict() -> Dictionary:
 		"current_tool": current_tool,
 		"selected_crop": selected_crop,
 		"total_earned": total_earned,
+		"fish_log": fish_log.duplicate(true),
 		"heat": heat,
 		"fence_sold_today": fence_sold_today,
 		"reputation": reputation,
@@ -801,6 +808,10 @@ func from_dict(data: Dictionary) -> void:
 	if not CROPS.has(selected_crop):
 		selected_crop = "turnip"
 	total_earned = int(data.get("total_earned", 0))
+	fish_log = {}
+	var fl: Dictionary = data.get("fish_log", {})
+	for k in fl.keys():
+		fish_log[str(k)] = {"n": int(fl[k].get("n", 1)), "best": int(fl[k].get("best", 0))}
 	heat = float(data.get("heat", 0.0))
 	reputation = float(data.get("reputation", 0.0))
 	fence_sold_today = int(data.get("fence_sold_today", 0))

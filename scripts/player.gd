@@ -320,7 +320,101 @@ func _make_hoe() -> Node3D:
 func _on_tool_changed(index: int) -> void:
 	for k in _hand_items.keys():
 		if _hand_items[k]:
-			_hand_items[k].visible = (k == index)
+			_hand_items[k].visible = (k == index) and not _rod_out
+
+
+const ROD_SEGMENTS := 4
+const ROD_SEG := 0.42
+var _rod: Node3D
+var _rod_joints: Array[Node3D] = []
+var _rod_end: Node3D
+var _rod_out := false
+var _rod_pitch := 0.0     ## added to the resting angle: negative = cocked back
+var _rod_tween: Tween
+
+
+## A jointed rod held out in front, so it can visibly wind up, whip and bend.
+func _make_rod() -> void:
+	_rod = Node3D.new()
+	_rod.position = Vector3(-0.28, 0.85, 0.28)
+	_model.add_child(_rod)
+	var parent: Node3D = _rod
+	for i in ROD_SEGMENTS:
+		var joint := Node3D.new()
+		joint.position.y = 0.0 if i == 0 else ROD_SEG
+		parent.add_child(joint)
+		var r := 0.032 - 0.006 * i
+		var seg := Art.cylinder(r - 0.005, r, ROD_SEG, Art.WOOD.lightened(0.07 * i), 6)
+		seg.position.y = ROD_SEG * 0.5
+		joint.add_child(seg)
+		_rod_joints.append(joint)
+		parent = joint
+	_rod_end = Node3D.new()
+	_rod_end.position.y = ROD_SEG
+	parent.add_child(_rod_end)
+	var reel := Art.cylinder(0.08, 0.08, 0.07, Color(0.82, 0.62, 0.25), 10)
+	reel.position = Vector3(0, 0.18, -0.07)
+	reel.rotation.z = PI / 2.0
+	_rod_joints[0].add_child(reel)
+	rod_bend(0.0)
+
+
+func set_rod(out: bool) -> void:
+	if out and _rod == null:
+		_make_rod()
+	_rod_out = out
+	if _rod != null:
+		_rod.visible = out
+	if not out:
+		_rod_pitch = 0.0
+	_on_tool_changed(Game.current_tool)
+
+
+## bend 0..1 curls the upper joints toward the water.
+func rod_bend(bend: float) -> void:
+	if not _rod_out and _rod != null:
+		return
+	if _rod == null:
+		return
+	for i in _rod_joints.size():
+		var base := 0.75 + _rod_pitch if i == 0 else 0.0
+		_rod_joints[i].rotation.x = base + bend * 0.17 * i
+
+
+func rod_windup(power: float) -> void:
+	set_rod(true)
+	if _rod_tween != null:
+		_rod_tween.kill()
+	_rod_pitch = -1.7 * power
+	rod_bend(0.0)
+
+
+## The forward whip of a cast.
+func rod_cast() -> void:
+	set_rod(true)
+	if _rod_tween != null:
+		_rod_tween.kill()
+	_rod_tween = create_tween()
+	_rod_tween.tween_method(_set_rod_pitch, _rod_pitch, 0.55, 0.14)
+	_rod_tween.tween_method(_set_rod_pitch, 0.55, 0.0, 0.3)
+	play_action("Throw", 0.45)
+	_squash = 0.88
+
+
+func _set_rod_pitch(v: float) -> void:
+	_rod_pitch = v
+	rod_bend(0.0)
+
+
+func rod_tip() -> Vector3:
+	if _rod_end != null and _rod_out:
+		return _rod_end.global_position
+	return global_position + Vector3(0, 1.6, 0)
+
+
+func face_point(at: Vector3) -> void:
+	var to := at - global_position
+	_model.rotation.y = atan2(to.x, to.z)
 
 
 func play_action(anim_name: String, duration: float) -> void:
@@ -586,6 +680,10 @@ func _use() -> void:
 		return
 	if mount != null:
 		dismount()
+		return
+	var fs := get_tree().get_first_node_in_group("fishing_spot") as FishingSpot
+	if fs != null and fs.is_busy():
+		fs.interact(Game)   # the rod has your hands: never swallow the hook-set, never swing a tool
 		return
 	if Game.current_tool == GameState.Tool.BUILD:
 		var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld

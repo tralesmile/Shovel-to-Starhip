@@ -12,6 +12,11 @@ var _heat: Label
 var _story: Label
 var _job: Label
 var _stam: ProgressBar
+var _fish_box: PanelContainer
+var _fish_title: Label
+var _fish_catch: ProgressBar
+var _fish_line: ProgressBar
+var _fish_rows: Array[Control] = []
 var _toast_box: VBoxContainer
 var _slots: Array[PanelContainer] = []
 var _help: PanelContainer
@@ -65,6 +70,7 @@ func _ready() -> void:
 	root.add_child(_stam)
 	_place(_stam, 0.5, 1, 0.5, 1, -120, -116, 120, -106)
 	_stam.visible = false
+	_build_fish_meter(root)
 	_prompt = _label(root, 26)
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_place(_prompt, 0.5, 1, 0.5, 1, -600, -156, 600, -116)
@@ -286,6 +292,7 @@ func _process(_delta: float) -> void:
 		var who: Node3D = get_tree().get_first_node_in_group("player")
 		if who:
 			_job.text = dep.job.hud_line(Vector2(who.global_position.x, who.global_position.z))
+	_update_fish_meter()
 	_clock.text = "Day %d   %s" % [Game.day, Game.clock_text()]
 	if Game.crime_suspicion > 0.02:
 		_heat.text = "Someone is watching... [%s%s]" % ["#".repeat(int(Game.crime_suspicion * 10)), "-".repeat(10 - int(Game.crime_suspicion * 10))]
@@ -315,6 +322,76 @@ func _process(_delta: float) -> void:
 		_prompt.text = "Hidden in tall grass"
 	else:
 		_prompt.text = ""
+
+
+## Cast power while winding up; "catch" and "line strain" bars during a fight.
+func _build_fish_meter(root: Control) -> void:
+	_fish_box = PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.07, 0.1, 0.18, 0.82)
+	sb.set_corner_radius_all(12)
+	sb.set_content_margin_all(10)
+	_fish_box.add_theme_stylebox_override("panel", sb)
+	_fish_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var col := VBoxContainer.new()
+	_fish_box.add_child(col)
+	_fish_title = Label.new()
+	_fish_title.add_theme_font_size_override("font_size", 24)
+	_fish_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(_fish_title)
+	for row_name in ["Catch", "Line strain"]:
+		var row := HBoxContainer.new()
+		var l := Label.new()
+		l.text = row_name
+		l.custom_minimum_size = Vector2(112, 0)
+		l.add_theme_font_size_override("font_size", 17)
+		row.add_child(l)
+		var bar := ProgressBar.new()
+		bar.show_percentage = false
+		bar.max_value = 1.0
+		bar.step = 0.0
+		bar.custom_minimum_size = Vector2(270, 18)
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		for part in ["fill", "background"]:
+			var s := StyleBoxFlat.new()
+			s.set_corner_radius_all(6)
+			s.bg_color = Color(0.4, 0.9, 0.45) if part == "fill" else Color(0.2, 0.22, 0.3)
+			bar.add_theme_stylebox_override(part, s)
+		row.add_child(bar)
+		col.add_child(row)
+		_fish_rows.append(row)
+		if _fish_catch == null:
+			_fish_catch = bar
+		else:
+			_fish_line = bar
+	root.add_child(_fish_box)
+	_place(_fish_box, 0.5, 1, 0.5, 1, -205, -270, 205, -170)
+	_fish_box.visible = false
+
+
+func _update_fish_meter() -> void:
+	var fs := get_tree().get_first_node_in_group("fishing_spot") as FishingSpot
+	var charging := fs != null and fs.phase == FishingSpot.Phase.CHARGING
+	var fighting := fs != null and fs.phase == FishingSpot.Phase.FIGHT and fs.fight != null
+	_fish_box.visible = charging or fighting
+	if not _fish_box.visible:
+		return
+	_fish_rows[1].visible = fighting
+	var tint := _fish_catch.get_theme_stylebox("fill") as StyleBoxFlat
+	if charging:
+		_fish_title.text = "Winding up..."
+		_fish_title.modulate = Color.WHITE
+		(_fish_rows[0].get_child(0) as Label).text = "Cast power"
+		_fish_catch.value = Fishing.cast_power(fs.charge)
+		tint.bg_color = Color(1.0, 0.82, 0.3)
+		return
+	(_fish_rows[0].get_child(0) as Label).text = "Catch"
+	_fish_title.text = "IT'S THRASHING - LET GO!" if fs.fight.surging else "Reel it in!"
+	_fish_title.modulate = Color(1.0, 0.55, 0.35) if fs.fight.surging else Color(0.75, 1.0, 0.75)
+	_fish_catch.value = fs.fight.progress
+	tint.bg_color = Color(0.4, 0.9, 0.45)
+	_fish_line.value = fs.fight.tension
+	(_fish_line.get_theme_stylebox("fill") as StyleBoxFlat).bg_color = Color(0.5, 0.8, 1.0).lerp(Color(1.0, 0.15, 0.1), smoothstep(0.4, 0.9, fs.fight.tension))
 
 
 func _grass_ahead() -> bool:

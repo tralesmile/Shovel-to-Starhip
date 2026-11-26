@@ -87,6 +87,10 @@ func _run() -> void:
 		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=50,51,52,53,54,55,56,57"):
+		await _fishing_shots(p)
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=60,61,62,63,64,65,66"):
 		await _timber_and_bug_shots(p)
 		get_tree().quit()
@@ -728,3 +732,81 @@ func _mine_shots(p: Player) -> void:
 	cam.look_at(o + Vector3(9.0, 1.0, -7.6))
 	await _wait(20)
 	await _shot("85_geode.png")
+
+
+## The pond and fishing, from a fixed free camera so before/after shots line up.
+func _fishing_shots(p: Player) -> void:
+	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+	Game.time_of_day = 0.45
+	var spot: FishingSpot = main.get_node("FishingSpot")
+	var pond := spot.pond
+	p.global_position = spot.global_position + Vector3(0.2, 0.2, 0)
+	p._model.rotation.y = -PI / 2.0
+	p._yaw = PI / 2.0
+	var cam := _free_cam(Vector3(-15.0, 5.2, 8.5), Vector3(-23.5, -0.6, 0.5), 55.0)
+	await _wait(40)
+	await _shot("50_pond.png")
+	spot.held_override = 1
+	spot.interact(Game)
+	while spot.charge < 0.75:
+		await _wait(1)
+	await _shot("51_windup.png")
+	spot.held_override = 0
+	while spot.phase != FishingSpot.Phase.LINE:
+		await _wait(1)
+	await _wait(6)
+	await _shot("52_cast.png")
+	var guard := 0
+	while spot.fishing != null and spot.fishing.state != "bite" and guard < 3000:
+		guard += 1
+		await _wait(1)
+	spot.fishing.timer = -1000.0   # hold the bite open for the camera
+	await _wait(3)
+	var close := _free_cam(Vector3(spot.bobber_pos.x + 2.6, 1.7, spot.bobber_pos.y + 3.0), Vector3(spot.bobber_pos.x, -0.8, spot.bobber_pos.y), 50.0)
+	await _shot("53_bite.png")
+	close.queue_free()
+	cam.current = true
+	spot.interact(Game)
+	# Fight it with a thrash on screen, then cheat the last stretch.
+	spot.fight.surging = true
+	spot.fight._phase_left = 1000.0
+	spot.fight.tension = 0.75
+	spot.held_override = 0
+	await _wait(14)
+	spot.fight.tension = 0.8
+	await _shot("54_fight.png")
+	spot.fight.surging = false
+	spot.fight.progress = 0.99
+	spot.fight.tension = 0.2
+	spot.held_override = 1
+	while spot.phase == FishingSpot.Phase.FIGHT:
+		await _wait(1)
+	spot.held_override = 0
+	# Slow time right down and use a side camera so the leap and the flop can be seen.
+	Engine.time_scale = 0.12
+	var side := _free_cam(p.global_position + Vector3(0.6, 3.2, 5.2), p.global_position + Vector3(-2.2, 0.2, 0.0), 55.0)
+	await _wait(14)
+	await _shot("55_catch_flying.png")
+	var fish_items := get_tree().get_nodes_in_group("pickup").filter(func(n): return n is WoodLog and FishModel.has_model(n.item_id))
+	if not fish_items.is_empty():
+		fish_items[0].age = -60.0   # leave it flopping for the camera
+		Engine.time_scale = 1.0
+		await _wait(12)
+		side.look_at(fish_items[0].global_position)
+		side.fov = 32.0
+		Engine.time_scale = 0.2
+		await _shot("56_catch_after.png")
+	Engine.time_scale = 1.0
+	side.queue_free()
+	cam.current = true
+	# Models side by side.
+	var i := 0
+	for species in Fishing.SIZES:
+		var m := FishModel.build(species)
+		main.add_child(m)
+		m.position = Vector3(-16.8 + (i % 3) * 0.75, 1.6 - (i / 3) * 0.65, 3.4)
+		i += 1
+	var mc := _free_cam(Vector3(-16.05, 1.45, 5.4), Vector3(-16.05, 1.28, 3.4), 50.0)
+	await _wait(10)
+	await _shot("57_catch_models.png")
+	mc.queue_free()

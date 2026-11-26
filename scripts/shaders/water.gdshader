@@ -7,6 +7,7 @@ uniform vec3 shallow : source_color = vec3(0.32, 0.68, 0.78);
 uniform float flow = 0.6;
 uniform sampler2D shore_tex : filter_linear, repeat_disable;   // baked: 1 at the shoreline, 0 in deep water
 uniform float world_size = 400.0;
+uniform vec4 ripples[16];   // x, z, age (s), strength (0 = unused); fed by PondLife
 
 varying vec3 world_pos;
 
@@ -42,6 +43,25 @@ void fragment() {
 	float foam_n = noise(p * 2.2 + vec2(TIME * 0.3, TIME * 0.18));
 	float edge = smoothstep(0.5, 0.62, shore + (foam_n - 0.5) * 0.28 + sin(TIME * 1.4 + p.x * 1.7 + p.y) * 0.03);
 	col = mix(col, vec3(0.96, 0.99, 1.0), edge);
+	// Expanding double rings from bobbers, fish and raindrops.
+	float rings = 0.0;
+	float troughs = 0.0;
+	for (int i = 0; i < 16; i++) {
+		vec4 r = ripples[i];
+		if (r.w <= 0.0) {
+			continue;
+		}
+		float d = distance(p, r.xy);
+		float fade = clamp(1.0 - r.z / 2.2, 0.0, 1.0) * r.w;
+		float front = 0.12 + r.z * (0.55 + 0.7 * r.w);
+		float width = 0.05 + r.z * 0.03;
+		rings += (1.0 - smoothstep(width * 0.5, width * 1.5, abs(d - front))) * fade;
+		rings += (1.0 - smoothstep(width * 0.4, width * 1.3, abs(d - front * 0.6))) * fade * 0.55;
+		troughs += (1.0 - smoothstep(width, width * 2.5, abs(d - front + width * 2.2))) * fade;
+	}
+	col = mix(col, deep * 0.8, clamp(troughs, 0.0, 1.0) * 0.55);
+	col = mix(col, vec3(0.95, 0.99, 1.0), clamp(rings, 0.0, 1.0) * 0.85);
+	edge = max(edge, clamp(rings, 0.0, 1.0) * 0.5);
 	ALBEDO = col;
 	ALPHA = mix(0.84, 0.97, edge);
 	ROUGHNESS = 0.15;
