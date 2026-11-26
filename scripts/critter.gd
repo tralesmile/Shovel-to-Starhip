@@ -30,11 +30,12 @@ var _ears: Array[Node3D] = []
 const BONK_LINES := ["BONK! The rabbit files a complaint and drops its lunch.", "Boing! Rabbit has left the chat (and some supplies).",
 	"The rabbit says 'rude' and vanishes in a puff."]
 
-## Pure (tested): rabbit mood from distance. Crouching halves the scare range, sprinting widens it.
-static func rabbit_mode(dist: float, crouched: bool, sprinting: bool) -> String:
+## Pure (tested): rabbit mood from distance. Crouching halves the scare range, sprinting widens it,
+## and crouching in tall grass (cover) halves it again.
+static func rabbit_mode(dist: float, crouched: bool, sprinting: bool, cover: bool = false) -> String:
 	var k := 1.0
 	if crouched:
-		k = 0.5
+		k = 0.25 if cover else 0.5
 	elif sprinting:
 		k = 1.45
 	if dist < RABBIT_FLEE * k:
@@ -62,6 +63,7 @@ static func hop_height(phase: float) -> float:
 
 ## Taming (Stardew-style affection): feed a veggie 3 times and the animal becomes a follower.
 const TAME_FEEDS := 3
+const GOAT_HAY := 4            ## the goat will also take hay, an armful at a time
 const FOLLOW_KEEP := 2.2      ## pets stop this far from you
 const FOLLOW_RUN := 7.0       ## farther than this and they trot at double speed
 const FOLLOW_WARP := 30.0     ## lost pets pop back next to you
@@ -79,6 +81,8 @@ static func tame_food(kind: int, inv: Dictionary) -> String:
 	for f in ["carrot", "turnip", "tomato"]:
 		if int(inv.get(f, 0)) > 0:
 			return f
+	if kind == Kind.GOAT and int(inv.get("hay", 0)) >= GOAT_HAY:
+		return "hay"
 	return ""
 
 
@@ -183,6 +187,8 @@ func _ready() -> void:
 		add_child(blob_shadow(0.55 if kind == Kind.GOAT else 0.32 if kind == Kind.CHICKEN else 0.26))
 	if kind == Kind.CHICKEN or kind == Kind.GOAT:
 		add_to_group("saveable")
+	if kind == Kind.CHICKEN or kind == Kind.GOAT or kind == Kind.RABBIT:
+		add_to_group("grass_bender")
 	match kind:
 		Kind.CHICKEN:
 			_build_chicken()
@@ -228,7 +234,7 @@ func interact(game: GameState) -> void:
 			return
 	var food := "" if tamed else tame_food(kind, game.inventory)
 	if food != "":
-		game.remove_item(food, 1)
+		game.remove_item(food, GOAT_HAY if food == "hay" else 1)
 		var r := feed_result(affection)
 		affection = int(r["affection"])
 		FX.burst(self, global_position + Vector3(0, 1.0, 0), Color(1, 0.3, 0.45), 8, 0.16, 1.8, -1.0, "sphere", 40.0)
@@ -525,7 +531,7 @@ func _rabbit(delta: float) -> void:
 			cr = bool(pl.get("crouching"))
 		if pl is CharacterBody3D:
 			sprinting = Vector2((pl as CharacterBody3D).velocity.x, (pl as CharacterBody3D).velocity.z).length() > 6.0
-		mode = rabbit_mode(away.length(), cr, sprinting)
+		mode = rabbit_mode(away.length(), cr, sprinting, bool(pl.get("in_cover")))
 		if mode == "flee":
 			if _alert_t < 0.25 and _flee_dir == Vector3.ZERO:
 				_alert_t += delta   # a startled freeze before the bolt

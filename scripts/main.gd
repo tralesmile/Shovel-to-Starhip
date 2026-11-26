@@ -126,14 +126,14 @@ func _process(delta: float) -> void:
 	_update_witnesses(delta)
 	_update_barks(delta)
 	var busted := false
-	if _police and _police.update_police(delta, player.global_position, Game.heat, player.crouching, Game.time_of_day):
+	if _police and _police.update_police(delta, player.global_position, Game.heat, player.crouching, Game.time_of_day, player.in_cover):
 		busted = true
 	if _police_car and _police_car.update_chase(delta, player.global_position, Game.heat, player.vehicle != null):
 		busted = true
 		Game.say("Squad car: \"Pull over! Your tyres look suspiciously stolen!\"")
 	var chased: bool = _police != null and _police.state == Police.State.CHASE
 	var unseen := not chased and not (_police_car != null and _police_car.active) \
-		and not (_police != null and _police.sees_player(player.global_position, player.crouching, Game.time_of_day))
+		and not (_police != null and _police.sees_player(player.global_position, player.crouching, Game.time_of_day, player.in_cover))
 	if Game.in_closet and not _near_closet():
 		Game.in_closet = false
 	var ck := Closet.creak_tick(_creak_t, delta, Game.in_closet)
@@ -800,39 +800,10 @@ func _build_scenery() -> void:
 		var c := Models.put(self, Models.MED + ("cloud_big.gltf" if k % 2 == 0 else "cloud_small.gltf"),
 			Vector3(rng.randf_range(-90, 90), rng.randf_range(38, 55), rng.randf_range(-90, 60)), rng.randf_range(4.0, 7.0), rng.randf() * TAU)
 		_clouds.append(c)
-	# Grass tufts scattered with one MultiMesh (cheap to draw).
-	var mesh := Models.first_mesh(Models.KENNEY + "grass.glb")
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = mesh
-	var spots: Array[Transform3D] = []
-	while spots.size() < 900:
-		var p := Vector3(rng.randf_range(-55, 55), 0, rng.randf_range(-55, 12))
-		if abs(p.x) < 6.0 and abs(p.z) < 13.0:
-			continue   # farm + path
-		if p.x > 8 and p.x < 21 and p.z > -2 and p.z < 10:
-			continue   # store
-		if p.x > 22 and p.z < -14:
-			continue   # spaceport
-		if Terrain.height_at(p.x, p.z) < -0.6:
-			continue   # pond
-		if Vector2(p.x - MineCave.ENTRANCE.x, p.z - MineCave.ENTRANCE.z + 1.0).length() < 4.0:
-			continue   # mine mouth
-		p.y = Terrain.height_at(p.x, p.z)
-		var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(1.0, 1.8)), p)
-		spots.append(xf)
-	mm.instance_count = spots.size()
-	for k in spots.size():
-		mm.set_instance_transform(k, spots[k])
-	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = mm
-	var gm := ShaderMaterial.new()
-	gm.shader = Toon.TOON
-	gm.set_shader_parameter("albedo_color", Color(0.36, 0.62, 0.3))
-	gm.set_shader_parameter("wind", 1.6)
-	mmi.material_override = gm
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mmi)
+	# Grass: bends underfoot, can be cut for hay, hides a crouching farmer.
+	var meadow := Meadow.new()
+	meadow.game = Game
+	add_child(meadow)
 
 
 func _build_flowers() -> void:

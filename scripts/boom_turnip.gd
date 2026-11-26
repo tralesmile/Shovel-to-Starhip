@@ -137,6 +137,7 @@ func explode() -> int:
 			cr.game = game
 			cr.hits = PropCrate.HITS_TO_SMASH - 1
 			cr.smash_hit()
+	tree.call_group("meadow", "blast", at, RADIUS)
 	for n in tree.get_nodes_in_group("huntable"):
 		var c := n as Critter
 		if c != null and c.visible and c.global_position.distance_to(at) <= RADIUS:

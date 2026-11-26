@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -46,6 +46,98 @@ func check(cond: bool, label: String) -> void:
 
 
 # ---------------------------------------------------------------- tests
+
+func test_meadow() -> bool:
+	check(not Meadow.spot_ok(0, 0), "no grass on the farm")
+	check(not Meadow.spot_ok(14, 5), "no grass in the store")
+	check(not Meadow.spot_ok(0, 16), "no grass on the road")
+	check(Meadow.spot_ok(-9.5, -4.0), "grass beside the farm")
+	check(Meadow.swing_for(true)["radius"] > Meadow.swing_for(false)["radius"] and Meadow.swing_for(true)["arc"] >= 360.0, "scythe sweeps wider, all round")
+	check(Meadow.in_swing(Vector2(0, 1.2), Vector2.ZERO, 0.0, 1.7, 110.0), "tuft ahead is hit")
+	check(not Meadow.in_swing(Vector2(0, -1.2), Vector2.ZERO, 0.0, 1.7, 110.0), "tuft behind is missed")
+	check(Meadow.in_swing(Vector2(0, -1.2), Vector2.ZERO, 0.0, 3.0, 360.0), "spin hits behind")
+	check(Meadow.in_swing(Vector2(1.2, 0), Vector2.ZERO, PI * 0.5, 1.7, 110.0), "yaw turns the arc")
+	check(not Meadow.in_swing(Vector2(0, 4.0), Vector2.ZERO, 0.0, 3.0, 360.0), "out of reach")
+	var h := Meadow.hay_from(0, 12)
+	check(h[0] == 2 and h[1] == 2, "12 tufts = 2 bundles, 2 carried")
+	h = Meadow.hay_from(h[0], 3)
+	check(h[0] == 0 and h[1] == 1, "leftover carries over")
+	check(Meadow.find_for(0.0) == "sunmint" and Meadow.find_for(0.5) == "" and Meadow.find_for(0.999) == "turnip_seed", "rare finds")
+	check(not Meadow.regrown(3, 4) and Meadow.regrown(3, 5), "regrows after 2 days")
+	check(Meadow.is_cover(true, 6) and not Meadow.is_cover(false, 6) and not Meadow.is_cover(true, 1), "cover needs crouch and tall grass")
+	check(Meadow.trail_power(0.0) > Meadow.trail_power(0.7) and Meadow.trail_power(5.0) == 0.0, "wake fades")
+	check(Critter.rabbit_mode(2.0, true, false, true) == "alert" and Critter.rabbit_mode(2.0, true, false, false) == "flee", "grass cover lets you creep closer")
+	check(Police.sight_range(true, 0.5, true) < Police.sight_range(true, 0.5), "grass cover shortens constable sight")
+	var md := Meadow.new()
+	md.game = game
+	root.add_child(md)
+	check(md.tufts.size() > 3000, "meadow is dense (%d)" % md.tufts.size())
+	var at := Vector3(-9.5, 0, -4.0)
+	check(md.tall_count(at) >= Meadow.COVER_TUFTS, "tall patch by the farm")
+	check(md.tall_count(Vector3(450, 0, 0)) == 0, "no grass indoors")
+	var ids := md.targets(at, 0.0, Meadow.SCYTHE_RADIUS, 360.0)
+	check(ids.size() >= 10, "scythe reaches many tufts (%d)" % ids.size())
+	var rolls: Array = []
+	rolls.resize(ids.size())
+	rolls.fill(0.5)
+	var before := root.get_tree().get_nodes_in_group("pickup").size()
+	check(md.cut(ids, at, rolls) == ids.size(), "all cut")
+	var bundles := root.get_tree().get_nodes_in_group("pickup").size() - before
+	check(bundles == mini(ids.size() / Meadow.TUFTS_PER_HAY, Meadow.MAX_LOOSE_PICKUPS), "hay pops out as pickups (%d)" % bundles)
+	check(md.targets(at, 0.0, Meadow.SCYTHE_RADIUS, 360.0).is_empty() and md.cut(ids, at, rolls) == 0, "stubble cannot be cut twice")
+	check(game.meadow_cut.size() == ids.size(), "cuts recorded")
+	var saved := game.to_dict()
+	game.meadow_cut = {}
+	game.from_dict(saved)
+	check(game.meadow_cut.size() == ids.size(), "cuts survive save/load")
+	game.day += Meadow.REGROW_DAYS
+	md.refresh()
+	check(game.meadow_cut.is_empty() and md.targets(at, 0.0, Meadow.SCYTHE_RADIUS, 360.0).size() == ids.size(), "grass regrows")
+	var full := md.tall_count(at)
+	game.built = [{"id": "wood_floor", "x": -10.0, "z": -4.0, "r": 0}]
+	md.refresh_built()
+	check(md.tall_count(at) < full, "floors hide grass")
+	game.built = []
+	md.refresh_built()
+	check(md.tall_count(at) == full, "demolishing brings it back")
+	check(md.blast(at, 4.0) > 0, "a blast mows grass")
+	md.free()
+	var si := _recipe_index_of("scythe")
+	game.add_item("plank", 3)
+	game.add_item("stone", 2)
+	check(game.craft(si) and game.count("scythe") == 1, "scythe crafts")
+	check(game.tool_label(GameState.Tool.HOE) == "Hoe Scythe", "hotbar shows the scythe")
+	game.add_item("hay", 6)
+	check(game.craft(_recipe_index_of("hay_bale")) and game.count("hay_bale") == 1, "hay bale crafts")
+	check(BuildWorld.PIECES.has("hay_bale") and BuildWorld.is_furniture("hay_bale"), "hay bale is placeable")
+	check(Critter.tame_food(Critter.Kind.GOAT, {"hay": 4}) == "hay" and Critter.tame_food(Critter.Kind.GOAT, {"hay": 3}) == "", "goat takes an armful of hay")
+	check(Critter.tame_food(Critter.Kind.CHICKEN, {"hay": 9}) == "", "chickens do not eat hay")
+	check(Critter.tame_food(Critter.Kind.GOAT, {"hay": 9, "carrot": 1}) == "carrot", "veg first")
+	check(WoodLog.drop_color("hay").a > 0.0 and WoodLog.is_organic("sunmint"), "pickup looks")
+	return true
+
+
+func test_momentum_bounce() -> bool:
+	check(FX.move_accel(Vector2.ZERO, Vector2(8, 0), true) == FX.ACCEL_GROUND, "start ramp")
+	check(FX.move_accel(Vector2(8, 0), Vector2.ZERO, true) == FX.BRAKE_GROUND, "brake ramp")
+	check(FX.is_skid(Vector2(8, 0), Vector2(-8, 0)) and FX.move_accel(Vector2(8, 0), Vector2(-8, 0), true) == FX.ACCEL_SKID, "reversing a run skids")
+	check(not FX.is_skid(Vector2(5, 0), Vector2(-5, 0)), "walking turns stay snappy")
+	check(not FX.is_skid(Vector2(8, 0), Vector2(0, 8)), "a right angle is not a skid")
+	check(FX.move_accel(Vector2(8, 0), Vector2(-8, 0), false) == FX.ACCEL_AIR, "air control")
+	check(FX.lean_roll(4.0, 8.0) < 0.0 and FX.lean_roll(-4.0, 8.0) > 0.0 and absf(FX.lean_roll(99.0, 20.0)) <= 0.2, "lean into turns, capped")
+	check(FX.lean_pitch(8.5, false) > FX.lean_pitch(3.0, false) and FX.lean_pitch(8.5, true) < 0.0, "pitch forward, rear back")
+	check(FX.bounce_vy(1.0, true) == 0.0, "stepping up does not bounce")
+	check(FX.bounce_vy(6.0, true) > FX.bounce_vy(6.0, false), "holding jump pumps")
+	var v := 5.0
+	for i in 8:
+		v = FX.bounce_vy(v, true)
+	check(is_equal_approx(v, FX.BOUNCE_MAX), "pumping builds to the cap")
+	var d := 8.0
+	for i in 12:
+		d = FX.bounce_vy(d, false)
+	check(d == 0.0, "bounces die out without jump")
+	return true
+
 
 func test_economy() -> bool:
 	check(game.money == 50, "starts with $50")

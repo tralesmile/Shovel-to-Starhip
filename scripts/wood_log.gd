@@ -62,6 +62,12 @@ func _ready() -> void:
 	phys.bounce = 0.35
 	phys.friction = 0.8
 	physics_material_override = phys
+	if item_id == "hay":
+		_build_hay()
+		return
+	if item_id == "sunmint":
+		_build_herb()
+		return
 	if chunk_color.a > 0.0:
 		_build_chunk()
 		return
@@ -100,6 +106,46 @@ func _ready() -> void:
 		cap.mesh = d
 		cap.position.y = 0.4 * s
 		add_child(cap)
+
+
+## A tied sheaf of straw.
+func _build_hay() -> void:
+	mass = 0.5
+	angular_damp = 3.0
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(0.48, 0.2, 0.22)
+	cs.shape = bx
+	add_child(cs)
+	for k in 7:
+		var straw := Art.box(Vector3(0.52 - 0.03 * (k % 3), 0.06, 0.06), chunk_color.lightened(0.12 * (k % 3) - 0.08))
+		var a := k * TAU / 6.0
+		straw.position = Vector3(0.015 * (k % 2), sin(a) * 0.065, cos(a) * 0.07) if k < 6 else Vector3.ZERO
+		straw.rotation = Vector3(0, 0.1 * sin(k * 2.1), 0.07 * cos(k * 1.7))
+		add_child(straw)
+	add_child(Art.box(Vector3(0.07, 0.23, 0.25), Color(0.78, 0.3, 0.22)))
+
+
+## A sprig of Sunmint: a fan of leaves with a sunny bud.
+func _build_herb() -> void:
+	mass = 0.3
+	angular_damp = 3.0
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(0.34, 0.14, 0.34)
+	cs.shape = bx
+	add_child(cs)
+	for k in 5:
+		var a := k * TAU / 5.0
+		var leaf := Art.sphere(0.1, chunk_color.darkened(0.12 * (k % 2)), 3, 6)
+		leaf.scale = Vector3(1.6, 0.3, 0.8)
+		leaf.position = Vector3(cos(a), 0.15, sin(a)) * 0.13
+		leaf.rotation = Vector3(0, -a, 0.35)
+		add_child(leaf)
+	var bud := Art.sphere(0.07, Color(1.0, 0.86, 0.2), 4, 7)
+	bud.material_override = Art.mat(Color(1.0, 0.86, 0.2), true)
+	bud.position.y = 0.09
+	add_child(bud)
 
 
 ## A pale board that tumbles out when a log is chopped.
@@ -143,6 +189,9 @@ static func drop_color(id: String) -> Color:
 	match id:
 		"rabbit_meat": return Color(0.9, 0.42, 0.45)
 		"rabbit_pelt": return Color(0.78, 0.7, 0.6)
+		"hay": return Color(0.93, 0.78, 0.3)
+		"sunmint": return Color(0.45, 0.95, 0.65)
+		"turnip_seed": return Color(0.7, 0.55, 0.3)
 		"egg":
 			return Color(0.98, 0.95, 0.85)
 		"egg": return Color(0.98, 0.95, 0.85)
@@ -159,7 +208,7 @@ static func drop_color(id: String) -> Color:
 
 ## Organic drops (meat, pelts, carrots) do not shimmer like ore.
 static func is_organic(id: String) -> bool:
-	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "egg", "rabbit_stew", "turnip", "tomato"]
+	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "egg", "rabbit_stew", "turnip", "tomato", "hay", "sunmint", "turnip_seed"]
 
 
 ## Stone / ore / gem chunk: a small tumbling rock.

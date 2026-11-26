@@ -76,6 +76,24 @@ func _ready() -> void:
 		var knob := Art.box(Vector3(0.08, 0.08, 0.14), Color(0.95, 0.8, 0.3))
 		knob.position = Vector3(0.78, 1.0, 0)
 		hinge.add_child(knob)
+	elif def["style"] == "bale":
+		# A fat straw block: banded, with loose stalks poking out so it reads as soft and springy.
+		var core := Art.box(Vector3(sz.x, sz.y - 0.04, sz.z), c)
+		core.position.y = sz.y * 0.5
+		_mesh.add_child(core)
+		for k in 4:
+			var layer := Art.box(Vector3(sz.x + 0.02, 0.035, sz.z + 0.02), c.darkened(0.14))
+			layer.position.y = 0.12 + k * 0.17
+			_mesh.add_child(layer)
+		for sx3 in [-0.42, 0.42]:
+			var band := Art.box(Vector3(0.1, sz.y + 0.01, sz.z + 0.06), Color(0.76, 0.28, 0.2))
+			band.position = Vector3(sx3, sz.y * 0.5, 0)
+			_mesh.add_child(band)
+		for k in 18:
+			var stalk := Art.box(Vector3(0.025, 0.22, 0.025), c.lightened(0.22))
+			stalk.position = Vector3(-0.68 + fmod(k * 0.397, 1.36), sz.y + 0.02, -0.45 + fmod(k * 0.271, 0.9))
+			stalk.rotation = Vector3(sin(k * 2.3) * 0.9, 0, cos(k * 1.7) * 0.9)
+			_mesh.add_child(stalk)
 	elif def["style"] == "table":
 		var top := Art.box(Vector3(sz.x, 0.1, sz.z), c.lightened(0.08))
 		top.position.y = sz.y - 0.05
@@ -306,3 +324,14 @@ func crumble() -> void:
 	if parent != null:
 		FX.burst(parent, global_position + Vector3(0, 0.5, 0), c, 14, 0.1, 3.5)
 	queue_free()
+
+
+## A hay bale squishes flat and springs back when something lands on it.
+func squish(strength: float) -> void:
+	if _mesh == null:
+		return
+	var k := clampf(strength / FX.BOUNCE_MAX, 0.15, 1.0)
+	var tw := create_tween()
+	tw.tween_property(_mesh, "scale", Vector3(1.0 + 0.25 * k, 1.0 - 0.45 * k, 1.0 + 0.25 * k), 0.07)
+	tw.tween_property(_mesh, "scale", Vector3(1.0 - 0.08 * k, 1.0 + 0.2 * k, 1.0 - 0.08 * k), 0.12)
+	tw.tween_property(_mesh, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)

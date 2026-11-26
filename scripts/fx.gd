@@ -292,3 +292,52 @@ static func in_fall_zone(tree_pos: Vector3, dir: Vector3, p: Vector3, length: fl
 	var along := rel.dot(dir)
 	var side := absf(rel.dot(dir.cross(Vector3.UP)))
 	return along > -0.3 and along < length and side < half_w
+
+
+## Movement momentum (Player): different ramps for starting, stopping, turning on a dime and air control.
+const ACCEL_GROUND := 30.0
+const BRAKE_GROUND := 34.0
+const ACCEL_SKID := 20.0     ## reversing at speed slides a little
+const ACCEL_AIR := 18.0
+const SKID_SPEED := 6.0      ## only a run (or gallop) can skid; walking turns stay snappy
+
+
+## Pure (tested): true when `wish` points against a fast current velocity.
+static func is_skid(cur: Vector2, wish: Vector2) -> bool:
+	return cur.length() > SKID_SPEED and wish.length() > 0.1 and cur.normalized().dot(wish.normalized()) < -0.35
+
+
+## Pure (tested): m/s^2 to apply this frame.
+static func move_accel(cur: Vector2, wish: Vector2, on_floor: bool) -> float:
+	if not on_floor:
+		return ACCEL_AIR
+	if wish.length() <= 0.1:
+		return BRAKE_GROUND
+	return ACCEL_SKID if is_skid(cur, wish) else ACCEL_GROUND
+
+
+## Pure (tested): body roll into a turn. `turn` is yaw change in rad/s (+ = turning left).
+static func lean_roll(turn: float, speed: float) -> float:
+	return clampf(-turn * speed * 0.004, -0.2, 0.2)
+
+
+## Pure (tested): forward lean when running; thrown back while skidding.
+static func lean_pitch(speed: float, skidding: bool) -> float:
+	if skidding:
+		return -0.26
+	return clampf((speed - 4.0) / 5.0, 0.0, 1.0) * 0.16
+
+
+## Hay bale trampoline.
+const BOUNCE_MIN_FALL := 2.0
+const BOUNCE_MAX := 11.5
+
+
+## Pure (tested): upward speed after landing on a hay bale at `fall` m/s (0 = no bounce). Holding jump
+## pumps it higher each time, like a trampoline.
+static func bounce_vy(fall: float, holding_jump: bool) -> float:
+	if fall < BOUNCE_MIN_FALL:
+		return 0.0
+	if holding_jump:
+		return minf(maxf(fall * 1.12 + 2.4, 8.0), BOUNCE_MAX)
+	return minf(fall * 0.62, 7.0)

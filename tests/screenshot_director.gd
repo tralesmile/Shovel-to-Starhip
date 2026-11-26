@@ -87,6 +87,63 @@ func _run() -> void:
 		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=70,71,72,73"):
+		var md: Meadow = p.meadow()
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		var spot := Vector2(9.5, -8.0)
+		for o in main.get_node("Trees").get_children():
+			(o as Node3D).visible = (o as Node3D).global_position.distance_to(Vector3(spot.x, 0, spot.y)) > 8.0
+		var at := Vector3(spot.x, 0.1, spot.y + 0.4)
+		p._model.rotation.y = PI * 0.75
+		await _view(p, 0.70, at, 0.15, -0.42, 6.0, "70_meadow.png")
+		p._model.rotation.y = PI
+		await _wait(5)
+		Game.add_item("scythe", 1)
+		Game.set_tool(GameState.Tool.HOE)
+		p.global_position = at
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		await _wait(20)
+		var before := md.tall_count(p.global_position, 3.0)
+		Engine.time_scale = 0.12   # slow motion: software frames are too long to catch a 0.2s slash
+		print("SWING cut=", p.swing_grass(), " tall before=", before)
+		await get_tree().create_timer(0.3, true, false, true).timeout   # outlast the hit-stop
+		Engine.time_scale = 0.12
+		p._sweep_arc(Meadow.SCYTHE_RADIUS, 360.0)
+		md._blade_burst(p.global_position + Vector3(1.4, 0.4, 0.3), p.global_position, 0.3)
+		md._blade_burst(p.global_position + Vector3(-1.2, 0.4, 0.8), p.global_position, 0.9)
+		await _wait(3)
+		var img := get_viewport().get_texture().get_image()
+		img.save_png(out_dir.path_join("71_scythe_swing.png"))
+		Engine.time_scale = 1.0
+		await _wait(6)
+		await _shot("72_stubble_hay.png")
+		print("PICKUPS ", get_tree().get_nodes_in_group("pickup").size(), " hay in pockets ", Game.count("hay"))
+		var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+		Game.add_item("hay_bale", 1)
+		bw.place("hay_bale", Vector3(-4, 0, 16 - 22), 0, Game)
+		var top := Vector3(-4, Terrain.height_at(-4, -6) + 3.4, -6)
+		p.global_position = top
+		p.velocity = Vector3.ZERO
+		p._yaw = 0.5
+		p._pitch = -0.2
+		p._zoom = 6.0
+		p._pivot.global_position = top
+		Input.action_press("jump")
+		var peak := 0.0
+		var shot := false
+		for i in 240:
+			await get_tree().physics_frame
+			if i % 20 == 0:
+				print("  y=", p.global_position.y, " vy=", p.velocity.y, " floor=", p.is_on_floor())
+			if p.velocity.y > 6.0 and not shot:
+				shot = true
+				print("BOUNCE vy=", p.velocity.y)
+				await _wait(2)
+				get_viewport().get_texture().get_image().save_png(out_dir.path_join("73_hay_bounce.png"))
+		Input.action_release("jump")
+		print("BOUNCED ", shot)
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=88"):
 		var gr: GranRocket = main.get_node("Spaceport/GranRocket")
 		Game.time_of_day = 0.45

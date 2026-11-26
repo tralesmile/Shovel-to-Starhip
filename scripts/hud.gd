@@ -309,8 +309,20 @@ func _process(_delta: float) -> void:
 		_prompt.text = InputPrompts.format(player._crate_ahead().prompt_text(), InputPrompts.use_pad)
 	elif player and player.vehicle == null and Game.current_tool == GameState.Tool.AXE and player._log_ahead() != null:
 		_prompt.text = InputPrompts.format("[E] Split log into planks", InputPrompts.use_pad)
+	elif player and player.vehicle == null and Game.current_tool == GameState.Tool.HOE and _grass_ahead():
+		_prompt.text = InputPrompts.format("[E] Sweep the scythe" if Game.count("scythe") > 0 else "[E] Cut grass (a Scythe sweeps all around)", InputPrompts.use_pad)
+	elif player and player.in_cover:
+		_prompt.text = "Hidden in tall grass"
 	else:
 		_prompt.text = ""
+
+
+func _grass_ahead() -> bool:
+	var md := player.meadow()
+	if md == null:
+		return false
+	var sw := Meadow.swing_for(Game.count("scythe") > 0)
+	return not md.targets(player.global_position, player._model.rotation.y, sw["radius"], sw["arc"]).is_empty()
 
 
 func _refresh() -> void:

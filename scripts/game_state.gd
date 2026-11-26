@@ -36,6 +36,10 @@ const ITEMS := {
 	"tomato_seed": {"name": "Tomato Seeds", "buy": 30, "sell": 0},
 	"tomato": {"name": "Tomato", "buy": 0, "sell": 125},
 	"wood": {"name": "Wood", "buy": 0, "sell": 5},
+	"hay": {"name": "Hay Bundle", "buy": 0, "sell": 3},
+	"sunmint": {"name": "Sunmint", "buy": 0, "sell": 14},
+	"scythe": {"name": "Scythe", "buy": 0, "sell": 0},
+	"hay_bale": {"name": "Bouncy Hay Bale", "buy": 0, "sell": 0},
 	# Mining drops.
 	"stone": {"name": "Stone", "buy": 0, "sell": 4},
 	"copper_ore": {"name": "Copper Ore", "buy": 0, "sell": 18},
@@ -129,13 +133,16 @@ const RECIPES := [
 	{"id": "invention_bench", "name": "Invention Bench", "in": {"plank": 6, "copper_ingot": 3, "gem": 1}, "out": {"invention_bench": 1}},
 	{"id": "boom_turnip", "name": "Boom Turnips", "in": {"turnip": 1, "stone": 2, "copper_ore": 1}, "out": {"boom_turnip": 2}},
 	{"id": "miner_helmet", "name": "Miner's Helmet", "in": {"copper_ingot": 2, "glow_crystal": 2}, "out": {"miner_helmet": 1}, "once": true},
+	{"id": "scythe", "name": "Scythe", "in": {"plank": 2, "stone": 2}, "out": {"scythe": 1}, "once": true},
+	{"id": "hay_bale", "name": "Bouncy Hay Bale", "in": {"hay": 6, "plank": 1}, "out": {"hay_bale": 1}},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
 	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "anvil": 10.0, "invention_bench": 9.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
 	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0, "loot_vacuum": 0.0,
-	"glow_crystal": 0.5, "boom_turnip": 0.5, "miner_helmet": 0.0}
+	"glow_crystal": 0.5, "boom_turnip": 0.5, "miner_helmet": 0.0,
+	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -188,6 +195,7 @@ var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the a
 var car_owned: bool = false
 var stash: Dictionary = {}  ## shared contents of every Storage Chest (Gran's magic stash)
 var story_act: int = 0   ## index into Story.ACTS (saved)
+var meadow_cut: Dictionary = {}  ## cut grass tuft index (as text) -> day it was cut (saved)
 var _story_timer := 0.0
 var car_parts: Array = []   ## installed Car.PARTS ids
 var car_pos: Array = [8.0, 0.0, 14.0, 1.5708]   ## x, y, z, heading of the parked car
@@ -383,7 +391,7 @@ static func invention_ready(inv: Dictionary) -> Dictionary:
 
 
 ## Items that exist as physical things you can drop on the ground (seeds, tools and pieces cannot).
-const DROPPABLE := ["wood", "plank", "stone", "copper_ore", "copper_ingot", "gem", "carrot", "rabbit_meat", "rabbit_pelt", "turnip", "tomato", "rabbit_stew", "cooked_meat", "egg", "glow_crystal"]
+const DROPPABLE := ["wood", "plank", "stone", "copper_ore", "copper_ingot", "gem", "carrot", "rabbit_meat", "rabbit_pelt", "turnip", "tomato", "rabbit_stew", "cooked_meat", "egg", "glow_crystal", "hay", "sunmint"]
 
 
 ## Pure (tested): which item G drops: the one adding the most weight to your pockets (ties: alphabetical).
@@ -403,7 +411,7 @@ func drop_candidate() -> String:
 
 
 ## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
-const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet"]
+const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet", "scythe"]
 
 
 ## Pure (tested): can this item go in a chest?
@@ -626,6 +634,8 @@ func crop_seed_id(crop: String = "") -> String:
 func tool_label(i: int) -> String:
 	if i == Tool.SEEDS:
 		return "%s Seeds" % selected_crop.capitalize()
+	if i == Tool.HOE and count("scythe") > 0:
+		return "Hoe Scythe"
 	return TOOL_NAMES[i]
 
 
@@ -758,6 +768,7 @@ func to_dict() -> Dictionary:
 		"car_parts": car_parts,
 		"story_act": story_act,
 		"stash": stash,
+		"meadow_cut": meadow_cut.duplicate(),
 		"car_pos": car_pos,
 		"world": world,
 	}
@@ -790,6 +801,10 @@ func from_dict(data: Dictionary) -> void:
 	var st: Dictionary = data.get("stash", {})
 	for k in st.keys():
 		stash[k] = int(st[k])
+	meadow_cut = {}
+	var mc: Dictionary = data.get("meadow_cut", {})
+	for k in mc.keys():
+		meadow_cut[str(k)] = int(mc[k])
 	car_pos = data.get("car_pos", [8.0, 0.0, 14.0, 1.5708])
 	var world: Dictionary = data.get("world", {})
 	for node in get_tree().get_nodes_in_group("saveable"):

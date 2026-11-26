@@ -7,6 +7,11 @@ const WALK_SPEED := 5.0
 const RUN_SPEED := 8.5
 const CROUCH_SPEED := 2.6
 var crouching: bool = false
+var in_cover: bool = false   ## crouched in tall grass: rabbits and the constable struggle to see you
+var skidding: bool = false
+var _skid_puff := 0.0
+var _face_prev := 0.0
+var _lean := Vector2.ZERO    ## x = forward pitch, y = roll
 const JUMP_VELOCITY := 5.0
 const MOUSE_SENS := 0.0035
 
@@ -56,7 +61,9 @@ func _ready() -> void:
 	add_to_group("player")
 	Game.shake.connect(func(a: float): _trauma = min(1.0, _trauma + a))
 	Game.tool_changed.connect(_on_tool_changed)
+	Game.inventory_changed.connect(_refresh_hoe_model)
 	_on_tool_changed(Game.current_tool)
+	_refresh_hoe_model()
 
 
 const MODEL_SCALE := 0.72
@@ -93,11 +100,111 @@ func _build_model() -> void:
 	_hand = body.find_child("handslot_r", true, false)
 	_hand_items[GameState.Tool.AXE] = body.find_child("1H_Axe", true, false)
 	_hand_items[GameState.Tool.HOE] = _make_hoe()
+	_hoe_node = _hand_items[GameState.Tool.HOE]
+	_scythe_node = _make_scythe()
+	_scythe_node.visible = false
 	_hand_items[GameState.Tool.PICKAXE] = _make_pickaxe()
 	_hand_items[GameState.Tool.BUILD] = _make_hammer()
 	_hand_items[GameState.Tool.SLINGSHOT] = _make_slingshot()
 	_hand_items[GameState.Tool.WATER] = Models.put(_hand, Models.MED + "bucket_water.gltf", Vector3(0, -0.05, 0), 3.2)
 	_hand_items[GameState.Tool.SEEDS] = Models.put(_hand, Models.MED + "sack.gltf", Vector3(0, 0, 0), 3.0)
+
+
+var _hoe_node: Node3D
+var _scythe_node: Node3D
+
+
+func _make_scythe() -> Node3D:
+	var s := Node3D.new()
+	_hand.add_child(s)
+	var handle := Art.cylinder(0.035, 0.035, 1.5, Art.WOOD, 6)
+	handle.position.y = 0.4
+	s.add_child(handle)
+	# A curved blade made of three tapering steel segments.
+	for k in 3:
+		var seg := Art.box(Vector3(0.05, 0.14 - 0.03 * k, 0.3), Color(0.82, 0.86, 0.92))
+		seg.position = Vector3(0, 1.14 - 0.07 * k * k, 0.14 + 0.25 * k)
+		seg.rotation.x = 0.28 * k
+		s.add_child(seg)
+	var grip := Art.box(Vector3(0.22, 0.05, 0.05), Art.WOOD.darkened(0.2))
+	grip.position = Vector3(0.1, 0.35, 0)
+	s.add_child(grip)
+	return s
+
+
+## Owning the Scythe swaps it in for the hoe model (the hoe still tills farm plots).
+func _refresh_hoe_model() -> void:
+	var scythe := Game.count("scythe") > 0
+	var want: Node3D = _scythe_node if scythe else _hoe_node
+	if _hand_items.get(GameState.Tool.HOE) == want:
+		return
+	_hand_items[GameState.Tool.HOE] = want
+	_hoe_node.visible = false
+	_scythe_node.visible = false
+	want.visible = Game.current_tool == GameState.Tool.HOE
+
+
+func meadow() -> Meadow:
+	return get_tree().get_first_node_in_group("meadow") as Meadow
+
+
+## Hoe swing through wild grass: a short chop, or a full spinning sweep with the Scythe.
+func swing_grass() -> int:
+	var md := meadow()
+	if md == null or Game.current_tool != GameState.Tool.HOE or _action_time > 0.0 or mount != null:
+		return 0
+	var scythe := Game.count("scythe") > 0
+	var sw := Meadow.swing_for(scythe)
+	var ids := md.targets(global_position, _model.rotation.y, sw["radius"], sw["arc"])
+	if ids.is_empty():
+		return 0
+	play_action("2H_Melee_Attack_Spin" if scythe else "1H_Melee_Attack_Slice_Horizontal", 0.5)
+	Sfx.play_on(self, "swish", 0.85 if scythe else 1.2)
+	var n := md.cut(ids, global_position)
+	_sweep_arc(float(sw["radius"]), float(sw["arc"]))
+	Game.shake.emit(0.08 + minf(n, 30) * 0.004)
+	if n >= 8:
+		FX.hit_stop(get_tree(), 0.35)
+	return n
+
+
+## A pale crescent that flashes along the cutting edge and fades.
+func _sweep_arc(radius: float, arc_deg: float) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var steps := 28
+	var half := deg_to_rad(arc_deg * 0.5)
+	for i in steps:
+		var a0 := -half + 2.0 * half * i / steps
+		var a1 := -half + 2.0 * half * (i + 1) / steps
+		var quad := []
+		for a in [a0, a1]:
+			var d := Vector3(sin(a), 0, cos(a))
+			var fade := float(i) / steps   # brightest at the leading edge
+			quad.append([d * radius * 0.62, Color(1, 1, 0.85, 0.0)])
+			quad.append([d * radius, Color(1, 1, 0.85, 0.8 * fade * fade)])   # transparent tail, bright head
+		for k in [0, 1, 2, 2, 1, 3]:
+			st.set_color(quad[k][1])
+			st.add_vertex(quad[k][0])
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.vertex_color_use_as_albedo = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	get_parent().add_child(mi)
+	mi.global_position = global_position + Vector3(0, 0.5, 0)
+	mi.rotation.y = _model.rotation.y - 0.9
+	mi.scale = Vector3.ONE * 0.7
+	var tw := mi.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(mi, "scale", Vector3.ONE * 1.06, 0.2)
+	tw.tween_property(mi, "rotation:y", _model.rotation.y + 0.5, 0.2)
+	tw.tween_property(m, "albedo_color:a", 0.0, 0.24).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(mi.queue_free)
 
 
 func _make_pickaxe() -> Node3D:
@@ -363,6 +470,8 @@ func enter_car(car: Car) -> void:
 	car.driven = true
 	_shape.set_deferred("disabled", true)
 	_model.visible = false
+	skidding = false
+	in_cover = false
 	velocity = Vector3.ZERO
 	_yaw = car.heading + PI
 	Game.say("Vroom. Mind the goat.")
@@ -465,6 +574,8 @@ func _use() -> void:
 			lg.chop_into_planks()
 			Game.shake.emit(0.1)
 			FX.hit_stop(get_tree(), 0.4)
+		return
+	if target == null and swing_grass() > 0:
 		return
 	if target == null or _action_time > 0.0:
 		return
@@ -686,17 +797,30 @@ func _physics_process(delta: float) -> void:
 	speed *= FX.glide_speed_mult(gliding)
 	if global_position.y < Terrain.WATER_LEVEL + 0.2:
 		speed *= 0.45   # wading through the pond
-	if _blast_time > 0.0:
-		pass   # flying from a blast: keep the launch velocity, no steering
-	elif dir.length() > 0.01:
+	var flat_now := Vector2(velocity.x, velocity.z)
+	var wish := Vector2.ZERO
+	if dir.length() > 0.01:
 		dir = dir.normalized()
-		velocity.x = move_toward(velocity.x, dir.x * speed, 40.0 * delta)
-		velocity.z = move_toward(velocity.z, dir.z * speed, 40.0 * delta)
-		var face := atan2(dir.x, dir.z)
-		_model.rotation.y = lerp_angle(_model.rotation.y, face, 12.0 * delta)
+		wish = Vector2(dir.x, dir.z) * speed
+	var was_skid := skidding
+	skidding = is_on_floor() and mount == null and FX.is_skid(flat_now, wish)
+	if _blast_time > 0.0:
+		skidding = false   # flying from a blast: keep the launch velocity, no steering
 	else:
-		velocity.x = move_toward(velocity.x, 0, 40.0 * delta)
-		velocity.z = move_toward(velocity.z, 0, 40.0 * delta)
+		var accel := FX.move_accel(flat_now, wish, is_on_floor())
+		var next := flat_now.move_toward(wish, accel * delta)
+		velocity.x = next.x
+		velocity.z = next.y
+		if dir.length() > 0.01:
+			_model.rotation.y = lerp_angle(_model.rotation.y, atan2(dir.x, dir.z), 12.0 * delta)
+	_skid_puff = maxf(0.0, _skid_puff - delta)
+	if skidding:
+		if not was_skid:
+			Sfx.play_on(self, "skid", 0.9 + randf() * 0.25)
+		if _skid_puff <= 0.0:
+			_skid_puff = 0.06
+			FX.burst(self, global_position + Vector3(0, 0.08, 0), Color(0.78, 0.7, 0.55), 5, 0.13, 1.8, -1.0, "sphere", 70.0)
+	_update_lean(delta, flat_now.length())
 	if _action_time > 0.0:
 		velocity.x *= 0.2
 		velocity.z *= 0.2
@@ -707,7 +831,14 @@ func _physics_process(delta: float) -> void:
 		_squash = FX.landing_squash(-_last_vy)
 		FX.burst(self, global_position + Vector3(0, 0.05, 0), Color(0.78, 0.7, 0.55), 10, 0.14, 2.2, -1.0, "sphere", 80.0)
 		Sfx.play_on(self, "thud")
+	if is_on_floor() and not _was_floor:
+		_try_bounce(-_last_vy)
 	_was_floor = is_on_floor()
+	var md := meadow()
+	in_cover = md != null and mount == null and Meadow.is_cover(crouching, md.tall_count(global_position) if crouching else 0)
+	if in_cover and not _cover_told:
+		_cover_told = true
+		Game.say("Hidden in the tall grass. You are, legally speaking, a shrub.")
 	if global_position.y < -20.0:
 		global_position = Vector3(0, 2, 8)
 		velocity = Vector3.ZERO
@@ -726,6 +857,43 @@ func _physics_process(delta: float) -> void:
 		target = null
 	else:
 		_find_target()
+
+
+var _cover_told := false
+
+
+## Lean into turns, pitch into a run, rear back in a skid.
+func _update_lean(delta: float, speed: float) -> void:
+	var turn := wrapf(_model.rotation.y - _face_prev, -PI, PI) / maxf(delta, 0.001)
+	_face_prev = _model.rotation.y
+	var want := Vector2.ZERO
+	if mount == null and is_on_floor() and _action_time <= 0.0 and not crouching:
+		want = Vector2(FX.lean_pitch(speed, skidding), FX.lean_roll(turn, speed))
+	_lean = _lean.lerp(want, minf(1.0, 10.0 * delta))
+	_model.rotation.x = _lean.x
+	_model.rotation.z = _lean.y
+
+
+## Landed on a hay bale? Boing.
+func _try_bounce(fall: float) -> bool:
+	for i in get_slide_collision_count():
+		var col := get_slide_collision(i)
+		var piece := col.get_collider() as BuildPiece
+		if piece == null or piece.piece_id != "hay_bale" or col.get_normal().y < 0.6:
+			continue
+		var up := FX.bounce_vy(fall, Input.is_action_pressed("jump"))
+		if up <= 0.0:
+			return false
+		velocity.y = up
+		_coyote = 0.0
+		_squash = 1.3
+		piece.squish(up)
+		Sfx.play_on(self, "boing", 0.7 + up * 0.04)
+		FX.burst(self, global_position + Vector3(0, 0.05, 0), Color(0.95, 0.82, 0.35), 14, 0.07, 3.2, -6.0, "box", 120.0)
+		Game.shake.emit(0.05 + up * 0.008)
+		play_action("Jump_Full_Short", 0.3)
+		return true
+	return false
 
 
 ## Keep the goat under the rider, gallop its legs, and fling hoof clods behind it.

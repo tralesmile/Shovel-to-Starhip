@@ -26,6 +26,7 @@ Sleep in the bed (inside your house) to skip the night.
 Chop trees with the Axe for wood. Craft fence panels, then [6] Builder to place them.
 Gran's Old Mine is north-west of the farm. {throw_bomb}  throw a Boom Turnip.
 
+Cut tall grass with the Hoe (craft a Scythe!) for hay. Crouch in it to hide.
 Pet the chickens and the goat. They like it.
 
 {save} save (also saves every morning and on quit)
