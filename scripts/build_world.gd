@@ -24,9 +24,10 @@ const PIECES := {
 	"furnace": {"name": "Stone Furnace", "size": Vector3(1.1, 1.3, 1.1), "color": Color(0.5, 0.5, 0.55), "style": "furnace"},
 	"invention_bench": {"name": "Invention Bench", "size": Vector3(1.4, 1.0, 0.8), "color": Color(0.35, 0.45, 0.55), "style": "invention"},
 	"anvil": {"name": "Anvil", "size": Vector3(1.0, 0.9, 0.6), "color": Color(0.32, 0.33, 0.38), "style": "anvil"},
+	"sprinkler": {"name": "Copper Sprinkler", "size": Vector3(0.34, 0.6, 0.34), "color": Color(0.9, 0.55, 0.3), "style": "sprinkler"},
 	"wood_roof": {"name": "Wood Roof", "size": Vector3(2.3, 0.7, 2.3), "color": Color(0.62, 0.28, 0.22), "style": "roof", "y": 2.2},
 }
-const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern", "storage_chest", "campfire", "furnace", "anvil", "invention_bench", "hay_bale", "firefly_jar"]
+const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern", "storage_chest", "campfire", "furnace", "anvil", "invention_bench", "hay_bale", "firefly_jar", "sprinkler"]
 
 var pieces := {}   ## cell key -> BuildPiece
 var piece_id := "fence_panel"
@@ -69,7 +70,7 @@ static func key_for(id: String, p: Vector3, r: int) -> String:
 
 ## Pure (tested): furniture lives in its own key space (one per cell, stands on floors).
 static func is_furniture(id: String) -> bool:
-	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed", "campfire", "chest", "furnace", "anvil", "invention", "bale", "firejar"]
+	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed", "campfire", "chest", "furnace", "anvil", "invention", "bale", "firejar", "sprinkler"]
 
 
 ## Pure (tested): height above the ground a piece sits at (roofs rest on top of 2.2m walls).
@@ -182,6 +183,12 @@ func place(id: String, pos: Vector3, r: int, g: GameState) -> bool:
 	g.built.append({"id": id, "x": pos.x, "z": pos.z, "r": r % 4})
 	_spawn(id, pos.x, pos.z, r % 4, true)
 	_update_grass()
+	if id == "sprinkler":
+		var made: BuildPiece = pieces[key]
+		for c in made.get_children():
+			if c is SprinklerSpot:
+				c.water_around()
+				c.spray(SprinklerSpot.SPRAY_TIME)
 	return true
 
 

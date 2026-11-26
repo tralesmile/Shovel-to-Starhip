@@ -94,6 +94,27 @@ func _ready() -> void:
 			stalk.position = Vector3(-0.68 + fmod(k * 0.397, 1.36), sz.y + 0.02, -0.45 + fmod(k * 0.271, 0.9))
 			stalk.rotation = Vector3(sin(k * 2.3) * 0.9, 0, cos(k * 1.7) * 0.9)
 			_mesh.add_child(stalk)
+	elif def["style"] == "sprinkler":
+		# Copper standpipe on a stone foot with a spinning four-nozzle head.
+		var foot := Art.cylinder(0.15, 0.2, 0.1, Color(0.62, 0.63, 0.68), 10)
+		foot.position.y = 0.05
+		_mesh.add_child(foot)
+		var pipe := Art.cylinder(0.045, 0.055, 0.46, c, 8)
+		pipe.position.y = 0.31
+		_mesh.add_child(pipe)
+		var head := Node3D.new()
+		head.position.y = 0.55
+		_mesh.add_child(head)
+		for k in 2:
+			var arm := Art.box(Vector3(0.44, 0.06, 0.06), c.darkened(0.12))
+			arm.rotation.y = k * PI * 0.5
+			head.add_child(arm)
+		var cap := Art.sphere(0.085, c.lightened(0.2), 5, 8)
+		cap.position.y = 0.03
+		head.add_child(cap)
+		var spot := SprinklerSpot.new()
+		spot.interact_radius = 0.75
+		add_child(spot)
 	elif def["style"] == "table":
 		var top := Art.box(Vector3(sz.x, 0.1, sz.z), c.lightened(0.08))
 		top.position.y = sz.y - 0.05

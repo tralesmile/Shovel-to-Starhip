@@ -67,6 +67,9 @@ func _ready() -> void:
 	if FishModel.has_model(item_id):
 		_build_catch()
 		return
+	if CropModel.is_crop(item_id):
+		_build_produce()
+		return
 	if item_id == "hay":
 		_build_hay()
 		return
@@ -143,6 +146,20 @@ func _flop_tick(delta: float) -> void:
 	apply_torque_impulse((global_basis.x * randf_range(-1.0, 1.0) + Vector3.UP * randf_range(-0.5, 0.5)) * 0.16)
 	FX.burst(self, global_position, Color(0.75, 0.92, 1.0), 4, 0.04, 1.6, -7.0, "sphere", 70.0)
 	Sfx.play_on(self, "step_wood", randf_range(1.5, 2.1))
+
+
+## A real vegetable you can see lying on the ground.
+func _build_produce() -> void:
+	mass = 0.6
+	angular_damp = 3.5
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(0.34, 0.3, 0.34)
+	cs.shape = bx
+	add_child(cs)
+	var veg := CropModel.produce(item_id)
+	veg.scale = Vector3.ONE * 0.85
+	add_child(veg)
 
 
 ## A tied sheaf of straw.

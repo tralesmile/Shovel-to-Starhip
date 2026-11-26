@@ -24,7 +24,7 @@ const TOOL_NAMES := ["Hoe", "Turnip Seeds", "Watering Can", "Axe", "Pickaxe", "B
 const CROPS := {
 	"turnip": {"days": 2, "model": "food_ingredient_onion.gltf", "y": -0.12, "scale": 0.5},
 	"carrot": {"days": 3, "model": "food_ingredient_carrot.gltf", "y": 0.0, "scale": 0.55},
-	"tomato": {"days": 4, "model": "food_ingredient_tomato.gltf", "y": 0.0, "scale": 0.6},
+	"tomato": {"days": 4, "model": "food_ingredient_tomato.gltf", "y": 0.0, "scale": 0.6, "regrow": 2, "picks": 3},
 }
 const CROP_ORDER := ["turnip", "carrot", "tomato"]
 
@@ -36,6 +36,8 @@ const ITEMS := {
 	"tomato_seed": {"name": "Tomato Seeds", "buy": 30, "sell": 0},
 	"tomato": {"name": "Tomato", "buy": 0, "sell": 125},
 	"wood": {"name": "Wood", "buy": 0, "sell": 5},
+	"compost": {"name": "Compost", "buy": 0, "sell": 2},
+	"sprinkler": {"name": "Copper Sprinkler", "buy": 0, "sell": 0},
 	"hay": {"name": "Hay Bundle", "buy": 0, "sell": 3},
 	"sunmint": {"name": "Sunmint", "buy": 0, "sell": 14},
 	"scythe": {"name": "Scythe", "buy": 0, "sell": 0},
@@ -154,6 +156,8 @@ const RECIPES := [
 	{"id": "repair_kit", "name": "Repair Kit", "in": {"copper_ingot": 1, "plank": 2}, "out": {"repair_kit": 1}},
 	{"id": "bull_bar", "name": "Bull Bar", "in": {"copper_ingot": 2, "stone": 4}, "out": {"bull_bar": 1}, "once": true},
 	{"id": "drift_tyres", "name": "Drift Tyres", "in": {"hay": 4, "copper_ingot": 2, "plank": 1}, "out": {"drift_tyres": 1}, "once": true},
+	{"id": "compost", "name": "Compost", "in": {"hay": 3}, "out": {"compost": 2}},
+	{"id": "sprinkler", "name": "Copper Sprinkler", "in": {"copper_ingot": 1, "plank": 1, "stone": 2}, "out": {"sprinkler": 1}},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
@@ -164,7 +168,7 @@ const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, 
 	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0,
 	"butterfly": 0.05, "grasshopper": 0.05, "frog": 0.3, "firefly": 0.02, "bug_net": 0.0, "firefly_jar": 2.0,
 	"sunmint_bait": 0.05, "springy_rod": 0.0,
-	"bull_bar": 4.0, "drift_tyres": 4.0, "repair_kit": 1.0}
+	"bull_bar": 4.0, "drift_tyres": 4.0, "repair_kit": 1.0, "compost": 0.3, "sprinkler": 2.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -730,6 +734,9 @@ func advance_day() -> void:
 		for node in get_tree().get_nodes_in_group("daily"):
 			if node.has_method("rain_water"):
 				node.rain_water()
+	# Sprinklers run last, once every plot has had its night.
+	for node in get_tree().get_nodes_in_group("sprinkler"):
+		node.morning_spray()
 	day_changed.emit(day)
 	if Weather.is_wet(w):
 		say(Weather.morning_line(w))

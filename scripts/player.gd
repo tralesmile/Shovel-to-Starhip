@@ -738,7 +738,11 @@ func _use() -> void:
 	if target == null or _action_time > 0.0:
 		return
 	var anim := "Interact"
-	if ((target is ChoppableTree or target is FelledTrunk) and Game.current_tool == GameState.Tool.AXE) or (target is MineRock and Game.current_tool == GameState.Tool.PICKAXE):
+	if target is GiantCrop:
+		anim = "PickUp"
+	elif target is GiantBall.Spot and Game.current_tool == GameState.Tool.AXE:
+		anim = "1H_Melee_Attack_Chop"
+	elif ((target is ChoppableTree or target is FelledTrunk) and Game.current_tool == GameState.Tool.AXE) or (target is MineRock and Game.current_tool == GameState.Tool.PICKAXE):
 		anim = "1H_Melee_Attack_Chop"
 	elif target is FarmPlot:
 		if (target as FarmPlot).is_ripe():

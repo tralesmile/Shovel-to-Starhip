@@ -68,6 +68,38 @@ static func burst(parent: Node, pos: Vector3, color: Color, amount: int = 14, si
 	p.get_tree().create_timer(p.lifetime + 0.5).timeout.connect(p.queue_free)
 
 
+## A pour of water arcing from the can to the soil, ending in a splash.
+static func pour(parent: Node, from: Vector3, to: Vector3) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
+	var flight := 0.38
+	var g := 9.0
+	var v := (to - from) / flight + Vector3(0, 0.5 * g * flight, 0)
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 0.25
+	p.amount = 44
+	p.lifetime = flight
+	p.mesh = _mesh("sphere", 0.085, true)
+	p.direction = v.normalized()
+	p.spread = 5.0
+	p.initial_velocity_min = v.length() * 0.92
+	p.initial_velocity_max = v.length() * 1.06
+	p.gravity = Vector3(0, -g, 0)
+	p.color = Color(0.55, 0.82, 1.0)
+	var host: Node = parent.get_tree().current_scene
+	if host == null:
+		host = parent
+	host.add_child(p)
+	p.global_position = from
+	p.emitting = true
+	var tree := parent.get_tree()
+	tree.create_timer(flight * 1.2).timeout.connect(func():
+		if is_instance_valid(parent) and parent.is_inside_tree():
+			burst(parent, to, Color(0.6, 0.85, 1.0), 14, 0.06, 2.0, -9.0, "sphere", 70.0))
+	tree.create_timer(1.6).timeout.connect(p.queue_free)
+
+
 ## Continuous emitter (dust, leaves, fireflies). Caller toggles .emitting.
 static func emitter(parent: Node, color: Color, amount: int, lifetime: float, size: float,
 		box: Vector3, gravity: Vector3, unshaded: bool = false, kind: String = "box") -> CPUParticles3D:

@@ -352,6 +352,10 @@ func _build_farm() -> void:
 			plot.position = Vector3(x, 0, z)
 			farm.add_child(plot)
 			i += 1
+	var field := FarmField.new()
+	for k in i:
+		field.plots.append(farm.get_node("Plot_%02d" % k))
+	farm.add_child(field)
 	# Wooden fence around the field, with a gap on the south side.
 	var fence := Models.MED + "fence_wood_straight.gltf"
 	for k in 5:

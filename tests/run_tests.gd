@@ -16,12 +16,15 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models", "test_car_physics", "test_car_damage_parts", "test_street_props",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models", "test_car_physics", "test_car_damage_parts", "test_street_props", "test_harvest_regrow_compost", "test_crop_models", "test_giant_crops", "test_sprinkler",
 	]:
 		_fresh_game()
 		var ok = call(test)
 		check(ok == true, "%s ran to the end (no script error)" % test)
 		game.free()
+	_fresh_game()
+	check(await test_giant_on_real_ground() == true, "test_giant_on_real_ground ran to the end (no script error)")
+	game.free()
 	_fresh_game()
 	check(await test_car_on_real_ground() == true, "test_car_on_real_ground ran to the end (no script error)")
 	game.free()
@@ -415,6 +418,217 @@ func _plot() -> FarmPlot:
 	return p
 
 
+## Grab every loose pick-up lying around (what walking over them does).
+func _collect_pickups() -> int:
+	var n := 0
+	for node in get_nodes_in_group("pickup"):
+		var l := node as WoodLog
+		if l != null and not l.is_queued_for_deletion():
+			l.game = game
+			l.collect()
+			n += 1
+	return n
+
+
+## A fresh 4x4 field wired to its giant-crop watcher, like main.gd builds it.
+func _field() -> FarmField:
+	var farm := Node3D.new()
+	root.add_child(farm)
+	var plots: Array = []
+	for i in 16:
+		var p := FarmPlot.new()
+		p.name = "Plot_%02d" % i
+		p.position = Vector3(-3 + (i / 4) * 2, 0, -3 + (i % 4) * 2)
+		farm.add_child(p)
+		plots.append(p)
+	var f := FarmField.new()
+	f.plots = plots
+	farm.add_child(f)
+	return f
+
+
+func _ripen(p: FarmPlot, crop: String, fed: bool) -> void:
+	p.from_dict({"state": FarmPlot.State.PLANTED, "crop": crop, "growth": 9, "watered": true, "composted": fed})
+
+
+func test_harvest_regrow_compost() -> bool:
+	check(FarmPlot.harvest_amount(true, false) == 2 and FarmPlot.harvest_amount(false, false) == 1, "compost doubles a harvest")
+	check(FarmPlot.regrow_growth("turnip", 1) == -1, "turnips come out roots and all")
+	check(FarmPlot.regrow_growth("tomato", 1) == 2 and FarmPlot.regrow_growth("tomato", 3) == -1, "tomato fruits three times")
+	var p := _plot()
+	_ripen(p, "tomato", false)
+	for pick in 3:
+		p.growth = p.grow_days()
+		p.interact(game)
+		check((p.state == FarmPlot.State.PLANTED) == (pick < 2), "vine survives pick %d" % pick)
+	check(_collect_pickups() >= 3 and game.count("tomato") >= 3, "three picks, at least three tomatoes")
+	# Compost: Seeds tool on a growing plant.
+	p.from_dict({"state": FarmPlot.State.PLANTED, "crop": "turnip", "growth": 0})
+	game.set_tool(GameState.Tool.SEEDS)
+	p.interact(game)
+	check(not p.composted, "no compost in pockets, nothing happens")
+	game.add_item("compost", 2)
+	check("compost" in p.get_prompt(game), "prompt offers compost")
+	p.interact(game)
+	p.interact(game)
+	check(p.composted and game.count("compost") == 1, "one dose per plant")
+	var saved := p.to_dict()
+	p.from_dict(JSON.parse_string(JSON.stringify(saved)))
+	check(p.composted, "compost saved")
+	p.growth = p.grow_days()
+	var before := game.count("turnip")
+	p.interact(game)
+	_collect_pickups()
+	check(game.count("turnip") == before + 2 and not p.composted, "composted plant gives two, then the dose is used up")
+	check(FarmPlot.new().is_ripe() == false, "new plot is not ripe")
+	var s := [Vector2(0.3, 0), Vector2.ZERO]
+	for i in 200:
+		s = FarmPlot.spring_step(s[0], s[1], 0.016)
+	check((s[0] as Vector2).length() < 0.01, "leaf spring settles")
+	check(GameState.RECIPES.any(func(r): return r["id"] == "compost") and GameState.RECIPES.any(func(r): return r["id"] == "sprinkler"), "recipes exist")
+	return true
+
+
+func test_crop_models() -> bool:
+	check(CropModel.growth_fraction(0, 3) == 0.0 and CropModel.growth_fraction(5, 3) == 1.0, "growth fraction clamps")
+	for crop in GameState.CROP_ORDER:
+		check(CropModel.is_crop(crop), "model exists for " + crop)
+		var sprout := CropModel.plant(crop, 0, 4)
+		var grown := CropModel.plant(crop, 4, 4)
+		root.add_child(sprout)
+		root.add_child(grown)
+		var a := Models.local_aabb(sprout, sprout)
+		var b := Models.local_aabb(grown, grown)
+		check(b.size.x * b.size.y * b.size.z > a.size.x * a.size.y * a.size.z, crop + " visibly grows")
+		check(b.size.x < FarmPlot.SIZE, crop + " stays inside its plot")
+		var veg := CropModel.produce(crop)
+		check(veg.get_child_count() >= 2, crop + " produce has parts")
+		veg.free()
+	var m := CropModel.soil_mesh(FarmPlot.SIZE)
+	check(m.get_surface_count() == 1 and CropModel.furrow_height(0.0, 0.9) >= 0.02, "furrowed soil mesh")
+	return true
+
+
+func test_giant_crops() -> bool:
+	check(FarmField.blocks().size() == 9 and FarmField.blocks()[0] == [0, 1, 4, 5], "nine 2x2 blocks")
+	check(is_equal_approx(FarmField.giant_chance(0), 0.2) and FarmField.giant_chance(4) == 1.0, "compost makes giants certain")
+	var ok := {"crop": "turnip", "ripe": true, "wet": true, "giant": false}
+	check(FarmField.eligible([ok, ok, ok, ok]), "four matching ripe watered plots qualify")
+	for bad in [{"crop": "carrot"}, {"ripe": false}, {"wet": false}, {"giant": true}]:
+		var c: Dictionary = ok.duplicate()
+		c.merge(bad, true)
+		check(not FarmField.eligible([ok, ok, c, ok]), "disqualified by %s" % str(bad))
+	var f := _field()
+	for i in [0, 1, 4, 5]:
+		_ripen(f.plots[i], "turnip", true)
+	game.advance_day()
+	check(f.giants().size() == 1, "composted watered block fuses overnight")
+	var g: GiantCrop = f.giants()[0]
+	var plot: FarmPlot = f.plots[0]
+	check(plot.giant and plot.get_prompt(game) == "", "its plots are locked")
+	plot.interact(game)
+	check(game.count("turnip") == 0 and plot.giant, "cannot harvest a plot under a giant")
+	check(g.position.is_equal_approx(Vector3(-2, 0, -2)), "giant sits in the middle of the block")
+	g.interact(game)
+	check(g.tugs == 1 and GiantCrop.rise(1) > GiantCrop.rise(0), "a tug lifts it")
+	var data = JSON.parse_string(JSON.stringify(game.to_dict()))
+	game.from_dict(data)
+	check(f.giants().size() == 1 and f.giants()[0].tugs == 1, "rooted giant and tugs survive a save")
+	g = f.giants()[0]
+	g.interact(game)
+	g.interact(game)
+	check(f.giants().size() == 0 and f.loose_giants().size() == 1, "third heave uproots it")
+	check(not plot.giant and plot.state == FarmPlot.State.TILLED, "plots are freed")
+	data = JSON.parse_string(JSON.stringify(game.to_dict()))
+	game.from_dict(data)
+	check(f.loose_giants().size() == 1, "loose giant survives a save")
+	var ball: GiantBall = f.loose_giants()[0]
+	var money := game.money
+	check(ball.weigh_in(game) == GiantBall.weigh_value("turnip") and game.money == money + 350, "weigh-in pays")
+	check(ball.weigh_in(game) == 0, "only once")
+	check(GiantBall.weigh_value("turnip") > GiantBall.CHOP_YIELD * 35, "rolling it to the bin beats chopping")
+	var ball2 := f.spawn_ball("carrot", Vector3(0, 1, 0), game)
+	for i in GiantBall.CHOPS:
+		ball2.chop(game)
+	check(_collect_pickups() >= GiantBall.CHOP_YIELD and game.count("carrot") == GiantBall.CHOP_YIELD, "chopping showers produce")
+	check(GiantBall.at_bin(Vector3(6.0, 1, 6.0)) and not GiantBall.at_bin(Vector3(0, 1, 0)), "bin range")
+	check(GiantBall.lost(Vector3(0, -9, 0), false) and not GiantBall.lost(Vector3(0, 1, 0), false), "lost giants are recovered")
+	var v := GiantBall.heave_velocity(0.0)
+	check(v.y * v.y / (2.0 * 9.8) > 1.4 and v.z > 0.0, "heave clears the fence")
+	# A plot flagged giant with no record must not stay locked.
+	plot.giant = true
+	f.from_dict({"giants": [], "loose": []})
+	check(not plot.giant, "orphaned giant plot is freed")
+	# Dry blocks never fuse.
+	for i in [0, 1, 4, 5]:
+		_ripen(f.plots[i], "turnip", true)
+		f.plots[i].watered = false
+	for d in 3:
+		game.advance_day()
+	check(f.giants().is_empty() or Weather.is_wet(game.weather()), "unwatered crops do not fuse")
+	return true
+
+
+## Real physics: uprooting must not fire the giant into orbit, and a heave must clear a 1.2 m fence.
+func test_giant_on_real_ground() -> bool:
+	await process_frame
+	var floor_body := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(60, 1, 60)
+	cs.shape = bx
+	cs.position.y = -0.5
+	floor_body.add_child(cs)
+	root.add_child(floor_body)
+	var f := _field()
+	for i in [5, 6, 9, 10]:
+		_ripen(f.plots[i], "turnip", true)
+	var g := f.form([5, 6, 9, 10])
+	await physics_frame
+	await physics_frame
+	for k in GiantCrop.TUGS:
+		g.interact(game)
+		await physics_frame
+	var ball: GiantBall = f.loose_giants()[0]
+	var apex := 0.0
+	for k in 150:
+		await physics_frame
+		apex = maxf(apex, ball.global_position.y)
+	check(apex > 1.0 and apex < 3.5, "uproot is a hop, not a space launch (apex %.2f)" % apex)
+	check(absf(ball.global_position.y - GiantBall.RADIUS) < 0.25, "it comes to rest on the ground (y %.2f)" % ball.global_position.y)
+	var start := ball.global_position
+	ball.heave(game)
+	apex = 0.0
+	for k in 120:
+		await physics_frame
+		apex = maxf(apex, ball.global_position.y)
+	check(apex - GiantBall.RADIUS > 1.2 and apex < 5.0, "heave lifts it over the fence (apex %.2f)" % apex)
+	check(Vector2(ball.global_position.x - start.x, ball.global_position.z - start.z).length() > 3.0, "heave carries it along")
+	return true
+
+
+func test_sprinkler() -> bool:
+	check(SprinklerSpot.reaches(Vector3(-2, 0, -2), Vector3(-1, 0, -1)), "corner sprinkler reaches its plots")
+	check(not SprinklerSpot.reaches(Vector3(-2, 0, -2), Vector3(1, 0, -1)), "but not the next column over")
+	var f := _field()
+	for p in f.plots:
+		p.from_dict({"state": FarmPlot.State.PLANTED, "crop": "carrot", "growth": 0})
+	var bw := BuildWorld.new()
+	root.add_child(bw)
+	game.add_item("sprinkler", 1)
+	check(BuildWorld.is_furniture("sprinkler"), "sprinkler has its own build slot")
+	check(bw.place("sprinkler", Vector3(-2, 0, -2), 0, game), "placed with the builder")
+	var watered := f.plots.filter(func(p): return p.watered).size()
+	check(watered == 4, "waters the four plots around it at once (%d)" % watered)
+	game.advance_day()
+	for i in [0, 1, 4, 5]:
+		check(f.plots[i].watered, "morning spray re-waters plot %d" % i)
+	var g0: int = f.plots[0].growth
+	game.advance_day()
+	check(f.plots[0].growth == g0 + 1, "sprinkled crops grow without you")
+	return true
+
+
 func test_farm_cycle() -> bool:
 	var p := _plot()
 	game.set_tool(GameState.Tool.SEEDS)
@@ -436,6 +650,8 @@ func test_farm_cycle() -> bool:
 	check(p.is_ripe(), "ripe after %d watered nights" % p.grow_days())
 	game.set_tool(GameState.Tool.AXE)   # any tool harvests a ripe crop
 	p.interact(game)
+	check(game.count("turnip") == 0, "the turnip pops out onto the ground, not into your pockets")
+	_collect_pickups()
 	check(game.count("turnip") >= 1, "harvest gives turnip")
 	check(p.state == FarmPlot.State.TILLED and p.growth == 0, "plot resets to tilled")
 	return true
@@ -1047,6 +1263,7 @@ func test_crops() -> bool:
 		game.advance_day()
 	check(p.is_ripe(), "carrot ripe after 3 nights")
 	p.interact(game)
+	_collect_pickups()
 	check(game.count("carrot") >= 1, "harvest gives carrot")
 	game.add_item("tomato", 1)
 	var before := game.money

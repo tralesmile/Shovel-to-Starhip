@@ -87,6 +87,14 @@ func _run() -> void:
 		print("LOGS ", get_tree().get_nodes_in_group("pickup").size())
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=30"):
+		await _farm_overview(p, "30_farm.png")
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=31,32,33,34,35,36"):
+		await _farm_shots(p)
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=40"):
 		await _car_before_shot(p)
 		get_tree().quit()
@@ -679,6 +687,130 @@ func _domino_shot(p: Player) -> void:
 
 
 ## A free camera that ignores the player rig, so small things can always be framed.
+## The field with every crop at every stage: a before/after view for the farm.
+func _farm_overview(p: Player, file: String) -> void:
+	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+	Game.time_of_day = 0.42
+	var crops := ["turnip", "carrot", "tomato"]
+	for i in 16:
+		var plot: FarmPlot = main.get_node("Farm/Plot_%02d" % i)
+		var col := i / 4     # x column
+		var row := i % 4     # z row (3 = nearest the south gate)
+		plot.from_dict({"state": FarmPlot.State.PLANTED if col < 3 else FarmPlot.State.TILLED,
+			"crop": crops[mini(col, 2)], "growth": [99, 2, 1, 0][3 - row] if row < 3 else 99, "watered": (i % 2) == 0})
+	p.global_position = Vector3(1.0, 0.1, 7.5)
+	_free_cam(Vector3(3.2, 4.6, 7.4), Vector3(-0.4, 0.0, 0.4), 52.0)
+	await _wait(60)
+	await _shot(file)
+
+
+func _snap(file: String) -> void:
+	await _wait(2)
+	get_viewport().get_texture().get_image().save_png(out_dir.path_join(file))
+	print("saved ", file)
+
+
+## Wait for `seconds` of scaled game time (software frames are far too slow to time shots by wall clock).
+func _game_wait(seconds: float) -> void:
+	var t := 0.0
+	while t < seconds:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+
+
+## Watering pour, the harvest pop, a giant crop (rooted then loose) and a sprinkler, with real physics.
+func _farm_shots(p: Player) -> void:
+	await _farm_overview(p, "31_overview_start.png")
+	var plot: FarmPlot = main.get_node("Farm/Plot_03")
+	plot.from_dict({"state": FarmPlot.State.PLANTED, "crop": "carrot", "growth": 2, "watered": false})
+	var cam := _free_cam(Vector3(-0.7, 2.7, 4.5), Vector3(-3.0, 0.4, 2.8), 55.0)
+	p.global_position = Vector3(-4.4, 0.1, 2.5)
+	p._model.rotation.y = PI * 0.4
+	Game.set_tool(GameState.Tool.WATER)
+	await _wait(20)
+	Engine.time_scale = 0.1
+	plot.interact(Game)
+	await _game_wait(0.27)
+	await _snap("31_pour.png")
+	Engine.time_scale = 1.0
+	await _wait(30)
+	plot.from_dict({"state": FarmPlot.State.PLANTED, "crop": "carrot", "growth": 3, "composted": true})
+	p.global_position = Vector3(-4.4, 0.1, 3.4)
+	await _wait(10)
+	Engine.time_scale = 0.15
+	plot.interact(Game)
+	await _game_wait(0.5)
+	await _snap("32_harvest_pop.png")
+	Engine.time_scale = 1.0
+	cam.queue_free()
+	# A composted turnip block overnight.
+	var field: FarmField = main.get_node("Farm/FarmField")
+	for i in [5, 6, 9, 10]:
+		(field.plots[i] as FarmPlot).from_dict({"state": FarmPlot.State.PLANTED, "crop": "turnip", "growth": 9, "watered": true, "composted": true})
+	for n in get_tree().get_nodes_in_group("pickup"):
+		n.queue_free()
+	Game.advance_day()
+	Game.time_of_day = 0.42
+	print("GIANTS ", field.giants().size())
+	var g: GiantCrop = field.giants()[0]
+	p.global_position = g.global_position + Vector3(1.9, 0.1, 1.7)
+	p._model.rotation.y = atan2(-1.9, -1.7)
+	var cam2 := _free_cam(Vector3(4.6, 3.6, 6.4), Vector3(0.0, 0.7, 0.2), 50.0)
+	await _wait(90)
+	await _shot("33_giant_rooted.png")
+	for k in GiantCrop.TUGS:
+		g.interact(Game)
+		await _wait(8)
+	var ball: GiantBall = field.loose_giants()[0]
+	var popped := 0.0
+	for k in 60:
+		await get_tree().physics_frame
+		popped = maxf(popped, ball.global_position.y)
+	print("UPROOT apex ", popped, " rest ", ball.global_position)
+	await _wait(30)
+	await _shot("34_giant_loose.png")
+	cam2.queue_free()
+	var from := ball.global_position
+	p.global_position = from + Vector3(-1.7, 0.0, -0.4)
+	ball.heave(Game)
+	var apex := 0.0
+	for k in 60:
+		await get_tree().physics_frame
+		apex = maxf(apex, ball.global_position.y)
+	print("HEAVE moved ", ball.global_position - from, " apex ", apex)
+	# Roll it down to the bin and watch the weigh-in.
+	ball.linear_velocity = Vector3.ZERO
+	ball.global_position = Vector3(6.4, 1.0, 10.5)
+	p.global_position = Vector3(6.4, 0.1, 12.6)
+	var cam3 := _free_cam(Vector3(10.8, 3.2, 10.6), Vector3(6.3, 0.9, 6.9), 52.0)
+	await _wait(30)
+	ball.linear_velocity = Vector3(0, 0, -3.2)
+	var money := Game.money
+	var guard := 0
+	while is_instance_valid(ball) and Game.money == money and guard < 900:
+		guard += 1
+		await get_tree().physics_frame
+	print("WEIGHED ", Game.money - money, " frames ", guard)
+	Engine.time_scale = 0.15
+	await _game_wait(0.35)
+	await _snap("35_weigh_in.png")
+	Engine.time_scale = 1.0
+	cam3.queue_free()
+	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+	for i in 16:
+		(field.plots[i] as FarmPlot).from_dict({"state": FarmPlot.State.PLANTED, "crop": ["turnip", "carrot", "tomato"][(i / 4) % 3], "growth": 1 + i % 4})
+	Game.add_item("sprinkler", 4)
+	for at in [Vector3(-2, 0, -2), Vector3(2, 0, -2), Vector3(-2, 0, 2), Vector3(2, 0, 2)]:
+		bw.place("sprinkler", at, 0, Game)
+	p.global_position = Vector3(0, 0.1, 6.5)
+	_free_cam(Vector3(0.6, 5.4, 7.6), Vector3(0.0, 0.0, 0.2), 52.0)
+	await _wait(40)
+	for n in get_tree().get_nodes_in_group("sprinkler"):
+		n.spray(60.0)
+	await _wait(25)
+	await _shot("36_sprinklers.png")
+
+
 func _free_cam(from: Vector3, at: Vector3, fov: float = 65.0) -> Camera3D:
 	var c := Camera3D.new()
 	c.fov = fov
