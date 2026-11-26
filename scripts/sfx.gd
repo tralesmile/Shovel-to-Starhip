@@ -32,6 +32,10 @@ const KINDS := {
 	"ribbit": [230.0, 150.0, 0.17, 0.18],
 	"fanfare": [523.0, 1046.0, 0.5, 0.0],
 	"squeak": [1150.0, 1900.0, 0.2, 0.08],
+	"cluck": [760.0, 430.0, 0.09, 0.22],
+	"bleat": [430.0, 360.0, 0.42, 0.16],
+	"flap": [520.0, 260.0, 0.09, 0.96],
+	"whistle": [1250.0, 2100.0, 0.34, 0.03],
 	"creak": [310.0, 190.0, 0.3, 0.35],
 }
 
@@ -159,7 +163,8 @@ static func make(kind: String) -> AudioStreamWAV:
 	rng.seed = 1234
 	for i in n:
 		var t := float(i) / float(n)
-		phase += TAU * lerpf(float(p[0]), float(p[1]), t) / RATE
+		var wobble := 1.0 + 0.09 * sin(t * 62.0) if kind == "bleat" else 1.0   # meh-eh-eh
+		phase += TAU * lerpf(float(p[0]), float(p[1]), t) * wobble / RATE
 		var env := minf(1.0, t * 40.0) * pow(1.0 - t, 2.0)
 		var s := (sin(phase) * (1.0 - float(p[3])) + rng.randf_range(-1, 1) * float(p[3])) * env * 0.6
 		data.encode_s16(i * 2, int(clampf(s, -1.0, 1.0) * 32767.0))

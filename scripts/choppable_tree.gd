@@ -102,6 +102,28 @@ func interact(game: GameState) -> void:
 	_refresh()
 
 
+var _shaken_day := -1
+
+
+## A goat headbutt: leaves rain down, and once a day a dead branch comes with them.
+func shake_tree(game: GameState) -> bool:
+	if felled or _falling:
+		return false
+	_wobble = 1.6
+	Sfx.play_on(self, "rustle", 0.7)
+	FX.burst(self, global_position + Vector3(0, 3.0, 0), Color(0.25, 0.7, 0.35), 26, 0.13, 2.4, -4.0, "box", 150.0)
+	if _shaken_day != game.day and get_parent() != null:
+		_shaken_day = game.day
+		var p := WoodLog.new()
+		p.game = game
+		p.item_id = "wood"
+		get_parent().add_child(p)
+		p.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 2.6, randf_range(-0.8, 0.8))
+		p.pop()
+		game.say("THUNK. A branch drops out of the tree. Free wood!")
+	return true
+
+
 func has_trunk() -> bool:
 	return trunk != null and is_instance_valid(trunk) and not trunk.is_queued_for_deletion() and trunk.sections > 0
 

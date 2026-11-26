@@ -75,6 +75,8 @@ const ITEMS := {
 	"glider": {"name": "Pelt Glider", "buy": 0, "sell": 0},
 	"loot_vacuum": {"name": "Loot Vacuum", "buy": 0, "sell": 0},
 	"saddle": {"name": "Goat Saddle", "buy": 0, "sell": 0},
+	"saddle_bags": {"name": "Saddle Bags", "buy": 0, "sell": 0},
+	"goat_whistle": {"name": "Goat Whistle", "buy": 0, "sell": 0},
 	"turbo_engine": {"name": "Turbo Engine", "buy": 0, "sell": 0},
 	"offroad_wheels": {"name": "Big Wheels", "buy": 0, "sell": 0},
 	"rocket_booster": {"name": "Rocket Booster", "buy": 0, "sell": 0},
@@ -162,6 +164,8 @@ const RECIPES := [
 	{"id": "velvet_picks", "name": "Velvet Picks", "in": {"copper_ingot": 1, "rabbit_pelt": 1}, "out": {"velvet_picks": 1}, "once": true},
 	{"id": "compost", "name": "Compost", "in": {"hay": 3}, "out": {"compost": 2}},
 	{"id": "sprinkler", "name": "Copper Sprinkler", "in": {"copper_ingot": 1, "plank": 1, "stone": 2}, "out": {"sprinkler": 1}},
+	{"id": "saddle_bags", "name": "Saddle Bags", "in": {"hay": 4, "rabbit_pelt": 2, "plank": 1}, "out": {"saddle_bags": 1}, "once": true},
+	{"id": "goat_whistle", "name": "Goat Whistle", "in": {"wood": 3, "sunmint": 1}, "out": {"goat_whistle": 1}, "once": true},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
@@ -172,9 +176,10 @@ const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, 
 	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0,
 	"butterfly": 0.05, "grasshopper": 0.05, "frog": 0.3, "firefly": 0.02, "bug_net": 0.0, "firefly_jar": 2.0,
 	"sunmint_bait": 0.05, "springy_rod": 0.0,
-	"bull_bar": 4.0, "drift_tyres": 4.0, "repair_kit": 1.0, "compost": 0.3, "sprinkler": 2.0, "squeaky_chicken": 0.3, "velvet_picks": 0.0}
+	"bull_bar": 4.0, "drift_tyres": 4.0, "repair_kit": 1.0, "compost": 0.3, "sprinkler": 2.0, "squeaky_chicken": 0.3, "velvet_picks": 0.0, "saddle_bags": 0.0, "goat_whistle": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
+const CARRY_SADDLE_BAGS := 20.0  ## your friend the goat hauls this much in the bags
 
 ## Raw -> cooked at a campfire (pure data, tested).
 const COOKABLE := {"rabbit_meat": "cooked_meat"}
@@ -223,6 +228,7 @@ var crime_suspicion: float = 0.0   ## highest witness meter right now (HUD only)
 var fence_sold_today: int = 0   ## items fenced today (resets each morning)
 var heat: float = 0.0           ## 0..MAX_HEAT, rises when witnesses sound the alarm
 
+var goat_friend := false   ## the goat is tamed (restored from the goat's own save entry)
 var car_owned: bool = false
 var stash: Dictionary = {}  ## shared contents of every Storage Chest (Gran's magic stash)
 var story_act: int = 0   ## index into Story.ACTS (saved)
@@ -391,7 +397,8 @@ func carry_weight() -> float:
 
 
 func carry_free() -> float:
-	return CARRY_FREE + (CARRY_WHEELBARROW if count("wheelbarrow") > 0 else 0.0)
+	return CARRY_FREE + (CARRY_WHEELBARROW if count("wheelbarrow") > 0 else 0.0) \
+		+ (CARRY_SADDLE_BAGS if goat_friend and count("saddle_bags") > 0 else 0.0)
 
 
 ## Pure (tested): pickup magnet radius, doubled by Magnet Gloves.
@@ -443,7 +450,7 @@ func drop_candidate() -> String:
 
 
 ## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
-const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet", "scythe", "bug_net", "bull_bar", "drift_tyres", "velvet_picks"]
+const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet", "scythe", "bug_net", "bull_bar", "drift_tyres", "velvet_picks", "saddle_bags", "goat_whistle"]
 
 
 ## Pure (tested): can this item go in a chest?
@@ -813,6 +820,7 @@ func to_dict() -> Dictionary:
 
 
 func from_dict(data: Dictionary) -> void:
+	goat_friend = false
 	money = int(data.get("money", 50))
 	inventory = {}
 	var inv: Dictionary = data.get("inventory", {})
@@ -913,6 +921,7 @@ func setup_input() -> void:
 	_key_action("drop_item", [KEY_G])
 	_key_action("throw_bomb", [KEY_B])
 	_key_action("throw_decoy", [KEY_V])
+	_key_action("whistle", [KEY_R])
 	_key_action("save", [KEY_F5])
 	_key_action("pause", [KEY_ESCAPE])
 	setup_gamepad()
@@ -928,7 +937,7 @@ const PAD_BUTTONS := {
 	"jump": [JOY_BUTTON_A], "interact": [JOY_BUTTON_X], "interact_click": [JOY_BUTTON_RIGHT_SHOULDER],
 	"sprint": [JOY_BUTTON_LEFT_STICK], "crouch": [JOY_BUTTON_B], "help": [JOY_BUTTON_Y], "pause": [JOY_BUTTON_START],
 	"tool_1": [JOY_BUTTON_DPAD_UP], "tool_2": [JOY_BUTTON_DPAD_RIGHT],
-	"craft_next": [JOY_BUTTON_BACK], "tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER], "tool_6": [JOY_BUTTON_RIGHT_STICK], "tool_7": [JOY_BUTTON_LEFT_STICK], "build_cycle": [JOY_BUTTON_LEFT_STICK], "drop_item": [JOY_BUTTON_PADDLE1],
+	"craft_next": [JOY_BUTTON_BACK], "tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER], "tool_6": [JOY_BUTTON_RIGHT_STICK], "tool_7": [JOY_BUTTON_LEFT_STICK], "build_cycle": [JOY_BUTTON_LEFT_STICK], "drop_item": [JOY_BUTTON_PADDLE1], "whistle": [JOY_BUTTON_PADDLE2],
 }
 const PAD_AXES := {
 	"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],

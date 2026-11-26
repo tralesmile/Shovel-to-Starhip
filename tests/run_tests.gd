@@ -18,6 +18,7 @@ func _run() -> void:
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
 		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models", "test_car_physics", "test_car_damage_parts", "test_street_props", "test_harvest_regrow_compost", "test_crop_models", "test_giant_crops", "test_sprinkler",
 		"test_stealth_gaze", "test_stealth_marker_and_hearing", "test_vision_cone_clip", "test_velvet_picks", "test_abandon_lock", "test_decoy_logic", "test_npc_distraction", "test_lock_meter", "test_heist_art", "test_door_swing", "test_room_dressing",
+		"test_pet_friendship", "test_animal_rig", "test_chicken_flight_and_jobs_logic", "test_goat_ram", "test_mount_steer", "test_pet_gear_and_save",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -28,6 +29,9 @@ func _run() -> void:
 	game.free()
 	_fresh_game()
 	check(await test_decoy_in_real_room() == true, "test_decoy_in_real_room ran to the end (no script error)")
+	game.free()
+	_fresh_game()
+	check(await test_hen_on_real_ground() == true, "test_hen_on_real_ground ran to the end (no script error)")
 	game.free()
 	_fresh_game()
 	check(await test_car_on_real_ground() == true, "test_car_on_real_ground ran to the end (no script error)")
@@ -2766,4 +2770,246 @@ func test_decoy_in_real_room() -> bool:
 		d.free()
 	check(worst < 0.0, "never leaves the room (%.2f)" % worst)
 	(inside["root"] as Node).free()
+	return true
+
+
+func _pet(kind: int, nm: String) -> Critter:
+	var c := Critter.new()
+	c.kind = kind
+	c.name = nm
+	root.add_child(c)
+	return c
+
+
+func test_pet_friendship() -> bool:
+	var r := Critter.pet_result(1, -1, 3)
+	check(r["gained"] and r["hearts"] == 2, "first pat of the day adds a heart")
+	check(not Critter.pet_result(2, 3, 3)["gained"], "second pat the same day adds nothing")
+	check(Critter.pet_result(2, 3, 4)["hearts"] == 3, "a new day counts again")
+	check(Critter.pet_result(Critter.MAX_HEARTS, 1, 9)["hearts"] == Critter.MAX_HEARTS, "hearts cap")
+	check(Critter.tamed_action(Critter.Kind.CHICKEN, false, false) == "pet", "chicken: pat first")
+	check(Critter.tamed_action(Critter.Kind.CHICKEN, true, false) == "pickup", "chicken: then pick up")
+	check(Critter.tamed_action(Critter.Kind.GOAT, false, true) == "pet", "goat: pat first")
+	check(Critter.tamed_action(Critter.Kind.GOAT, true, true) == "ride", "goat: then ride")
+	check(Critter.tamed_action(Critter.Kind.GOAT, true, false) == "pet", "no saddle: more pats")
+	check(Critter.fetch_range(1) == 0.0 and Critter.fetch_range(2) > 5.0, "fetch job unlocks at 2 hearts")
+	check(Critter.fetch_range(5) > Critter.fetch_range(3), "fonder hens range farther")
+	check(Critter.egg_interval(1) == Critter.EGG_EVERY and Critter.egg_interval(5) < Critter.EGG_EVERY * 0.7, "fonder hens lay faster")
+	var hen := _pet(Critter.Kind.CHICKEN, "Chicken_1")
+	game.add_item("carrot", 3)
+	for i in 3:
+		hen.interact(game)
+	check(hen.tamed and hen.hearts == 1 and game.count("carrot") == 0, "three veg befriend a hen at 1 heart")
+	check("Pet your chicken" in hen.get_prompt(game), "prompt offers the daily pat")
+	hen.interact(game)
+	check(hen.hearts == 2 and "Pick up" in hen.get_prompt(game), "after the pat she can be picked up")
+	check(hen.can_be_carried(), "tamed hen is carryable")
+	var wild := _pet(Critter.Kind.CHICKEN, "Chicken_2")
+	check(not wild.can_be_carried(), "wild hens are not")
+	var goat := _pet(Critter.Kind.GOAT, "Goat")
+	check(not goat.can_be_carried(), "goats are too heavy to carry")
+	return true
+
+
+func test_animal_rig() -> bool:
+	var hen := AnimalRig.make("chicken", 1)
+	var goat := AnimalRig.make("goat")
+	var bun := AnimalRig.make("rabbit", 4)
+	for r in [hen, goat, bun]:
+		root.add_child(r)
+		check(r.eyes.size() == 2 and r.head != null and r.tail != null, r.species + " has a face and tail")
+	check(hen.legs.size() == 2 and hen.wings.size() == 2, "hen: two legs, two wings")
+	check(goat.legs.size() == 4 and goat.knees.size() == 4 and goat.ears.size() == 2, "goat: four jointed legs and ears")
+	check(goat.bags != null and not goat.bags.visible, "saddle bags hidden until crafted")
+	check(bun.ears.size() == 2, "rabbit ears")
+	for i in 30:
+		goat.animate(0.033, 6.0, {})
+	check(absf(goat.legs[0].rotation.x) + absf(goat.legs[1].rotation.x) > 0.05, "walking swings legs")
+	for i in 30:
+		goat.animate(0.033, 0.0, {"graze": true})
+	check(goat.neck.rotation.x > 1.0, "grazing lowers the head")
+	for i in 30:
+		hen.animate(0.033, 0.0, {"flap": 1.0})
+	check(absf(hen.wings[0].rotation.z) > 0.2, "flapping opens wings")
+	for i in 30:
+		hen.animate(0.033, 0.0, {})
+	check(absf(hen.wings[0].rotation.z) < 0.05, "wings fold again")
+	var s := Vector2(1.0, 0.0)
+	for i in 200:
+		s = AnimalRig.spring(s, 0.0, 120.0, 7.0, 0.016)
+	check(absf(s.x) < 0.02, "spring settles")
+	check(absf(AnimalRig.spring(Vector2(1, 0), 0.0, 150.0, 9.0, 5.0).x) <= 1.0, "spring survives a long frame")
+	for i in 20:
+		check(absf(AnimalRig.head_thrust(i / 20.0)) <= 0.5001, "head thrust in range")
+	check(AnimalRig.leg_phase(0, 4, false) == AnimalRig.leg_phase(3, 4, false), "walk uses diagonal pairs")
+	check(AnimalRig.leg_phase(2, 4, true) - AnimalRig.leg_phase(0, 4, true) == 0.5, "gallop splits front and back")
+	return true
+
+
+func test_chicken_flight_and_jobs_logic() -> bool:
+	var v := Critter.toss_velocity(0.0)
+	check(v.z < -5.0 and v.y > 3.0, "toss goes forward and up")
+	for i in 120:
+		v = Critter.flutter_step(v, 0.016)
+	check(v.y >= -Critter.FLAP_FALL - 0.001, "flapping caps the fall speed")
+	check(Vector2(v.x, v.z).length() < 2.0, "forward speed bleeds off")
+	check(Critter.CARRY_FALL < 2.4, "chicken floats slower than the pelt glider falls")
+	check(Critter.worth_fetching(5.0, 6.0, 9.0, 2.6, false), "old loot out of magnet reach is fetched")
+	check(not Critter.worth_fetching(1.0, 6.0, 9.0, 2.6, false), "fresh drops are left alone")
+	check(not Critter.worth_fetching(-1.0, 6.0, 9.0, 2.6, false), "things you just dropped are left alone")
+	check(not Critter.worth_fetching(5.0, 2.0, 9.0, 2.6, false), "magnet range needs no chicken")
+	check(not Critter.worth_fetching(5.0, 12.0, 9.0, 2.6, false), "too far is too far")
+	check(not Critter.worth_fetching(5.0, 6.0, 9.0, 2.6, true), "logs saved for chopping stay")
+	var log_ := WoodLog.new()
+	log_.game = game
+	root.add_child(log_)
+	log_.set_carried(true)
+	check(log_.carried and log_.freeze, "carried loot is frozen")
+	log_.set_carried(false)
+	check(not log_.carried and not log_.freeze, "released loot is physical again")
+	var hen := _pet(Critter.Kind.CHICKEN, "Chicken_0")
+	check(not hen.call_to(Vector3.ZERO, Vector3.BACK), "wild hens ignore the whistle")
+	hen.befriend(game)
+	hen.position = Vector3(60, 0, 0)
+	check(hen.call_to(Vector3.ZERO, Vector3.BACK), "friends answer the whistle")
+	check(hen.global_position.length() < Critter.CALL_WARP_DIST + 4.0, "far friends pop in close by")
+	for kind in ["cluck", "bleat", "flap", "whistle"]:
+		check(Sfx.make(kind).data.size() > 0, "sound exists: " + kind)
+	game.setup_input()
+	check(InputMap.has_action("whistle"), "whistle action")
+	return true
+
+
+func test_goat_ram() -> bool:
+	check(not GoatRam.is_ramming(5.0, 0.0) and GoatRam.is_ramming(12.0, 0.0) and GoatRam.is_ramming(0.0, 0.2), "ram when galloping or lunging")
+	check(GoatRam.in_front(Vector3.ZERO, 0.0, Vector3(0, 0, 1.2)), "ahead is hit")
+	check(not GoatRam.in_front(Vector3.ZERO, 0.0, Vector3(0, 0, -1.2)), "behind is safe")
+	check(not GoatRam.in_front(Vector3.ZERO, 0.0, Vector3(2.0, 0, 0.5)), "wide of the horns is safe")
+	check(GoatRam.in_front(Vector3.ZERO, PI * 0.5, Vector3(1.2, 0, 0)), "zone follows heading")
+	check(GoatRam.fling(0.0, 13.0, 5, true).length() > GoatRam.fling(0.0, 13.0, 1, false).length(), "lunge and hearts add punch")
+	var crate := PropCrate.new()
+	crate.game = game
+	root.add_child(crate)
+	crate.global_position = Vector3(0, 0, 1.0)
+	var rock := MineRock.new()
+	rock.name = "RamRock"
+	root.add_child(rock)
+	rock.global_position = Vector3(0.4, 0, 1.2)
+	var tree := ChoppableTree.new()
+	tree.name = "RamTree"
+	root.add_child(tree)
+	tree.global_position = Vector3(-0.4, 0, 1.4)
+	var done := {}
+	GoatRam.strike(self, game, Vector3.ZERO, 0.0, 12.0, 3, false, done)
+	check(crate.is_queued_for_deletion(), "barging smashes crates")
+	check(not rock.broken and rock.hits == 0, "barging leaves rocks alone")
+	done = {}
+	GoatRam.strike(self, game, Vector3.ZERO, 0.0, 15.0, 3, true, done)
+	check(rock.broken or rock.hits > 0, "a headbutt cracks rocks")
+	var logs := get_nodes_in_group("pickup").size()
+	check(tree._shaken_day == game.day, "a headbutt shakes trees")
+	GoatRam.strike(self, game, Vector3.ZERO, 0.0, 15.0, 3, true, {})
+	GoatRam.strike(self, game, Vector3.ZERO, 0.0, 15.0, 3, true, {})
+	check(rock.broken, "a few headbutts break the rock")
+	check(logs > 0 and tree.shake_tree(game), "shaking again is allowed")
+	var after := get_nodes_in_group("pickup").size()
+	tree.shake_tree(game)
+	check(get_nodes_in_group("pickup").size() == after, "only one free branch per tree per day")
+	return true
+
+
+func test_mount_steer() -> bool:
+	check(MountSteer.turn_limit(13.0, true) < MountSteer.turn_limit(4.0, true), "faster means wider turns")
+	check(MountSteer.turn_limit(8.0, false) < MountSteer.turn_limit(8.0, true), "little steering mid-air")
+	var vel := Vector2(0, 13)
+	var r := MountSteer.step(vel, Vector2(13, 0), 0.1, true)
+	var next: Vector2 = r["velocity"]
+	check(next.x > 0.0 and next.y > next.x, "carves toward the wish instead of snapping")
+	check(float(r["turn_rate"]) > 0.0, "turning toward +X raises model yaw (a left turn)")
+	check(MountSteer.lean(float(r["turn_rate"]), 13.0) < 0.0, "leans into a left turn")
+	check(next.length() < 13.0, "hard turns bleed speed")
+	for i in 100:
+		vel = MountSteer.step(vel, Vector2(13, 0), 0.03, true)["velocity"]
+	check(vel.x > 11.0 and absf(vel.y) < 1.0, "ends up heading where you asked")
+	var back: Vector2 = MountSteer.step(Vector2(0, 13), Vector2(0, -13), 0.1, true)["velocity"]
+	check(back.y > 0.0 and back.y < 13.0 and back.x == 0.0, "reversing digs in first")
+	var stop := Vector2(0, 13)
+	for i in 60:
+		stop = MountSteer.step(stop, Vector2.ZERO, 0.03, true)["velocity"]
+	check(stop.length() < 0.1, "letting go stops the goat")
+	return true
+
+
+func test_pet_gear_and_save() -> bool:
+	var base := game.carry_free()
+	game.add_item("saddle_bags", 1)
+	check(game.carry_free() == base, "bags are no use without a goat friend")
+	var goat := _pet(Critter.Kind.GOAT, "Goat")
+	goat.befriend(game)
+	check(game.carry_free() == base + GameState.CARRY_SADDLE_BAGS, "a goat friend hauls the bags")
+	for id in ["saddle_bags", "goat_whistle"]:
+		var idx := _recipe_index_of(id)
+		check(idx >= 0 and GameState.RECIPES[idx].get("once", false), "one-off recipe: " + id)
+		check(not GameState.stashable(id), "stays in pockets: " + id)
+	goat.hearts = 4
+	goat.petted_day = 6
+	var d := goat.to_dict()
+	var again := _pet(Critter.Kind.GOAT, "Goat2")
+	game.goat_friend = false
+	again.from_dict(d)
+	check(again.hearts == 4 and again.petted_day == 6 and again.tamed, "friendship survives saving")
+	var old := _pet(Critter.Kind.CHICKEN, "Chicken_3")
+	old.from_dict({"affection": 3, "tamed": true})
+	check(old.hearts == 1, "pets from older saves start at one heart")
+	game.from_dict({})
+	return true
+
+
+## The real thing: a hen thrown over solid ground lands, then runs an errand and delivers.
+func test_hen_on_real_ground() -> bool:
+	var floor_body := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(60, 1, 60)
+	cs.shape = box
+	cs.position.y = -0.5
+	floor_body.add_child(cs)
+	root.add_child(floor_body)
+	var pl := Node3D.new()
+	pl.add_to_group("player")
+	root.add_child(pl)
+	var hen := _pet(Critter.Kind.CHICKEN, "Chicken_0")
+	hen.befriend(game)
+	hen.hearts = 3
+	await physics_frame
+	hen.throw_from(Vector3(0, 2.0, 0), Critter.toss_velocity(0.0))
+	check(hen.thrown, "she is airborne")
+	for i in 600:
+		await process_frame
+		if not hen.thrown:
+			break
+		hen._process(0.05)
+	check(not hen.thrown and absf(hen.global_position.y - Critter.ground_y(hen.global_position.x, hen.global_position.z)) < 0.3, "she flutters down onto the ground")
+	check(hen.global_position.z < -2.0, "and travelled forward")
+	hen.set_process(false)
+	hen.global_position = Vector3(0, Critter.ground_y(0, 0), 0)
+	var egg := WoodLog.new()
+	egg.game = game
+	egg.item_id = "egg"
+	egg.chunk_color = WoodLog.drop_color("egg")
+	root.add_child(egg)
+	egg.global_position = Vector3(7.0, 0.3, 0)
+	egg.age = 10.0
+	var grabbed := false
+	var delivered := false
+	for i in 400:
+		await physics_frame
+		hen._fetch_tick(0.05, pl)
+		if is_instance_valid(egg) and egg.carried:
+			grabbed = true
+		if grabbed and hen._cargo == null:
+			delivered = true
+			break
+	check(grabbed, "she picks up distant loot")
+	check(delivered and is_instance_valid(egg) and Vector2(egg.global_position.x, egg.global_position.z).length() < 2.6, "and brings it within magnet reach")
 	return true

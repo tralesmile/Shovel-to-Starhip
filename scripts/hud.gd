@@ -335,7 +335,9 @@ func _process(_delta: float) -> void:
 	if Game.current_tool == GameState.Tool.BUILD and bw != null and player and player.vehicle == null:
 		_prompt.text = InputPrompts.format(InputPrompts.prompt_text(bw.prompt(), InputPrompts.use_pad), InputPrompts.use_pad)
 	elif player and player.mount != null:
-		_prompt.text = InputPrompts.format("[E] Hop off  |  Shift gallop  |  Space jump", InputPrompts.use_pad)
+		_prompt.text = InputPrompts.format("[{interact}] Hop off  |  {interact_click} headbutt  |  {sprint} gallop  |  {jump} jump", InputPrompts.use_pad)
+	elif player and player.held_pet != null:
+		_prompt.text = InputPrompts.format("[{interact}] Throw chicken ({crouch} + {interact} sets it down)  |  hold {jump} to float", InputPrompts.use_pad)
 	elif player and player.target:
 		_prompt.text = InputPrompts.prompt_text(player.target.get_prompt(Game), InputPrompts.use_pad)
 	elif player and player.vehicle == null and player._smash_tool() and player._crate_ahead() != null:

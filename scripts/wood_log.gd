@@ -16,6 +16,7 @@ var _flop := 0.5
 var age := 0.0
 var game: GameState
 var _collected := false
+var carried := false       ## a helpful chicken has it: no physics, no collecting
 var _magnet := false
 var _prev_vy := 0.0
 static var combo := 0
@@ -313,13 +314,26 @@ func _update_shadow() -> void:
 
 
 ## Pop out with a small random hop.
+func set_carried(on: bool) -> void:
+	carried = on
+	freeze = on
+	for c in get_children():
+		if c is CollisionShape3D:
+			(c as CollisionShape3D).disabled = on
+	if _shadow != null:
+		_shadow.visible = not on
+	if not on:
+		sleeping = false
+		linear_velocity = Vector3.ZERO
+
+
 func pop(dir: Vector3 = Vector3.ZERO) -> void:
 	apply_central_impulse((Vector3(randf_range(-1, 1), 0, randf_range(-1, 1)) * 1.6 + dir + Vector3.UP * 4.2) * mass)
 	apply_torque_impulse(Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * 1.5)
 
 
 func _physics_process(delta: float) -> void:
-	if _collected:
+	if _collected or carried:
 		return
 	age += delta
 	if age > LIFETIME:

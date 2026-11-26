@@ -211,6 +211,26 @@ func _spawn_chunks(game: GameState) -> void:
 		c.pop(Vector3(cos(a), 0, sin(a)) * 1.2)
 
 
+## A goat headbutt counts as two swings, pickaxe not required. Geodes just ring.
+func ram(game: GameState) -> bool:
+	if broken:
+		return false
+	_wobble = 1.0
+	Sfx.play_on(self, "clang", 0.7)
+	FX.burst(self, global_position + Vector3(0, 0.8, 0), Color(1, 0.9, 0.5), 10, 0.05, 5.0, -6.0, "sphere")
+	if kind == "geode":
+		return true
+	hits += 2
+	if hits >= hits_needed(false, false):
+		hits = 0
+		broken = true
+		days_broken = 0
+		_spawn_chunks(game)
+		game.say("The goat has opinions about this rock. The rock is now several rocks.")
+	_refresh()
+	return true
+
+
 ## A Boom Turnip skips the hit count (and the pickaxe gate). Returns false if already rubble.
 func blast(game: GameState) -> bool:
 	if broken:

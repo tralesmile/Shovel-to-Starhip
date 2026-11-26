@@ -28,6 +28,14 @@ var camera: Camera3D
 var _model: Node3D
 var vehicle: Car = null
 var mount: Critter = null
+var held_pet: Critter = null   ## a chicken riding on your head
+var floating := false          ## chicken-parachuting right now
+const HELD_HEIGHT := 1.6
+var _lunge := 0.0
+var _ram_cd := 0.0
+var _ram_done := {}
+var _mount_lean := 0.0
+var _whistle_cd := 0.0
 var _hoof_t: float = 0.0
 var _shape: CollisionShape3D
 
@@ -321,7 +329,7 @@ func _make_hoe() -> Node3D:
 func _on_tool_changed(index: int) -> void:
 	for k in _hand_items.keys():
 		if _hand_items[k]:
-			_hand_items[k].visible = (k == index) and not _rod_out
+			_hand_items[k].visible = (k == index) and not _rod_out and mount == null and held_pet == null
 
 
 const ROD_SEGMENTS := 4
@@ -458,6 +466,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if not captured:
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 				get_viewport().set_input_as_handled()
+			elif mount != null:
+				headbutt()
 			else:
 				_use()
 	elif event.is_action_pressed("interact"):
@@ -468,6 +478,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		throw_bomb()
 	elif event.is_action_pressed("throw_decoy"):
 		throw_decoy()
+	elif event.is_action_pressed("whistle"):
+		whistle()
+	elif event is InputEventJoypadButton and event.is_action_pressed("interact_click") and mount != null:
+		headbutt()
 	elif event.is_action_pressed("pause"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	for i in 7:
@@ -569,6 +583,7 @@ var _blast_time := 0.0
 func blast_knock(v: Vector3) -> void:
 	if vehicle != null:
 		return
+	release_pet()
 	if mount != null:
 		dismount()
 	velocity = v
@@ -638,9 +653,130 @@ func set_model_shown(shown: bool) -> void:
 		_model.visible = shown
 
 
+## Hoist a friendly chicken overhead.
+func pickup_pet(c: Critter) -> bool:
+	if held_pet != null or mount != null or vehicle != null or Game.in_closet or c == null or not c.can_be_carried():
+		return false
+	held_pet = c
+	c.set_held(true)
+	_on_tool_changed(Game.current_tool)   # both hands are full of chicken
+	_squash = 0.82
+	play_action("PickUp", 0.4)
+	FX.burst(self, global_position + Vector3(0, 1.7, 0), Color(1, 0.98, 0.92), 8, 0.07, 2.0, -2.0, "box", 120.0)
+	Game.say("Chicken acquired. Hold Jump in the air to float. E throws.")
+	return true
+
+
+## Lob it. It flaps down on its own, entirely unharmed and mildly thrilled.
+func throw_pet() -> Critter:
+	if held_pet == null:
+		return null
+	var c := held_pet
+	held_pet = null
+	_on_tool_changed(Game.current_tool)
+	floating = false
+	var v := Critter.toss_velocity(_yaw, velocity)
+	_model.rotation.y = atan2(v.x, v.z)
+	play_action("Throw", 0.4)
+	_squash = 0.9
+	c.throw_from(global_position + Vector3(0, HELD_HEIGHT, 0) + Vector3(v.x, 0, v.z).normalized() * 0.55, v)
+	Sfx.play_on(self, "swish", 1.25)
+	Game.shake.emit(0.06)
+	return c
+
+
+## Set it down beside you (also used when a car, saddle or wardrobe needs your hands).
+func release_pet() -> void:
+	if held_pet == null:
+		return
+	var c := held_pet
+	held_pet = null
+	_on_tool_changed(Game.current_tool)
+	floating = false
+	var side := Vector3(sin(_model.rotation.y), 0, cos(_model.rotation.y))
+	var at := global_position + side * 0.8
+	if at.x < 300.0:
+		at.y = maxf(Critter.ground_y(at.x, at.z), global_position.y - 0.2)
+	c.set_down(at)
+
+
+## Goat headbutt: a short head-down lunge that wrecks what it meets.
+func headbutt() -> bool:
+	if mount == null or _ram_cd > 0.0:
+		return false
+	_lunge = GoatRam.LUNGE_TIME
+	_ram_cd = GoatRam.COOLDOWN
+	_ram_done.clear()
+	var f := Vector3(sin(_model.rotation.y), 0, cos(_model.rotation.y))
+	velocity.x = f.x * GoatRam.LUNGE_SPEED
+	velocity.z = f.z * GoatRam.LUNGE_SPEED
+	if is_on_floor():
+		velocity.y = 2.2
+	Sfx.play_on(self, "bleat", 1.3)
+	Sfx.play_on(self, "swish", 0.7)
+	return true
+
+
+## R: blow the Goat Whistle and every friend comes running. Returns how many answered.
+func whistle() -> int:
+	if vehicle != null or mount != null or Game.in_closet or _whistle_cd > 0.0:
+		return 0
+	if Game.count("goat_whistle") <= 0:
+		Game.say("No whistle yet. Workbench: 3 wood + 1 sunmint.")
+		return 0
+	_whistle_cd = 3.0
+	play_action("Cheer", 0.5)
+	Sfx.play_on(self, "whistle")
+	get_tree().create_timer(0.22).timeout.connect(func(): Sfx.play_on(self, "whistle", 1.35))
+	for i in 3:
+		_music_note(i)
+	var behind := Vector3(sin(_yaw), 0, cos(_yaw))   # toward the camera, so arrivals run into view
+	var n := 0
+	for group in ["flock_goat", "flock"]:
+		for node in get_tree().get_nodes_in_group(group):
+			var c := node as Critter
+			if c != null and c.call_to(global_position, behind):
+				n += 1
+	Game.say("Tweeeet! %d friend%s on the way." % [n, "" if n == 1 else "s"] if n > 0 else "Tweeeet! ...nobody. Befriend some animals first (feed them veg).")
+	return n
+
+
+func _music_note(i: int) -> void:
+	var l := Art.label("\u266a" if i % 2 == 0 else "\u266b", 96, Color(1.0, 0.92, 0.35))
+	get_parent().add_child(l)
+	l.global_position = global_position + Vector3(-0.5 + i * 0.5, 1.7 + i * 0.12, 0)
+	var tw := l.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(l, "position", l.position + Vector3((i - 1) * 0.5, 1.4, 0), 1.1).set_delay(i * 0.12)
+	tw.tween_property(l, "modulate:a", 0.0, 1.1).set_delay(i * 0.12).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(l.queue_free)
+
+
+## While charging: hit what is ahead, with the crunch to match.
+func _ram_tick(speed: float) -> void:
+	var lunging := _lunge > 0.0
+	if not GoatRam.is_ramming(speed, _lunge):
+		_ram_done.clear()
+		return
+	var n := GoatRam.strike(get_tree(), Game, global_position, _model.rotation.y, speed, mount.hearts, lunging, _ram_done)
+	if n <= 0:
+		return
+	var at := global_position + Vector3(sin(_model.rotation.y), 0, cos(_model.rotation.y)) * 1.2 + Vector3(0, 0.9, 0)
+	FX.burst(get_parent(), at, Color(1.0, 0.9, 0.3), 10, 0.1, 4.5, -4.0, "box", 180.0)   # cartoon stars
+	FX.burst(get_parent(), at, Color(1, 1, 1), 6, 0.2, 2.0, -0.5, "sphere", 180.0)
+	Sfx.play_on(self, "crunch", randf_range(1.0, 1.25))
+	Game.shake.emit(0.4 if lunging else 0.22)
+	if lunging:
+		FX.hit_stop(get_tree(), 0.7)
+		_lunge = 0.0
+		velocity.x *= -0.25   # bonk and rebound
+		velocity.z *= -0.25
+
+
 func enter_car(car: Car) -> void:
 	if vehicle != null:
 		return
+	release_pet()
 	vehicle = car
 	if not car.bumped.is_connected(_on_car_bump):
 		car.bumped.connect(_on_car_bump)
@@ -661,7 +797,11 @@ func enter_car(car: Car) -> void:
 func mount_critter(c: Critter) -> bool:
 	if mount != null or vehicle != null or not Critter.can_mount(c.kind, c.tamed, Game.inventory):
 		return false
+	release_pet()
+	_lunge = 0.0
+	_ram_done.clear()
 	mount = c
+	_on_tool_changed(Game.current_tool)
 	c.set_ridden(true)
 	global_position = c.global_position
 	_model.position.y = Critter.MOUNT_SEAT_Y
@@ -670,16 +810,18 @@ func mount_critter(c: Critter) -> bool:
 	FX.burst(self, global_position + Vector3(0, 0.3, 0), Color(0.85, 0.8, 0.6), 12, 0.14, 2.2, -1.0, "sphere", 120.0)
 	Sfx.play_on(self, "happy", 0.8)
 	Game.shake.emit(0.15)
-	Game.say("Giddy-up! Shift to gallop, Space to jump, E to hop off.")
+	Game.say("Giddy-up! Shift to gallop, Space to jump, click to HEADBUTT, E to hop off.")
 	return true
 
 
 func dismount() -> void:
 	if mount == null:
 		return
+	_lunge = 0.0
 	mount.set_ridden(false)
 	mount.home = mount.position
 	mount = null
+	_on_tool_changed(Game.current_tool)
 	_model.position.y = 0.0
 	FX.burst(self, global_position + Vector3(0, 0.1, 0), Color(0.78, 0.7, 0.55), 8, 0.12, 1.8, -1.0, "sphere", 90.0)
 	Game.say("You slide off. The goat looks smug.")
@@ -709,6 +851,12 @@ func _use() -> void:
 		return
 	if mount != null:
 		dismount()
+		return
+	if held_pet != null:
+		if crouching:
+			release_pet()
+		else:
+			throw_pet()
 		return
 	var fs := get_tree().get_first_node_in_group("fishing_spot") as FishingSpot
 	if fs != null and fs.is_busy():
@@ -926,6 +1074,11 @@ func _physics_process(delta: float) -> void:
 	_sling_cd = maxf(0.0, _sling_cd - delta)
 	_bomb_cd = maxf(0.0, _bomb_cd - delta)
 	_blast_time = maxf(0.0, _blast_time - delta)
+	_ram_cd = maxf(0.0, _ram_cd - delta)
+	_lunge = maxf(0.0, _lunge - delta)
+	_whistle_cd = maxf(0.0, _whistle_cd - delta)
+	if held_pet != null and (not is_instance_valid(held_pet) or Game.in_closet):
+		release_pet()
 	if _sling_charge >= 0.0:
 		if Game.current_tool != GameState.Tool.SLINGSHOT or vehicle != null or mount != null:
 			_sling_charge = -1.0
@@ -966,6 +1119,10 @@ func _physics_process(delta: float) -> void:
 		velocity.y = FX.glide_vy(velocity.y, true, Input.is_action_pressed("jump"), not is_on_floor())
 		gliding = not is_on_floor() and Input.is_action_pressed("jump") and velocity.y <= FX.GLIDE_FALL + 0.01
 	_set_glider_wing(gliding)
+	# Chicken parachute: she flaps like mad, you drift down.
+	floating = held_pet != null and Input.is_action_pressed("jump") and not is_on_floor() and velocity.y < 0.0
+	if floating:
+		velocity.y = maxf(velocity.y, -Critter.CARRY_FALL)
 
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var basis_yaw := Basis(Vector3.UP, _yaw)
@@ -983,7 +1140,7 @@ func _physics_process(delta: float) -> void:
 		speed *= FX.carry_speed_mult(Game.carry_weight(), Game.carry_free())
 	_squash = lerpf(_squash, 1.0, 10.0 * delta)
 	_model.scale.y = lerpf(_model.scale.y, (0.7 if crouching else 1.0) * _squash, 12.0 * delta)
-	speed *= FX.glide_speed_mult(gliding)
+	speed *= Critter.CARRY_DRIFT if floating else FX.glide_speed_mult(gliding)
 	if global_position.y < Terrain.WATER_LEVEL + 0.2:
 		speed *= 0.45   # wading through the pond
 	var flat_now := Vector2(velocity.x, velocity.z)
@@ -993,8 +1150,18 @@ func _physics_process(delta: float) -> void:
 		wish = Vector2(dir.x, dir.z) * speed
 	var was_skid := skidding
 	skidding = is_on_floor() and mount == null and FX.is_skid(flat_now, wish)
-	if _blast_time > 0.0:
-		skidding = false   # flying from a blast: keep the launch velocity, no steering
+	_mount_lean = 0.0
+	if _blast_time > 0.0 or _lunge > 0.0:
+		skidding = false   # flying from a blast (or lunging): keep the launch velocity, no steering
+	elif mount != null and flat_now.length() > MountSteer.CARVE_SPEED:
+		# A goat at speed carves round in arcs; it cannot spin on the spot.
+		var st := MountSteer.step(flat_now, wish, delta, is_on_floor())
+		var carved: Vector2 = st["velocity"]
+		velocity.x = carved.x
+		velocity.z = carved.y
+		_mount_lean = MountSteer.lean(float(st["turn_rate"]), carved.length())
+		if carved.length() > 0.3:
+			_model.rotation.y = lerp_angle(_model.rotation.y, atan2(carved.x, carved.y), minf(1.0, 14.0 * delta))
 	else:
 		var accel := FX.move_accel(flat_now, wish, is_on_floor())
 		var next := flat_now.move_toward(wish, accel * delta)
@@ -1010,7 +1177,7 @@ func _physics_process(delta: float) -> void:
 			_skid_puff = 0.06
 			FX.burst(self, global_position + Vector3(0, 0.08, 0), Color(0.78, 0.7, 0.55), 5, 0.13, 1.8, -1.0, "sphere", 70.0)
 	_update_lean(delta, flat_now.length())
-	if _action_time > 0.0:
+	if _action_time > 0.0 and held_pet == null and mount == null:
 		velocity.x *= 0.2
 		velocity.z *= 0.2
 	_last_vy = velocity.y
@@ -1036,13 +1203,16 @@ func _physics_process(delta: float) -> void:
 	var flat_speed := Vector2(velocity.x, velocity.z).length()
 	_dust.emitting = is_on_floor() and flat_speed > 6.0
 	var fov_want := 72.0 if flat_speed > 6.0 else 65.0
+	if held_pet != null:
+		held_pet.hold_tick(delta, global_position + Vector3(0, HELD_HEIGHT * _model.scale.y, 0), _model.rotation.y, floating)
 	if mount != null:
 		_ride_sync(delta, flat_speed)
+		_ram_tick(flat_speed)
 		fov_want = 82.0 if flat_speed > 10.0 else 68.0
 		_dust.emitting = false
 	camera.fov = lerp(camera.fov, fov_want, 4.0 * delta)
 	_update_camera(delta)
-	if mount != null:
+	if mount != null or held_pet != null:
 		target = null
 	else:
 		_find_target()
@@ -1089,7 +1259,8 @@ func _try_bounce(fall: float) -> bool:
 func _ride_sync(delta: float, flat_speed: float) -> void:
 	mount.global_position = global_position
 	mount.rotation.y = _model.rotation.y
-	mount.ride_tick(delta, flat_speed, is_on_floor())
+	mount.ride_tick(delta, flat_speed, is_on_floor(), _lunge > 0.0, _mount_lean)
+	_model.rotation.z = lerpf(_model.rotation.z, _mount_lean, minf(1.0, 7.0 * delta))
 	var iv := Critter.hoof_interval(flat_speed)
 	if iv > 0.0 and is_on_floor():
 		_hoof_t -= delta

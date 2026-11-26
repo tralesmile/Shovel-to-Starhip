@@ -52,6 +52,18 @@ func _run() -> void:
 		await _heist_before(p)
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=21,22,23,24,25"):
+		await _pet_action_shots(p)
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=26"):
+		await _whistle_shot(p)
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=20"):
+		await _pet_shots(p, "20")
+		get_tree().quit()
+		return
 	# Prepare a farm in mixed states so the shot shows every stage.
 	var plots := get_tree().get_nodes_in_group("daily").filter(func(n): return n is FarmPlot)
 	for i in plots.size():
@@ -1176,3 +1188,190 @@ func _freeze_shot(file: String) -> void:
 	await _shot(file)
 	Engine.time_scale = was if was < 0.999 else 1.0
 	Engine.time_scale = 1.0
+
+
+## Animal check: the farm pets up close, then riding.
+func _pet_shots(p: Player, prefix: String) -> void:
+	var hud: Hud = main.get_children().filter(func(n): return n is Hud)[0]
+	hud.set_help_visible(false)
+	hud._click_hint.modulate.a = 0.0
+	Game.time_of_day = 0.45
+	var goat := main.get_node("Goat") as Critter
+	var spot := Vector3(-2.0, 0, 13.0)
+	spot.y = Terrain.height_at(spot.x, spot.z)
+	p.global_position = spot + Vector3(-3.4, 0.1, -0.6)
+	p._model.rotation.y = PI
+	goat.set_process(false)
+	spot.y = Critter.ground_y(spot.x, spot.z)
+	goat.global_position = spot + Vector3(-1.2, 0, 0)
+	goat.rotation.y = 0.9
+	for k in 4:
+		var c := main.get_node("Chicken_%d" % k) as Critter
+		c.set_process(false)
+		var at := spot + Vector3(0.1 + k * 0.62, 0, 0.5 - (k % 2) * 0.8)
+		at.y = Critter.ground_y(at.x, at.z)
+		c.global_position = at
+		c.rotation.y = -0.7 + k * 0.4
+	var bun := main.get_node("Rabbit_0") as Critter
+	bun.set_process(false)
+	bun.global_position = spot + Vector3(1.0, 0.0, 1.3)
+	bun.rotation.y = -0.4
+	for n in [goat, bun] + range(4).map(func(k): return main.get_node("Chicken_%d" % k)):
+		for i in 20:
+			(n as Critter).rig.animate(0.033, 0.0, {})
+	var cam := _free_cam(spot + Vector3(0.4, 1.4, 3.3), spot + Vector3(0.3, 0.5, 0), 50.0)
+	await _wait(30)
+	await _shot(prefix + "_animals.png")
+	cam.queue_free()
+	p.camera.current = true
+
+
+## Carrying, floating, fetching, headbutting and riding with saddle bags (real player code).
+func _pet_action_shots(p: Player) -> void:
+	var hud: Hud = main.get_children().filter(func(n): return n is Hud)[0]
+	hud.set_help_visible(false)
+	hud._click_hint.modulate.a = 0.0
+	Game.time_of_day = 0.45
+	var hen := main.get_node("Chicken_1") as Critter
+	var goat := main.get_node("Goat") as Critter
+	var spot := _clear_spot(p)
+	print("clear spot ", spot)
+	spot.y = Critter.ground_y(spot.x, spot.z)
+	p.global_position = spot + Vector3(0, 0.1, 0)
+	p._yaw = 0.5
+	p._pitch = -0.2
+	p._zoom = 5.0
+	p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+	hen.befriend(Game)
+	hen.hearts = 3
+	print("pickup ", p.pickup_pet(hen))
+	p._model.rotation.y = 0.5
+	await _wait(30)
+	var close := _free_cam(p.global_position + Vector3(2.2, 1.9, -2.8), p.global_position + Vector3(0, 1.4, 0), 45.0)
+	await _shot("21_carry.png")
+	close.queue_free()
+	p.camera.current = true
+	# Jump off a height and parachute down.
+	p.global_position = spot + Vector3(0, 4.5, 0)
+	p.velocity = Vector3.ZERO
+	Input.action_press("jump")
+	await _game_wait(0.8)
+	print("floating ", p.floating, " vy=", p.velocity.y)
+	close = _free_cam(p.global_position + Vector3(2.8, 0.6, 3.0), p.global_position + Vector3(0, 1.3, 0), 48.0)
+	await _freeze_shot("22_float.png")
+	close.queue_free()
+	p.camera.current = true
+	Input.action_release("jump")
+	await _game_wait(1.5)
+	# Throw, then let the hen run an errand for loot dropped well away.
+	var thrown := p.throw_pet()
+	await _game_wait(0.35)
+	await _freeze_shot("23_throw.png")
+	for i in 80:
+		if not thrown.thrown:
+			break
+		await _game_wait(0.1)
+	print("player ", p.global_position)
+	print("landed ", not thrown.thrown, " at ", thrown.global_position)
+	var loot := WoodLog.new()
+	loot.game = Game
+	loot.item_id = "egg"
+	loot.chunk_color = WoodLog.drop_color("egg")
+	main.add_child(loot)
+	loot.global_position = p.global_position + Vector3(6.5, 0.5, 0)
+	var eggs := Game.count("egg")
+	var carried := false
+	for i in 200:
+		await _game_wait(0.1)
+		if is_instance_valid(loot) and loot.carried:
+			carried = true
+		if Game.count("egg") > eggs:
+			break
+	print("fetch carried=", carried, " delivered=", Game.count("egg") > eggs)
+	# Goat: saddle, bags, and a headbutt into a row of crates and cones.
+	goat.befriend(Game)
+	goat.hearts = 3
+	Game.add_item("saddle", 1)
+	Game.add_item("saddle_bags", 1)
+	spot.y = 0.0
+	spot.x -= 2.0
+	p.global_position = spot + Vector3(0, Critter.ground_y(spot.x, spot.z) + 0.1, 0)
+	p.velocity = Vector3.ZERO
+	goat.global_position = p.global_position
+	print("mounted ", p.mount_critter(goat))
+	p._model.rotation.y = PI * 0.5
+	p._yaw = -PI * 0.5 + 0.9
+	p._pitch = -0.28
+	p._zoom = 6.5
+	var targets: Array = []
+	for i in 3:
+		var c := PropCrate.new()
+		c.game = Game
+		main.add_child(c)
+		c.global_position = p.global_position + Vector3(4.2, 0.1, (i - 1) * 0.75)
+		targets.append(c)
+	await _game_wait(0.8)
+	close = _free_cam(p.global_position + Vector3(1.3, 1.9, 3.4), p.global_position + Vector3(0.5, 1.0, 0), 45.0)
+	await _shot("24_mounted.png")
+	close.queue_free()
+	p.camera.current = true
+	Input.action_press("move_forward")
+	p._yaw = -PI * 0.5
+	for i in 60:
+		await get_tree().physics_frame
+		if p.global_position.x > spot.x + 2.4:
+			break
+	p._yaw = -PI * 0.5
+	print("at ", p.global_position, " v ", p.velocity, " crate ", targets[1].global_position)
+	print("headbutt ", p.headbutt())
+	for i in 40:
+		await get_tree().physics_frame
+		if targets.any(func(c): return not is_instance_valid(c) or c.is_queued_for_deletion()):
+			break
+	Input.action_release("move_forward")
+	close = _free_cam(p.global_position + Vector3(0.2, 2.4, 4.6), p.global_position + Vector3(1.0, 0.8, 0), 52.0)
+	await _game_wait(0.12)
+	await _freeze_shot("25_headbutt.png")
+	print("crates smashed ", targets.filter(func(c): return not is_instance_valid(c) or c.is_queued_for_deletion()).size())
+
+
+## First open patch of ground (nothing solid within a 16 x 8 m box) near the farm.
+func _clear_spot(p: Player) -> Vector3:
+	var box := BoxShape3D.new()
+	box.size = Vector3(15.0, 6.0, 7.0)
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = box
+	q.exclude = [p.get_rid()]
+	var space := p.get_world_3d().direct_space_state
+	for r in range(8, 40, 2):
+		for a in 24:
+			var at := Vector3(cos(a * TAU / 24.0) * r, 0, sin(a * TAU / 24.0) * r)
+			q.transform = Transform3D(Basis.IDENTITY, at + Vector3(3.0, Critter.ground_y(at.x, at.z) + 3.8, 0))
+			if absf(Terrain.height_at(at.x, at.z)) < 0.05 and space.intersect_shape(q, 1).is_empty():
+				return at
+	return Vector3(14, 0, 4)
+
+
+## Blow the Goat Whistle from across the farm and watch the friends arrive.
+func _whistle_shot(p: Player) -> void:
+	var hud: Hud = main.get_children().filter(func(n): return n is Hud)[0]
+	hud.set_help_visible(false)
+	hud._click_hint.modulate.a = 0.0
+	Game.time_of_day = 0.45
+	var at := _clear_spot(p)
+	p.global_position = at + Vector3(3.0, Critter.ground_y(at.x + 3.0, at.z) + 0.1, 0)
+	p._yaw = 0.0
+	p._pitch = -0.4
+	p._zoom = 8.0
+	p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+	var pets: Array = [main.get_node("Goat")] + range(4).map(func(k): return main.get_node("Chicken_%d" % k))
+	for c in pets:
+		(c as Critter).befriend(Game)
+	Game.add_item("goat_whistle", 1)
+	await _wait(10)
+	print("answered ", p.whistle())
+	await _game_wait(0.5)
+	await _freeze_shot("26_whistle.png")
+	await _game_wait(5.0)
+	for c in pets:
+		print("  ", c.name, " dist ", snappedf((c as Critter).global_position.distance_to(p.global_position), 0.1))
