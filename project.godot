@@ -25,6 +25,8 @@ window/stretch/aspect="expand"
 
 [rendering]
 
+limits/opengl/max_lights_per_object=16
+
 rendering_device/fallback_to_opengl3=true
 rendering_device/fallback_to_vulkan=true
 rendering_device/fallback_to_d3d12=true

@@ -386,6 +386,10 @@ func _run() -> void:
 		await _shot("86_invention_bench.png")
 		get_tree().quit()
 		return
+	if "--only=80,81,82,83,84,85" in OS.get_cmdline_user_args():
+		await _mine_shots(p)
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=96"):
 		Game.time_of_day = 0.45
 		p.global_position = Vector3(Terrain.POND_CENTER.x + 8.0, 0.1, Terrain.POND_CENTER.y + 1.0)
@@ -497,3 +501,67 @@ func _run() -> void:
 	await get_tree().physics_frame
 	print("ANIM_CHECK ", p._anim.current_animation, " t=", p._action_time)
 	get_tree().quit()
+
+
+## A free camera that ignores the player rig, so small things can always be framed.
+func _free_cam(from: Vector3, at: Vector3, fov: float = 65.0) -> Camera3D:
+	var c := Camera3D.new()
+	c.fov = fov
+	main.add_child(c)
+	c.global_position = from
+	c.look_at(at)
+	c.current = true
+	return c
+
+
+## Gran's Old Mine: entrance, gameplay view, a Boom Turnip in flight, the blast and the secret pocket.
+func _mine_shots(p: Player) -> void:
+	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+	Game.time_of_day = 0.45
+	var e := MineCave.ENTRANCE
+	p.global_position = e + Vector3(1.4, 0.2, 4.0)
+	var outside := _free_cam(e + Vector3(4.5, 3.6, 9.5), e + Vector3(0, 1.9, 0))
+	await _wait(30)
+	await _shot("80_mine_entrance.png")
+	outside.queue_free()
+	p.camera.current = true
+	Game.set_tool(GameState.Tool.PICKAXE)
+	await _view(p, 0.45, MineCave.ORIGIN + Vector3(0.5, 0.2, 6.0), 0.0, -0.32, 7.0, "81_mine_cave.png")
+	var o := MineCave.ORIGIN
+	Game.add_item("miner_helmet", 1)
+	Game.add_item("boom_turnip", 3)
+	p.global_position = o + Vector3(-5.0, 0.1, 1.0)
+	p._yaw = PI / 2.0
+	p._model.rotation.y = -PI / 2.0
+	var cam := _free_cam(o + Vector3(-1.0, 3.6, 5.8), o + Vector3(-10.5, 1.3, -0.5))
+	await _wait(30)
+	await _shot("82_cracked_wall.png")
+	var bomb := p.throw_bomb()
+	await _wait(2)
+	var early := get_viewport().get_texture().get_image()
+	early.save_png(out_dir.path_join("82_boom_thrown.png"))
+	if bomb != null and is_instance_valid(bomb):
+		bomb.freeze = true
+		bomb.global_position = o + Vector3(-8.6, 0.7, 0.6)
+		await _wait(1)
+		Engine.max_fps = 0
+		bomb.explode()
+	# Slow the world right down: software rendering is so slow the blast would be over in one frame.
+	for i in 3:
+		await get_tree().process_frame
+		Engine.time_scale = 0.12
+	var img := get_viewport().get_texture().get_image()
+	img.save_png(out_dir.path_join("83_boom.png"))
+	Engine.time_scale = 1.0
+	await get_tree().create_timer(1.6).timeout
+	await _shot("83_wall_open.png")
+	cam.global_position = o + Vector3(-12.2, 2.9, 2.5)
+	cam.look_at(o + Vector3(-17.0, 0.8, -0.3))
+	p.global_position = o + Vector3(-15.0, 0.1, 0.8)
+	p._model.rotation.y = -PI / 2.0
+	await _wait(30)
+	await _shot("84_secret_pocket.png")
+	cam.global_position = o + Vector3(4.5, 2.6, -3.0)
+	cam.look_at(o + Vector3(9.0, 1.0, -7.6))
+	await _wait(20)
+	await _shot("85_geode.png")

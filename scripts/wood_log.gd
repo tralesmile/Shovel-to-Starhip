@@ -150,6 +150,7 @@ static func drop_color(id: String) -> Color:
 		"carrot": return Color(1.0, 0.55, 0.1)
 		"copper_ore": return Color(0.85, 0.5, 0.28)
 		"gem": return Color(0.4, 0.9, 1.0)
+		"glow_crystal": return Color(0.55, 0.95, 0.9)
 		"copper_ingot": return Color(0.95, 0.62, 0.32)
 		"turnip": return Color(0.92, 0.85, 0.95)
 		"tomato": return Color(0.9, 0.2, 0.15)
@@ -181,7 +182,7 @@ func _build_chunk() -> void:
 	if item_id != "stone" and not is_organic(item_id):
 		var sp := FX.emitter(self, chunk_color.lightened(0.5), 4, 0.9, 0.05, Vector3(0.15, 0.1, 0.15), Vector3(0, 0.4, 0), true, "sphere")
 		sp.emitting = true
-	if item_id == "gem":
+	if item_id == "gem" or item_id == "glow_crystal":
 		var glow := OmniLight3D.new()
 		glow.light_color = chunk_color
 		glow.light_energy = 0.8

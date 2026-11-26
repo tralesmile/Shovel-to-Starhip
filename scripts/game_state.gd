@@ -40,6 +40,9 @@ const ITEMS := {
 	"stone": {"name": "Stone", "buy": 0, "sell": 4},
 	"copper_ore": {"name": "Copper Ore", "buy": 0, "sell": 18},
 	"gem": {"name": "Shiny Gem", "buy": 0, "sell": 90},
+	"glow_crystal": {"name": "Glow Crystal", "buy": 0, "sell": 45},
+	"boom_turnip": {"name": "Boom Turnip", "buy": 0, "sell": 15},
+	"miner_helmet": {"name": "Miner's Helmet", "buy": 0, "sell": 0},
 	# Hunting and cooking.
 	"rabbit_meat": {"name": "Rabbit Meat", "buy": 0, "sell": 12},
 	"rabbit_pelt": {"name": "Rabbit Pelt", "buy": 0, "sell": 20},
@@ -124,12 +127,15 @@ const RECIPES := [
 	{"id": "gem_pickaxe", "name": "Gem Pickaxe", "in": {"gem": 2, "copper_ingot": 2, "plank": 1}, "out": {"gem_pickaxe": 1}, "once": true},
 	{"id": "slingshot", "name": "Slingshot", "in": {"plank": 2, "rabbit_pelt": 1}, "out": {"slingshot": 1}, "once": true},
 	{"id": "invention_bench", "name": "Invention Bench", "in": {"plank": 6, "copper_ingot": 3, "gem": 1}, "out": {"invention_bench": 1}},
+	{"id": "boom_turnip", "name": "Boom Turnips", "in": {"turnip": 1, "stone": 2, "copper_ore": 1}, "out": {"boom_turnip": 2}},
+	{"id": "miner_helmet", "name": "Miner's Helmet", "in": {"copper_ingot": 2, "glow_crystal": 2}, "out": {"miner_helmet": 1}, "once": true},
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
 	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "anvil": 10.0, "invention_bench": 9.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
-	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0, "loot_vacuum": 0.0}
+	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0, "loot_vacuum": 0.0,
+	"glow_crystal": 0.5, "boom_turnip": 0.5, "miner_helmet": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -377,7 +383,7 @@ static func invention_ready(inv: Dictionary) -> Dictionary:
 
 
 ## Items that exist as physical things you can drop on the ground (seeds, tools and pieces cannot).
-const DROPPABLE := ["wood", "plank", "stone", "copper_ore", "copper_ingot", "gem", "carrot", "rabbit_meat", "rabbit_pelt", "turnip", "tomato", "rabbit_stew", "cooked_meat", "egg"]
+const DROPPABLE := ["wood", "plank", "stone", "copper_ore", "copper_ingot", "gem", "carrot", "rabbit_meat", "rabbit_pelt", "turnip", "tomato", "rabbit_stew", "cooked_meat", "egg", "glow_crystal"]
 
 
 ## Pure (tested): which item G drops: the one adding the most weight to your pockets (ties: alphabetical).
@@ -397,7 +403,7 @@ func drop_candidate() -> String:
 
 
 ## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
-const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum"]
+const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet"]
 
 
 ## Pure (tested): can this item go in a chest?
@@ -847,6 +853,7 @@ func setup_input() -> void:
 	_key_action("craft_next", [KEY_Q])
 	_key_action("help", [KEY_H, KEY_F1])
 	_key_action("drop_item", [KEY_G])
+	_key_action("throw_bomb", [KEY_B])
 	_key_action("save", [KEY_F5])
 	_key_action("pause", [KEY_ESCAPE])
 	setup_gamepad()
@@ -869,6 +876,7 @@ const PAD_AXES := {
 	"move_forward": [JOY_AXIS_LEFT_Y, -1.0], "move_back": [JOY_AXIS_LEFT_Y, 1.0],
 	"look_left": [JOY_AXIS_RIGHT_X, -1.0], "look_right": [JOY_AXIS_RIGHT_X, 1.0],
 	"look_up": [JOY_AXIS_RIGHT_Y, -1.0], "look_down": [JOY_AXIS_RIGHT_Y, 1.0],
+	"throw_bomb": [JOY_AXIS_TRIGGER_RIGHT, 1.0],
 }
 
 

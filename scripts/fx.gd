@@ -35,7 +35,7 @@ static func _mesh(kind: String, size: float, unshaded: bool) -> Mesh:
 
 ## One-shot burst at a world position; frees itself afterwards.
 static func burst(parent: Node, pos: Vector3, color: Color, amount: int = 14, size: float = 0.12,
-		speed: float = 3.0, gravity: float = -9.0, kind: String = "box", spread: float = 60.0) -> void:
+		speed: float = 3.0, gravity: float = -9.0, kind: String = "box", spread: float = 60.0, glow: bool = false) -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
 	var p := CPUParticles3D.new()
@@ -43,7 +43,7 @@ static func burst(parent: Node, pos: Vector3, color: Color, amount: int = 14, si
 	p.explosiveness = 0.95
 	p.amount = amount
 	p.lifetime = 1.0
-	p.mesh = _mesh(kind, size, false)
+	p.mesh = _mesh(kind, size, glow)   # glow = unshaded, so fire stays bright in the dark
 	p.direction = Vector3.UP
 	p.spread = spread
 	p.initial_velocity_min = speed * 0.5

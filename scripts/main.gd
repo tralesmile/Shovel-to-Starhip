@@ -45,6 +45,7 @@ func _ready() -> void:
 	_build_police_car()
 	_build_trees()
 	_build_rocks()
+	_build_mine()
 	_build_crates()
 	add_child(BuildWorld.new())
 	_build_road_and_signs()
@@ -201,6 +202,11 @@ func _update_daylight() -> void:
 		lt.visible = dark > 0.3
 		lt.light_energy = 3.2 * dark
 	_update_weather(day, sunset, night)
+	var underground := player != null and MineCave.inside(player.global_position)
+	if underground:
+		MineCave.apply_light(env, sun)
+	if player != null:
+		player.set_helmet(Game.count("miner_helmet") > 0, underground or dark > 0.35)
 	Toon.set_night(dark)
 	for c in get_tree().get_nodes_in_group("car"):
 		if c.has_method("set_dark"):
@@ -225,7 +231,9 @@ func _update_weather(day: float, sunset: float, night: float) -> void:
 		_rain = Weather.make_rain()
 		add_child(_rain)
 	_update_lightning(w, get_process_delta_time())
-	_rain.emitting = _rain_level > 0.05
+	var indoors := player != null and Police.is_hidden(player.global_position)
+	_rain.emitting = _rain_level > 0.05 and not indoors
+	_rain.visible = not indoors
 	var n := Weather.drops(w)
 	if n > 0 and _rain.amount != n:
 		_rain.amount = n
@@ -251,9 +259,7 @@ func _update_lightning(w: String, delta: float) -> void:
 	_sky_mat.set_shader_parameter("flash", f)
 	if f > 0.0:
 		sun.light_energy += 2.6 * f
-		env.ambient_light_energy = 1.0 + 2.0 * f
-	else:
-		env.ambient_light_energy = 1.0
+		env.ambient_light_energy += 1.8 * f
 	if _thunder_in >= 0.0:
 		_thunder_in -= delta
 		if _thunder_in < 0.0 and player != null:
@@ -634,6 +640,14 @@ func _build_rocks() -> void:
 		rocks.add_child(r)
 
 
+## Gran's Old Mine: surface entrance plus the cave itself.
+func _build_mine() -> void:
+	var mine := MineCave.new()
+	mine.name = "Mine"
+	add_child(mine)
+	mine.build(self)
+
+
 const CRATE_SPOTS := [Vector3(4, 0, -6), Vector3(5.2, 0, -6.4), Vector3(-6, 0, 9), Vector3(11, 0, 4), Vector3(-13, 0, -4), Vector3(2.5, 0, 12)]
 
 
@@ -679,6 +693,8 @@ func _build_trees() -> void:
 		var pos := Vector3(rng.randf_range(-35, 35), 0, rng.randf_range(-35, 8))
 		if pos.length() < 9.0 or (Vector2(pos.x, pos.z) - Terrain.POND_CENTER).length() < Terrain.POND_RADIUS + 2.0:
 			continue
+		if Vector2(pos.x - MineCave.ENTRANCE.x, pos.z - MineCave.ENTRANCE.z).length() < 7.0:
+			continue   # mine mouth
 		var rock: String = ["rock_single_A.gltf", "rock_single_B.gltf", "rock_single_C.gltf", "rock_single_E.gltf"][k % 4]
 		Models.solid(trees, Models.MED + rock, pos, rng.randf_range(3.0, 5.0), rng.randf() * TAU)
 
@@ -800,6 +816,8 @@ func _build_scenery() -> void:
 			continue   # spaceport
 		if Terrain.height_at(p.x, p.z) < -0.6:
 			continue   # pond
+		if Vector2(p.x - MineCave.ENTRANCE.x, p.z - MineCave.ENTRANCE.z + 1.0).length() < 4.0:
+			continue   # mine mouth
 		p.y = Terrain.height_at(p.x, p.z)
 		var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(1.0, 1.8)), p)
 		spots.append(xf)

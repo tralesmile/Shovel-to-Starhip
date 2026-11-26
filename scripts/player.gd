@@ -205,6 +205,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_use()
 	elif event.is_action_pressed("drop_item"):
 		drop_item()
+	elif event.is_action_pressed("throw_bomb"):
+		throw_bomb()
 	elif event.is_action_pressed("pause"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	for i in 7:
@@ -247,6 +249,103 @@ func drop_item() -> bool:
 	Sfx.play_on(p, "thud", 1.45)
 	Game.say("Dropped %s" % GameState.ITEMS.get(id, {}).get("name", id))
 	return true
+
+
+var _bomb_cd := 0.0
+
+
+## B: lob a Boom Turnip along the camera heading. Returns the thrown bomb (null if none).
+func throw_bomb() -> BoomTurnip:
+	if vehicle != null or Game.in_closet:
+		return null
+	if not BoomTurnip.can_throw(Game.count("boom_turnip"), _bomb_cd):
+		if Game.count("boom_turnip") <= 0:
+			Game.say("No Boom Turnips. Workbench: 1 turnip + 2 stone + 1 copper ore.")
+		return null
+	Game.remove_item("boom_turnip", 1)
+	_bomb_cd = BoomTurnip.COOLDOWN
+	var v := BoomTurnip.throw_velocity(_yaw, _pitch)
+	_model.rotation.y = atan2(v.x, v.z)
+	play_action("Throw", 0.4)
+	var b := BoomTurnip.new()
+	b.game = Game
+	get_parent().add_child(b)
+	b.global_position = global_position + Vector3(0, 1.5, 0) + Vector3(v.x, 0, v.z).normalized() * 0.6
+	b.linear_velocity = v + Vector3(velocity.x, 0, velocity.z) * 0.5
+	b.angular_velocity = Vector3(randf_range(-6, 6), randf_range(-3, 3), randf_range(-6, 6))
+	b.add_collision_exception_with(self)
+	Sfx.play_on(self, "sizzle", 1.2)
+	return b
+
+
+var _blast_time := 0.0
+
+
+## Caught in your own blast: launched, eyebrows singed. No damage.
+func blast_knock(v: Vector3) -> void:
+	if vehicle != null:
+		return
+	if mount != null:
+		dismount()
+	velocity = v
+	_blast_time = 0.45
+	_coyote = 0.0
+	if v.length() > 7.0:
+		Game.say("You have been rapidly relocated. Eyebrows: singed.")
+
+
+var _helmet: Node3D
+var _helmet_light: OmniLight3D
+
+
+## The Miner's Helmet sits on the head bone; its lamp switches on in the dark.
+func set_helmet(owned: bool, lamp_on: bool) -> void:
+	if not owned:
+		if _helmet != null:
+			_helmet.visible = false
+			_helmet_light.visible = false
+		return
+	if _helmet == null:
+		var skel: Skeleton3D = null
+		var found := _model.find_children("*", "Skeleton3D", true, false)
+		if not found.is_empty():
+			skel = found[0]
+		var holder: Node3D = _model
+		var lift := 1.75
+		if skel != null and skel.find_bone("head") >= 0:
+			var ba := BoneAttachment3D.new()
+			ba.bone_name = "head"
+			skel.add_child(ba)
+			holder = ba
+			lift = 0.92
+		_helmet = Node3D.new()
+		_helmet.position.y = lift
+		holder.add_child(_helmet)
+		var dome := MeshInstance3D.new()
+		var hm := SphereMesh.new()
+		hm.radius = 0.56
+		hm.height = 0.56
+		hm.is_hemisphere = true
+		hm.radial_segments = 12
+		hm.rings = 5
+		dome.mesh = hm
+		dome.material_override = Art.mat(Color(1.0, 0.78, 0.12))
+		_helmet.add_child(dome)
+		var brim := Art.cylinder(0.66, 0.66, 0.07, Color(0.95, 0.68, 0.08), 14)
+		_helmet.add_child(brim)
+		var lamp := Art.box(Vector3(0.22, 0.2, 0.14), Color(1.0, 0.97, 0.75))
+		lamp.material_override = Art.mat(Color(1.0, 0.97, 0.75), true)
+		lamp.position = Vector3(0, 0.22, 0.54)
+		_helmet.add_child(lamp)
+		_helmet_light = OmniLight3D.new()
+		_helmet_light.light_color = Color(1.0, 0.93, 0.75)
+		_helmet_light.light_energy = 2.0
+		_helmet_light.omni_range = 9.0
+		add_child(_helmet_light)
+	_helmet.visible = true
+	_helmet_light.visible = lamp_on
+	var ahead := Vector3(sin(_model.rotation.y), 0, cos(_model.rotation.y))
+	_helmet_light.position = Vector3(0, 2.4, 0) + ahead * 1.6
 
 
 ## Show/hide the character model (hidden while in a wardrobe or driving).
@@ -525,6 +624,8 @@ func _drive(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_sling_cd = maxf(0.0, _sling_cd - delta)
+	_bomb_cd = maxf(0.0, _bomb_cd - delta)
+	_blast_time = maxf(0.0, _blast_time - delta)
 	if _sling_charge >= 0.0:
 		if Game.current_tool != GameState.Tool.SLINGSHOT or vehicle != null or mount != null:
 			_sling_charge = -1.0
@@ -585,7 +686,9 @@ func _physics_process(delta: float) -> void:
 	speed *= FX.glide_speed_mult(gliding)
 	if global_position.y < Terrain.WATER_LEVEL + 0.2:
 		speed *= 0.45   # wading through the pond
-	if dir.length() > 0.01:
+	if _blast_time > 0.0:
+		pass   # flying from a blast: keep the launch velocity, no steering
+	elif dir.length() > 0.01:
 		dir = dir.normalized()
 		velocity.x = move_toward(velocity.x, dir.x * speed, 40.0 * delta)
 		velocity.z = move_toward(velocity.z, dir.z * speed, 40.0 * delta)

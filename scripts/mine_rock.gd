@@ -9,6 +9,9 @@ const REGROW_DAYS := 3
 const STONE_COLOR := Color(0.55, 0.56, 0.6)
 const ORE_COLOR := Color(0.85, 0.5, 0.28)
 const GEM_COLOR := Color(0.4, 0.9, 1.0)
+const CRYSTAL_COLOR := Color(0.55, 0.95, 0.9)
+
+var kind := ""   ## "" = random surface rock, "plain", "rich" (copper veins) or "geode" (needs copper pickaxe)
 
 var hits: int = 0
 var broken: bool = false
@@ -27,6 +30,19 @@ static func hits_needed(upgraded: bool, gem: bool = false) -> int:
 	if gem:
 		n -= 1   # Gem Pickaxe tier (research: Core Keeper/Terraria pickaxe tiers)
 	return maxi(n, 1)
+
+
+## Pure (tested): geodes are too hard for the starter pickaxe (Terraria/Core Keeper tool gates).
+static func can_mine(rock_kind: String, copper: bool, gem: bool) -> bool:
+	return rock_kind != "geode" or copper or gem
+
+
+## Pure (tested): what a geode bursts into.
+static func geode_drops(roll: float) -> Array:
+	var out := [{"item": "stone", "amount": 1}, {"item": "glow_crystal", "amount": 1}, {"item": "glow_crystal", "amount": 1}]
+	if roll < 0.35:
+		out.append({"item": "gem", "amount": 1})
+	return out
 
 
 ## Pure (tested): the rock's tint darkens as it cracks (stage 0..1).
@@ -62,8 +78,9 @@ static func crack_amount(h: int) -> float:
 func _ready() -> void:
 	add_to_group("daily")
 	add_to_group("saveable")
+	add_to_group("blastable")
 	interact_radius = 1.9
-	ore_rich = absi(hash(str(name))) % 3 == 0
+	ore_rich = kind == "rich" if kind != "" else absi(hash(str(name))) % 3 == 0
 	var body := StaticBody3D.new()
 	var shape := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
@@ -76,23 +93,40 @@ func _ready() -> void:
 	add_child(_mesh)
 	_cracks = Node3D.new()
 	_mesh.add_child(_cracks)
-	var big := Art.box(Vector3(1.5, 1.1, 1.3), STONE_COLOR)
-	big.position.y = 0.55
-	big.rotation.y = randf() * TAU
+	# Faceted boulders (low-poly spheres) read as rock far better than cubes.
+	var rrng := RandomNumberGenerator.new()
+	rrng.seed = hash(str(name)) + 11
+	var big := Art.sphere(0.78, STONE_COLOR, 3, 7)
+	big.position.y = 0.52
+	big.scale = Vector3(1.05, 0.82, 0.92)
+	big.rotation.y = rrng.randf() * TAU
 	_mesh.add_child(big)
-	var top := Art.box(Vector3(1.0, 0.7, 0.9), STONE_COLOR.lightened(0.1))
-	top.position = Vector3(0.1, 1.2, 0.0)
-	top.rotation = Vector3(0.15, randf() * TAU, 0.1)
+	var top := Art.sphere(0.52, STONE_COLOR.lightened(0.1), 3, 6)
+	top.position = Vector3(0.12, 1.08, -0.04)
+	top.scale = Vector3(1.0, 0.85, 0.9)
+	top.rotation = Vector3(0.2, rrng.randf() * TAU, 0.15)
 	_mesh.add_child(top)
-	for mi in [big, top]:
+	var side := Art.sphere(0.4, STONE_COLOR.darkened(0.06), 3, 6)
+	side.position = Vector3(-0.62, 0.3, 0.22)
+	side.rotation = Vector3(0.3, rrng.randf() * TAU, 0.2)
+	_mesh.add_child(side)
+	for mi in [big, top, side]:
 		mi.material_override = mi.material_override.duplicate()   # Toon materials are cached/shared; tint per rock
 		_mats.append(mi.material_override)
 	if ore_rich:
 		for i in 3:
 			var vein := Art.box(Vector3(0.28, 0.28, 0.28), ORE_COLOR)
-			vein.position = Vector3(randf_range(-0.6, 0.6), randf_range(0.4, 1.2), 0.62 if i % 2 == 0 else -0.62)
+			vein.position = Vector3(randf_range(-0.45, 0.45), randf_range(0.45, 0.95), 0.66 if i % 2 == 0 else -0.66)
 			vein.rotation = Vector3(randf(), randf(), randf())
 			_mesh.add_child(vein)
+	if kind == "geode":
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(str(name))
+		for k in 3:
+			var cl := MineCave.crystal_cluster(CRYSTAL_COLOR, 3, 0.55, rng)
+			cl.position = [Vector3(0.1, 1.45, 0.05), Vector3(-0.72, 0.5, 0.3), Vector3(0.66, 0.75, 0.45)][k]
+			cl.rotation = [Vector3.ZERO, Vector3(0.2, 0, 1.1), Vector3(0.7, 0, -0.9)][k]
+			_mesh.add_child(cl)
 	_refresh()
 
 
@@ -106,7 +140,12 @@ func get_prompt(game: GameState) -> String:
 	if broken:
 		return "Gravel dust. It'll regrow in %d day(s)." % (REGROW_DAYS - days_broken)
 	if game.current_tool == GameState.Tool.PICKAXE:
-		return "[E] Mine %s(%d/%d)" % ["copper-streaked rock " if ore_rich else "rock ", hits, hits_needed(game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0)]
+		if not can_mine(kind, game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0):
+			return "Crystal geode. Too hard: craft a Copper Pickaxe (or throw a Boom Turnip [B])."
+		var label := "copper-streaked rock " if ore_rich else "rock "
+		if kind == "geode":
+			label = "crystal geode "
+		return "[E] Mine %s(%d/%d)" % [label, hits, hits_needed(game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0)]
 	return "A big rock. Use the Pickaxe [5]."
 
 
@@ -116,6 +155,13 @@ func interact(game: GameState) -> void:
 		return
 	if game.current_tool != GameState.Tool.PICKAXE:
 		game.say("You punch the rock. Your hand files a complaint.")
+		return
+	if not can_mine(kind, game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0):
+		_wobble = 0.6
+		Sfx.play_on(self, "clang", 1.3)
+		FX.burst(self, global_position + Vector3(0, 0.9, 0), Color(1, 0.9, 0.5), 10, 0.05, 5.0, -6.0, "sphere")
+		game.shake.emit(0.12)
+		game.say("PING! The geode laughs at your starter pickaxe. Copper or better.")
 		return
 	hits += 1
 	_wobble = 1.0
@@ -151,18 +197,30 @@ func _spawn_chunks(game: GameState) -> void:
 	FX.burst(self, global_position + Vector3(0, 0.8, 0), STONE_COLOR, 22, 0.14, 5.0, -9.0)
 	FX.burst(self, global_position + Vector3(0, 0.4, 0), Color(0.7, 0.68, 0.62), 14, 0.2, 2.0, -2.0, "sphere")   # dust cloud
 	_spawn_shards(host)
-	var drops := drops_for(ore_rich, randf(), randf())
+	var drops := geode_drops(randf()) if kind == "geode" else drops_for(ore_rich, randf(), randf())
 	for i in drops.size():
 		var d: Dictionary = drops[i]
 		var c := WoodLog.new()
 		c.game = game
 		c.item_id = d["item"]
 		c.amount = int(d["amount"])
-		c.chunk_color = {"stone": STONE_COLOR, "copper_ore": ORE_COLOR, "gem": GEM_COLOR}[d["item"]]
+		c.chunk_color = {"stone": STONE_COLOR, "copper_ore": ORE_COLOR, "gem": GEM_COLOR, "glow_crystal": CRYSTAL_COLOR}[d["item"]]
 		host.add_child(c)
 		var a := TAU * float(i) / float(drops.size())
 		c.global_position = global_position + Vector3(cos(a) * 0.6, 0.9 + i * 0.1, sin(a) * 0.6)
 		c.pop(Vector3(cos(a), 0, sin(a)) * 1.2)
+
+
+## A Boom Turnip skips the hit count (and the pickaxe gate). Returns false if already rubble.
+func blast(game: GameState) -> bool:
+	if broken:
+		return false
+	broken = true
+	hits = 0
+	days_broken = 0
+	_spawn_chunks(game)
+	_refresh()
+	return true
 
 
 ## The rock visibly splits: three big shards slide apart, tip over and sink away.
@@ -209,7 +267,7 @@ func _refresh() -> void:
 	var c := crack_amount(hits)
 	_mesh.scale = Vector3.ONE * (1.0 - 0.12 * c)
 	for m in _mats:
-		(m as ShaderMaterial).set_shader_parameter("albedo_color", crack_tint(c))
+		(m as ShaderMaterial).set_shader_parameter("albedo_color", crack_tint(c).darkened(0.35 if kind == "geode" else 0.0))
 	if _cracks != null:
 		for k in _cracks.get_children():
 			k.queue_free()
@@ -217,7 +275,7 @@ func _refresh() -> void:
 		for i in n:
 			var side := 1.0 if i % 2 == 0 else -1.0
 			var ln := Art.box(Vector3(0.05, 0.5 + 0.1 * i, 0.04), Color(0.08, 0.07, 0.09))
-			ln.position = Vector3(-0.5 + 0.17 * i, 0.7, 0.66 * side)
+			ln.position = Vector3(-0.5 + 0.17 * i, 0.65, 0.74 * side)
 			ln.rotation.z = 0.5 * sin(float(i) * 2.3)
 			_cracks.add_child(ln)
 	for b in get_children():

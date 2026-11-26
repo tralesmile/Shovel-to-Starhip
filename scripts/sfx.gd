@@ -20,6 +20,8 @@ const KINDS := {
 	"boing": [260.0, 720.0, 0.22, 0.0],
 	"zap": [1800.0, 400.0, 0.12, 0.6],
 	"thunder": [95.0, 32.0, 0.95, 0.75],
+	"boom": [140.0, 30.0, 0.75, 0.6],
+	"drip": [750.0, 1700.0, 0.08, 0.0],
 	"vacuum": [300.0, 900.0, 0.3, 0.35],
 	"happy": [620.0, 980.0, 0.14, 0.0],
 	"fanfare": [523.0, 1046.0, 0.5, 0.0],
@@ -46,7 +48,7 @@ static func step_progress(acc: float, moved: float) -> Array:
 ## a strip along z=16, everything else is grass.
 static func surface_at(pos: Vector3) -> String:
 	if pos.x > 300.0:
-		return "wood"
+		return "road" if MineCave.inside(pos) else "wood"   # the mine has a stone floor
 	if absf(pos.z - 16.0) < 2.4 and absf(pos.x) < 62.0:
 		return "road"
 	return "grass"

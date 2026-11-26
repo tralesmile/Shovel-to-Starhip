@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -1616,4 +1616,134 @@ func test_lightning_vacuum() -> bool:
 	check(GameState.magnet_range(false, true) == GameState.MAGNET_VACUUM, "vacuum alone works")
 	check(WoodLog.state_for(9.0, 5.0, GameState.magnet_range(true, true)) == "magnet", "vacuum pulls from 9m")
 	check(not GameState.stashable("loot_vacuum") and GameState.ITEMS.has("loot_vacuum"), "vacuum is a pocket gadget")
+	return true
+
+
+func test_mine() -> bool:
+	check(MineCave.inside(MineCave.ORIGIN + Vector3(5, 0.1, 5)), "cave floor counts as inside")
+	check(MineCave.inside(MineCave.ORIGIN + Vector3(-17, 0.1, 0)), "secret pocket counts as inside")
+	check(not MineCave.inside(Vector3(0, 0, 8)) and not MineCave.inside(Vector3(400, 0, 120)), "town and houses are not the mine")
+	check(Sfx.surface_at(MineCave.ORIGIN) == "road" and Sfx.surface_at(Vector3(400, 0, 0)) == "wood", "stone footsteps only in the mine")
+	check(MineCave.drip_gap(0.0) >= 1.0 and MineCave.drip_gap(1.0) <= 6.0, "drips are occasional")
+	check(MineRock.can_mine("plain", false, false) and not MineRock.can_mine("geode", false, false), "geode needs a better pickaxe")
+	check(MineRock.can_mine("geode", true, false) and MineRock.can_mine("geode", false, true), "copper or gem opens geodes")
+	var gd := MineRock.geode_drops(0.9)
+	check(gd.filter(func(d): return d["item"] == "glow_crystal").size() == 2, "geode gives two crystals")
+	check(MineRock.geode_drops(0.1).size() == gd.size() + 1, "lucky geode adds a gem")
+	var world := Node3D.new()
+	root.add_child(world)
+	var geo := MineRock.new()
+	geo.name = "Geo_T"
+	geo.kind = "geode"
+	world.add_child(geo)
+	game.set_tool(GameState.Tool.PICKAXE)
+	for i in 6:
+		geo.interact(game)
+	check(geo.hits == 0 and not geo.broken, "starter pickaxe bounces off a geode")
+	check("Copper" in geo.get_prompt(game), "geode prompt says what you need")
+	game.add_item("copper_pickaxe", 1)
+	for i in 3:
+		geo.interact(game)
+	check(geo.broken, "copper pickaxe breaks a geode in 3 hits")
+	check(get_nodes_in_group("pickup").size() >= 3, "geode bursts into physical pickups")
+	var plain := MineRock.new()
+	plain.name = "Plain_T"
+	plain.kind = "plain"
+	world.add_child(plain)
+	check(not plain.ore_rich, "plain mine rock has no veins")
+	var wall := CrackedWall.new()
+	wall.name = "Wall_T"
+	world.add_child(wall)
+	check(wall.blast_distance(Vector3(1.6, 0.5, 2.5)) < 1.5, "blast near the wall edge counts")
+	check(wall.blast_distance(Vector3(9, 0.5, 0)) > BoomTurnip.RADIUS, "far blast does not reach")
+	wall.interact(game)
+	check(not wall.broken, "hands do not open the wall")
+	check(wall.blast(game, Vector3(2, 0, 0)) and wall.broken, "bomb opens the wall")
+	check(not wall.blast(game, Vector3(2, 0, 0)), "wall only opens once")
+	check(get_nodes_in_group("rubble").size() == CrackedWall.RUBBLE, "wall becomes physics rubble")
+	check(not wall.is_in_group("interactable"), "open wall has no prompt")
+	var wall2 := CrackedWall.new()
+	world.add_child(wall2)
+	wall2.from_dict(wall.to_dict())
+	check(wall2.broken, "open wall stays open after load")
+	var tin := GranTin.new()
+	world.add_child(tin)
+	var cash := game.money
+	tin.interact(game)
+	tin.interact(game)
+	check(game.money == cash + GranTin.CASH and game.count("glow_crystal") == GranTin.CRYSTALS, "tin pays exactly once")
+	var tin2 := GranTin.new()
+	world.add_child(tin2)
+	tin2.from_dict(tin.to_dict())
+	check(tin2.opened, "tin opened state saves")
+	check(GameState.DROPPABLE.has("glow_crystal") and GameState.stashable("glow_crystal"), "crystals drop and stash")
+	check(not GameState.stashable("miner_helmet"), "helmet stays in pockets")
+	var hi := _recipe_index_of("miner_helmet")
+	game.add_item("copper_ingot", 2)
+	check(game.craft(hi) and game.count("miner_helmet") == 1, "helmet crafts from ingots + crystals")
+	check(not game.can_craft(hi), "helmet is one-off")
+	# The whole cave builds with unique saveable names.
+	var surface := Node3D.new()
+	world.add_child(surface)
+	var cave := MineCave.new()
+	world.add_child(cave)
+	cave.build(surface)
+	var names := {}
+	for c in cave.get_children():
+		if c is MineRock or c is CrackedWall or c is GranTin:
+			names[str(c.name)] = true
+	check(names.size() == MineCave.ORE_SPOTS.size() + 2, "cave saveables have unique names (%d)" % names.size())
+	check(surface.has_node("MineEntrance"), "entrance is placed on the surface")
+	check(MineCave.inside(cave.entry_point), "front door leads into the cave")
+	var exit: Door = cave.get_node("ExitDoor")
+	check(not MineCave.inside(exit.destination), "exit door leads back out")
+	return true
+
+
+func test_boom_turnip() -> bool:
+	check(BoomTurnip.can_throw(1, 0.0) and not BoomTurnip.can_throw(0, 0.0) and not BoomTurnip.can_throw(1, 0.3), "throw needs stock and cooldown")
+	var v := BoomTurnip.throw_velocity(0.0, -0.45)
+	check(v.z < 0.0 and v.y > 0.0, "lobbed forward and up")
+	check(BoomTurnip.throw_velocity(0.0, -1.2).y >= 2.0 and BoomTurnip.throw_velocity(0.0, 0.25).y <= 7.0, "lift is clamped")
+	check(BoomTurnip.blink_rate(0.1) > BoomTurnip.blink_rate(2.0), "blinks faster near the bang")
+	check(BoomTurnip.falloff(0.0) == 1.0 and BoomTurnip.falloff(99.0) == 0.0, "falloff 1..0")
+	var k := BoomTurnip.knock(Vector3.ZERO, Vector3(2, 0, 0), 10.0)
+	check(k.x > 0.0 and k.y > 0.0, "knockback pushes away and up")
+	check(BoomTurnip.knock(Vector3.ZERO, Vector3(1, 0, 0), 10.0).length() > BoomTurnip.knock(Vector3.ZERO, Vector3(3.5, 0, 0), 10.0).length(), "closer hits harder")
+	check(BoomTurnip.knock(Vector3.ZERO, Vector3(20, 0, 0), 10.0) == Vector3.ZERO, "out of range untouched")
+	var bi := _recipe_index_of("boom_turnip")
+	game.add_item("turnip", 1)
+	game.add_item("stone", 2)
+	game.add_item("copper_ore", 1)
+	check(game.craft(bi) and game.count("boom_turnip") == 2, "recipe makes two")
+	game.setup_input()
+	check(InputMap.has_action("throw_bomb"), "throw action is bound")
+	var world := Node3D.new()
+	root.add_child(world)
+	var near := MineRock.new()
+	near.name = "BoomNear"
+	near.kind = "geode"
+	world.add_child(near)
+	near.position = Vector3(2, 0, 0)
+	var far := MineRock.new()
+	far.name = "BoomFar"
+	far.kind = "plain"
+	world.add_child(far)
+	far.position = Vector3(30, 0, 0)
+	var crate := PropCrate.new()
+	crate.game = game
+	world.add_child(crate)
+	crate.position = Vector3(-2, 0, 0)
+	var loose := WoodLog.new()
+	loose.game = game
+	world.add_child(loose)
+	loose.position = Vector3(0, 0.3, 2)
+	var bomb := BoomTurnip.new()
+	bomb.game = game
+	world.add_child(bomb)
+	bomb.position = Vector3(0, 0.4, 0)
+	var broke := bomb.explode()
+	check(broke == 1 and near.broken and not far.broken, "blast breaks only rocks in range, geodes included")
+	check(crate._smashed, "blast smashes crates")
+	check(bomb.explode() == 0, "a bomb explodes once")
 	return true

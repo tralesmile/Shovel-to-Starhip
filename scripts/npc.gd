@@ -15,6 +15,10 @@ var speed: float = 2.0
 var _anim: AnimationPlayer
 
 
+func _enter_tree() -> void:
+	add_to_group("npc")
+
+
 func setup(model_path: String) -> void:
 	var m := Models.put(self, model_path, Vector3.ZERO, 0.72, 0.0)
 	var found := m.find_children("*", "AnimationPlayer", true, false)
