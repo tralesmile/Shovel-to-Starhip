@@ -14,6 +14,94 @@ var indoors: bool = true
 var speed: float = 2.0
 var _anim: AnimationPlayer
 
+# Heist awareness: where the valuables are, what they hear and what shows over their head.
+const TURN_SPEED := 4.5
+const ALARM_SHOW := 2.5
+var guard_spot := Vector3.INF    ## their drawer; INF = nothing to guard
+var room := Rect2()              ## XZ bounds of their home interior (clips the sight cone)
+var gaze_seed: int = 0
+var _gaze_t := 0.0
+var _distract_t := 0.0
+var _distract_at := Vector3.ZERO
+var _alarm_t := 0.0
+var _startle := 0.0
+var _base_y := 0.0
+var marker: Label3D = null
+var cone: VisionCone = null
+
+
+func is_asleep() -> bool:
+	return activity == Buildings.Schedule.Activity.SLEEP
+
+
+func is_distracted() -> bool:
+	return _distract_t > 0.0
+
+
+func gaze_mood() -> int:
+	if not indoors or guard_spot == Vector3.INF or is_asleep() or is_distracted():
+		return Stealth.Mood.CALM
+	return Stealth.gaze_mood(_gaze_t, gaze_seed)
+
+
+## A squeaky chicken (or similar) went off nearby: stare at it. Sleepers sleep on.
+func hear_noise(at: Vector3) -> bool:
+	if not Stealth.hears(global_position, at, is_asleep()):
+		return false
+	if _distract_t <= 0.0:
+		_startle = 1.0
+	_distract_t = 1.6   # refreshed by every squeak
+	_distract_at = at
+	return true
+
+
+func raise_alarm() -> void:
+	_alarm_t = ALARM_SHOW
+	_startle = 1.0
+
+
+## Heads turn: toward a noise first, otherwise the look-about routine indoors.
+func update_awareness(delta: float) -> void:
+	_alarm_t = maxf(0.0, _alarm_t - delta)
+	_distract_t = maxf(0.0, _distract_t - delta)
+	_startle = maxf(0.0, _startle - delta * 3.0)
+	if is_asleep():
+		return
+	if _distract_t > 0.0:
+		rotation.y = Stealth.turn_toward(rotation.y, Stealth.yaw_to(global_position, _distract_at), TURN_SPEED * delta)
+	elif indoors and guard_spot != Vector3.INF:
+		_gaze_t += delta
+		var want := Stealth.gaze_yaw(_gaze_t, gaze_seed, Stealth.yaw_to(global_position, guard_spot))
+		rotation.y = Stealth.turn_toward(rotation.y, want, TURN_SPEED * delta)
+
+
+## Head marker and floor sight cone. `sneaking` = the player is crouched or picking nearby.
+func show_awareness(delta: float, sneaking: bool, player_pos: Vector3) -> void:
+	if marker == null:
+		marker = Art.label("", 72, Color.WHITE)
+		marker.no_depth_test = true
+		marker.top_level = true
+		marker.pixel_size = 0.007
+		add_child(marker)
+		cone = VisionCone.new()
+		add_child(cone)
+	var near := global_position.distance_to(player_pos) < 12.0
+	var mood := gaze_mood()
+	var text := Stealth.marker(witness.suspicion, _alarm_t > 0.0, is_distracted(), is_asleep(), mood)
+	# The idle tells only matter while you are up to something.
+	if not sneaking and _alarm_t <= 0.0 and not is_distracted() and not is_asleep():
+		text = ""
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	var in_face := cam != null and cam.global_position.distance_to(global_position + Vector3(0, 2.15, 0)) < 2.8
+	marker.visible = near and text != "" and not in_face
+	marker.text = text
+	marker.modulate = Color(1.0, 0.25, 0.2) if _alarm_t > 0.0 else (Color(1.0, 0.9, 0.3) if is_distracted() else Stealth.cone_color(witness.suspicion, mood))
+	var hop := sin(_startle * PI) * 0.25
+	marker.global_position = global_position + Vector3(0, 2.15 + hop * 1.6, 0)
+	marker.scale = Vector3.ONE * (1.0 + 0.5 * _startle + 0.35 * witness.suspicion)
+	var tint := Color(1.0, 0.15, 0.1) if _alarm_t > 0.0 else Stealth.cone_color(witness.suspicion, mood)
+	cone.refresh(delta, near and sneaking and can_witness(), global_position, rotation.y, room if indoors else Rect2(), tint, witness.suspicion)
+
 
 func _enter_tree() -> void:
 	add_to_group("npc")
@@ -47,6 +135,7 @@ func update_routine(time_of_day: float, delta: float) -> void:
 	if indoors:
 		global_position = home_spot
 		_play("Idle")
+		update_awareness(delta)
 		return
 	var to := goal - global_position
 	to.y = 0.0
@@ -59,6 +148,7 @@ func update_routine(time_of_day: float, delta: float) -> void:
 		if want_in:
 			indoors = true
 			global_position = home_spot
+	update_awareness(delta)
 
 
 ## Sleeping neighbours see nothing (snoring is not a witness statement).

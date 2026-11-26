@@ -17,6 +17,7 @@ func _run() -> void:
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
 		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models", "test_car_physics", "test_car_damage_parts", "test_street_props", "test_harvest_regrow_compost", "test_crop_models", "test_giant_crops", "test_sprinkler",
+		"test_stealth_gaze", "test_stealth_marker_and_hearing", "test_vision_cone_clip", "test_velvet_picks", "test_abandon_lock", "test_decoy_logic", "test_npc_distraction", "test_lock_meter", "test_heist_art", "test_door_swing", "test_room_dressing",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -24,6 +25,9 @@ func _run() -> void:
 		game.free()
 	_fresh_game()
 	check(await test_giant_on_real_ground() == true, "test_giant_on_real_ground ran to the end (no script error)")
+	game.free()
+	_fresh_game()
+	check(await test_decoy_in_real_room() == true, "test_decoy_in_real_room ran to the end (no script error)")
 	game.free()
 	_fresh_game()
 	check(await test_car_on_real_ground() == true, "test_car_on_real_ground ran to the end (no script error)")
@@ -2514,4 +2518,252 @@ func test_car_on_real_ground() -> bool:
 	car.free()
 	ground.free()
 	wall.free()
+	return true
+
+
+func test_stealth_gaze() -> bool:
+	var seen := {}
+	var order: Array = []
+	for k in 90:
+		var m := Stealth.gaze_mood(k * 0.1, 0)
+		seen[m] = int(seen.get(m, 0)) + 1
+		if order.is_empty() or order.back() != m:
+			order.append(m)
+	check(order == [Stealth.Mood.CALM, Stealth.Mood.TELL, Stealth.Mood.WATCHING], "calm, then a warning, then watching")
+	check(seen[Stealth.Mood.CALM] > seen[Stealth.Mood.WATCHING] * 2, "mostly looking away")
+	# While calm or warning, valuables must be outside the 120 degree sight cone, for every seed.
+	var pos := Vector3(401.8, 0, 58.8)
+	var drawer := Vector3(397.0, 0, 58.2)
+	var guard := Stealth.yaw_to(pos, drawer)
+	var fair := true
+	var watches := true
+	for seed_value in [1, 4, 7]:
+		for k in 300:
+			var t := k * 0.1
+			var sees := Witness.can_see(pos, Stealth.gaze_yaw(t, seed_value, guard), drawer)
+			if Stealth.gaze_mood(t, seed_value) == Stealth.Mood.WATCHING:
+				watches = watches and sees
+			else:
+				fair = fair and not sees
+	check(fair, "calm and warning phases never see the drawer")
+	check(watches, "watching phase sees the drawer")
+	var y := Stealth.turn_toward(3.0, -3.0, 0.1)
+	check(y > 3.0, "turns the short way across the seam")
+	check(is_equal_approx(Stealth.turn_toward(0.0, 0.05, 1.0), 0.05), "does not overshoot")
+	return true
+
+
+func test_stealth_marker_and_hearing() -> bool:
+	var C := Stealth.Mood.CALM
+	check(Stealth.marker(0.0, false, false, false, C) == "", "nothing to show")
+	check(Stealth.marker(0.9, true, true, true, C) == "!!", "alarm wins")
+	check(Stealth.marker(0.1, false, false, false, C) == "?|", "suspicion starts small")
+	check(Stealth.marker(1.0, false, false, false, C) == "?|||||", "and fills up")
+	check(Stealth.marker(0.0, false, true, false, C) == "chicken?!", "distracted")
+	check(Stealth.marker(0.0, false, false, true, C) == "zzz", "asleep")
+	check(Stealth.marker(0.0, false, false, false, Stealth.Mood.TELL) == "hm?", "warning tell")
+	var calm := Stealth.cone_color(0.0, C)
+	var hot := Stealth.cone_color(1.0, C)
+	check(calm.g > calm.r and hot.r > hot.g, "cone goes green to red")
+	check(Stealth.hears(Vector3.ZERO, Vector3(5, 0, 0), false), "hears nearby")
+	check(not Stealth.hears(Vector3.ZERO, Vector3(20, 0, 0), false), "not far away")
+	check(not Stealth.hears(Vector3.ZERO, Vector3(1, 0, 0), true), "sleepers sleep on")
+	check(not Stealth.hears(Buildings.interior_origin(2), Buildings.interior_origin(3), false), "neighbours' rooms are out of earshot")
+	return true
+
+
+func test_vision_cone_clip() -> bool:
+	var room := Rect2(-4, -3, 8, 6)
+	check(is_equal_approx(Stealth.sight_length(Vector2.ZERO, Vector2(1, 0), room, 9.0), 4.0), "stops at the side wall")
+	check(is_equal_approx(Stealth.sight_length(Vector2.ZERO, Vector2(0, -1), room, 9.0), 3.0), "stops at the back wall")
+	check(is_equal_approx(Stealth.sight_length(Vector2.ZERO, Vector2(1, 0), room, 2.0), 2.0), "never beyond sight range")
+	var pts := VisionCone.rim(Vector3(1, 0, 1), 0.7, room)
+	var inside := true
+	for pt in pts:
+		inside = inside and pt.x >= -4.001 and pt.x <= 4.001 and pt.z >= -3.001 and pt.z <= 3.001
+	check(pts.size() == VisionCone.STEPS + 1 and inside, "cone never pokes through walls")
+	var free_pts := VisionCone.rim(Vector3.ZERO, 0.0, Rect2())
+	check(is_equal_approx(free_pts[VisionCone.STEPS / 2].z, Witness.RANGE), "outdoors it reaches full range")
+	var r := Buildings.room_rect(2)
+	check(r.has_point(Vector2(Buildings.interior_origin(2).x, Buildings.interior_origin(2).z)), "room rect surrounds its interior")
+	return true
+
+
+func test_velvet_picks() -> bool:
+	var plain := Lockpick.new(1.0, 3)
+	var velvet := Lockpick.new(1.0, 3, true)
+	check(velvet.zone_width > plain.zone_width * 1.3, "wider sweet spot")
+	check(velvet.picks_left == Lockpick.VELVET_PICKS and velvet.picks_max == Lockpick.VELVET_PICKS, "more spares")
+	var ids := GameState.RECIPES.map(func(r): return r["id"])
+	check(ids.has("velvet_picks") and ids.has("squeaky_chicken"), "both heist recipes exist")
+	game.add_item("velvet_picks", 1)
+	var c := LootContainer.new()
+	root.add_child(c)
+	c.interact(game)
+	check(c.lock.picks_max == Lockpick.VELVET_PICKS, "owning them upgrades every lock")
+	game.add_item("hay", 3)
+	game.add_item("plank", 1)
+	check(game.craft(ids.find("squeaky_chicken")) and game.count("squeaky_chicken") == 1, "chicken crafted")
+	check(not GameState.stashable("velvet_picks"), "picks stay on you")
+	return true
+
+
+func test_abandon_lock() -> bool:
+	var pl := Node3D.new()
+	pl.add_to_group("player")
+	root.add_child(pl)
+	var c := LootContainer.new()
+	root.add_child(c)
+	c.interact(game)
+	pl.global_position = Vector3(1.0, 0, 0)
+	c._process(0.05)
+	check(c.state == "picking", "standing close keeps picking")
+	pl.global_position = Vector3(6.0, 0, 0)
+	c._process(0.05)
+	check(c.state == "locked" and c.lock == null, "walking away drops the lock (no ghost crime)")
+	return true
+
+
+func test_decoy_logic() -> bool:
+	var v := Decoy.throw_velocity(0.0, -0.45)
+	check(v.z < 0.0 and v.y > 0.0, "lobbed forward and up")
+	var top := 0.0
+	for pitch in [-1.2, -0.45, 0.25]:
+		top = maxf(top, Decoy.throw_velocity(0.0, pitch).y)
+	check(1.35 + top * top / (2.0 * 9.8) < Buildings.ROOM.y, "even the highest lob stays under the ceiling")
+	check(not Decoy.can_collect(2.0, 2, 0.5), "not while it is still performing")
+	check(Decoy.can_collect(7.0, Decoy.SQUEAKS, 0.5), "pocket it once quiet")
+	check(not Decoy.can_collect(7.0, Decoy.SQUEAKS, 3.0), "must walk over it")
+	var d := Decoy.new()
+	d.game = game
+	root.add_child(d)
+	d.step(0.1)
+	check(d.squeaks == 0, "silent in the air")
+	d.land()
+	for i in 100:
+		d.step(0.1)
+	check(d.squeaks == Decoy.SQUEAKS, "squeaks a fixed number of times")
+	d.collect()
+	check(game.count("squeaky_chicken") == 1, "reusable")
+	check(InputMap.has_action("throw_decoy") or GameState.PAD_AXES.has("throw_decoy"), "has a binding")
+	return true
+
+
+func test_npc_distraction() -> bool:
+	var n := Npc.new()
+	root.add_child(n)
+	n.activity = Buildings.Schedule.Activity.HOME
+	n.global_position = Vector3(401.8, 0, 58.8)
+	n.guard_spot = Vector3(397.0, 0, 58.2)
+	n.gaze_seed = 0
+	n._gaze_t = 7.0   # staring at the drawer
+	n.rotation.y = Stealth.yaw_to(n.global_position, n.guard_spot)
+	check(n.gaze_mood() == Stealth.Mood.WATCHING, "on watch")
+	check(Witness.can_see(n.global_position, n.rotation.y, n.guard_spot), "sees the drawer")
+	var noise := Vector3(404.0, 0, 61.0)
+	check(n.hear_noise(noise) and n.is_distracted(), "hears the chicken")
+	for i in 10:
+		n.update_awareness(0.1)
+		n.hear_noise(noise)
+	check(not Witness.can_see(n.global_position, n.rotation.y, n.guard_spot), "staring at the chicken, not the drawer")
+	for i in 30:
+		n.update_awareness(0.1)
+	check(not n.is_distracted(), "attention returns once it is quiet")
+	n.activity = Buildings.Schedule.Activity.SLEEP
+	check(not n.hear_noise(noise), "asleep: no reaction")
+	return true
+
+
+func test_lock_meter() -> bool:
+	check(LockMeter.cursor_x(0.0) < LockMeter.cursor_x(0.5) and LockMeter.cursor_x(1.0) <= LockMeter.PANEL.x, "pick stays on the panel")
+	var m := LockMeter.new()
+	root.add_child(m)
+	m.lock = Lockpick.new(0.0, 1)
+	m.advance(0.1)
+	m.lock.pins_set = 1
+	for i in 5:
+		m.advance(0.1)
+	check(m._lift[0] > 0.9 and m._lift[1] < 0.1, "set pin rises, the next waits")
+	m.lock.picks_left -= 1
+	m.lock.pins_set = 0
+	m.advance(0.05)
+	check(m._shake > 0.5 and m._broken_t < 0.1, "snapping shakes and throws the tip")
+	return true
+
+
+func test_heist_art() -> bool:
+	for id in GameState.ITEMS.keys():
+		if GameState.ITEMS[id].get("loot", false):
+			var model := LootModel.make(id)
+			check(model.get_child_count() > 0, "%s has a model" % id)
+			model.free()
+	var d := DresserModel.new()
+	root.add_child(d)
+	check(d.drawers.size() == 3, "three drawers")
+	var c := LootContainer.new()
+	c.dresser = d
+	root.add_child(c)
+	c.interact(game)
+	c.lock.phase = 0.0
+	c.lock.zone_center = 0.9
+	c.interact(game)
+	check(d._jiggle > 0.9, "a snap rattles the dresser")
+	d.drawers[0].position.z = 0.6
+	d.close()
+	check(d.drawers[0].position.z < 0.3, "closes again")
+	return true
+
+
+func test_door_swing() -> bool:
+	var d := Door.new()
+	root.add_child(d)
+	d.attach_leaf()
+	check(d.hinge != null and d.hinge.position.x < 0.0, "hung on its left edge")
+	var inside := Buildings.build_interior(root, 0, Vector3.ZERO, Color.WHITE, "T")
+	var exit_door: Door = inside["exit_door"]
+	var edge := Basis(Vector3.UP, exit_door.open_angle) * Vector3(1.1, 0, 0)
+	check(edge.z < -0.5, "exit door swings into the room")
+	check((inside["entry"] as Vector3).distance_to(exit_door.global_position) < exit_door.interact_radius, "leave prompt reachable from the entry spot")
+	return true
+
+
+func test_room_dressing() -> bool:
+	var inside := Buildings.build_interior(root, 3, Vector3.ZERO, Color.WHITE, "T")
+	var room: Node3D = inside["root"]
+	check(room.get_node_or_null("Deco") != null and room.get_node("Deco").get_child_count() > 20, "furnished")
+	var ceiling := room.get_child(1) as StaticBody3D
+	check(ceiling.collision_layer == Buildings.CEILING_LAYER, "ceiling does not block the camera")
+	var cam_arm := SpringArm3D.new()
+	check(cam_arm.collision_mask & Buildings.CEILING_LAYER == 0, "camera arm ignores the ceiling layer")
+	cam_arm.free()
+	var day := RoomDressing.window_light(1.0, 0.0, 0.0)
+	var night := RoomDressing.window_light(0.0, 0.0, 1.0)
+	check(day["glass"].get_luminance() > night["glass"].get_luminance() * 2.0, "windows darken at night")
+	check(day["shaft"] > night["shaft"], "so do the light shafts")
+	return true
+
+
+## Real physics: a lobbed chicken must stay inside the room, come to rest on the floor and perform.
+func test_decoy_in_real_room() -> bool:
+	await process_frame
+	var inside := Buildings.build_interior(root, 0, Vector3.ZERO, Color.WHITE, "T")
+	var origin := Buildings.interior_origin(0)
+	await physics_frame
+	await physics_frame
+	var worst := -INF
+	for yaw in [0.0, PI / 2.0, PI, -PI / 2.0]:
+		var d := Decoy.new()
+		d.game = game
+		root.add_child(d)
+		d.global_position = origin + Vector3(0, 1.35, 0)
+		d.linear_velocity = Decoy.throw_velocity(yaw, 0.25)
+		for k in 180:
+			await physics_frame
+			var rel := d.global_position - origin
+			worst = maxf(worst, maxf(absf(rel.x) - Buildings.ROOM.x / 2.0, absf(rel.z) - Buildings.ROOM.z / 2.0))
+		check(d.landed, "it lands (yaw %.2f)" % yaw)
+		check(d.global_position.y > 0.05 and d.global_position.y < 0.6, "rests on the floor (y %.2f)" % d.global_position.y)
+		d.free()
+	check(worst < 0.0, "never leaves the room (%.2f)" % worst)
+	(inside["root"] as Node).free()
 	return true

@@ -14,12 +14,20 @@ var phase: float = 0.0          ## raw time accumulator
 var pins_set: int = 0
 var picks_left: int = PICKS
 var rng := RandomNumberGenerator.new()
+var picks_max: int = PICKS
+
+const VELVET_ZONE_MULT := 1.35   ## Velvet Picks: wider sweet spot ...
+const VELVET_PICKS := 5          ## ... and more spares
 
 
-func _init(difficulty: float = 0.0, seed_value: int = 1) -> void:
+func _init(difficulty: float = 0.0, seed_value: int = 1, velvet: bool = false) -> void:
 	rng.seed = seed_value
 	speed = 1.1 + 0.4 * difficulty
 	zone_width = clampf(0.22 - 0.06 * difficulty, 0.08, 0.3)
+	if velvet:
+		zone_width *= VELVET_ZONE_MULT
+		picks_left = VELVET_PICKS
+		picks_max = VELVET_PICKS
 	_new_zone()
 
 

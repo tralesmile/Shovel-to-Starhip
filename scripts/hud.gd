@@ -24,6 +24,7 @@ var _toast_box: VBoxContainer
 var _slots: Array[PanelContainer] = []
 var _help: PanelContainer
 var _click_hint: Label
+var _wipe: ColorRect
 
 
 const FONT := preload("res://assets/fonts/lilita_one_regular.ttf")
@@ -32,6 +33,7 @@ var _icons: Array[Texture2D] = []
 
 
 func _ready() -> void:
+	add_to_group("hud")
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -74,6 +76,10 @@ func _ready() -> void:
 	_place(_stam, 0.5, 1, 0.5, 1, -120, -116, 120, -106)
 	_stam.visible = false
 	_build_fish_meter(root)
+	var lm := LockMeter.new()
+	root.add_child(lm)
+	lm.scale = Vector2(0.85, 0.85)
+	_place(lm, 0.5, 1, 0.5, 1, 190, -346, 630, -132)
 	_build_dashboard(root)
 	_prompt = _label(root, 26)
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -272,6 +278,21 @@ func _refresh_help() -> void:
 			l.text = t
 
 
+## Quick dark blink that hides the jump through a doorway.
+func wipe() -> void:
+	if _wipe == null:
+		_wipe = ColorRect.new()
+		_wipe.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_wipe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_wipe.color = Color(0.05, 0.03, 0.02, 1.0)
+		add_child(_wipe)
+	_wipe.modulate.a = 0.0
+	var tw := _wipe.create_tween()
+	tw.tween_property(_wipe, "modulate:a", 1.0, Door.SWING_TIME * 0.45).set_delay(Door.SWING_TIME * 0.55)
+	tw.tween_interval(0.06)
+	tw.tween_property(_wipe, "modulate:a", 0.0, 0.28)
+
+
 func set_help_visible(v: bool) -> void:
 	_help.visible = v
 
@@ -300,7 +321,7 @@ func _process(_delta: float) -> void:
 	_update_dashboard()
 	_clock.text = "Day %d   %s" % [Game.day, Game.clock_text()]
 	if Game.crime_suspicion > 0.02:
-		_heat.text = "Someone is watching... [%s%s]" % ["#".repeat(int(Game.crime_suspicion * 10)), "-".repeat(10 - int(Game.crime_suspicion * 10))]
+		_heat.text = "You are being watched!"
 	elif Game.heat_level() > 0:
 		_heat.text = "Heat: %s  [%s]%s" % [Game.heat_name(), Game.reputation_title(), "  (lying low...)" if Game.lying_low else ""]
 	else:

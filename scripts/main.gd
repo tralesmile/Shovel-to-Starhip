@@ -163,13 +163,18 @@ func _update_witnesses(delta: float) -> void:
 		if c.state == "picking":
 			crime = true
 	Game.crime_suspicion = 0.0
+	var sneaking: bool = crime or player.crouching
 	for n in _npcs:
 		var seen := crime and n.can_witness() and Witness.can_see(n.global_position, n.rotation.y, player.global_position)
 		var d := n.global_position.distance_to(player.global_position)
 		if n.witness.update(delta, seen, d, player.crouching):
+			n.raise_alarm()
+			Sfx.play_on(player, "squeak", 0.45)
+			Game.shake.emit(0.3)
 			Game.add_heat(1.0)
 			Game.say("%s: \"HEY! Is that MY spoon?!\"  Heat: %s" % [n.npc_name, Game.heat_name()])
 		Game.crime_suspicion = maxf(Game.crime_suspicion, n.witness.suspicion)
+		n.show_awareness(delta, sneaking, player.global_position)
 
 
 ## Sun, moon, sky colours, lamps and fireflies follow the clock.
@@ -195,6 +200,7 @@ func _update_daylight() -> void:
 	env.ambient_light_energy = 0.45 * day + 0.4 * sunset + 0.32 * night
 	env.fog_light_color = Color(0.72, 0.82, 0.93) * day + Color(0.95, 0.65, 0.5) * sunset + Color(0.07, 0.09, 0.18) * night
 	var grade := FX.grade_for(day, sunset, night)
+	RoomDressing.update_light(day, sunset, night)
 	env.adjustment_enabled = true
 	env.adjustment_saturation = grade["saturation"]
 	env.adjustment_contrast = grade["contrast"]
@@ -472,7 +478,10 @@ func _build_interiors() -> void:
 		drawer.loot_id = LootContainer.roll_loot(0.15 + 0.3 * i)
 		drawer.interact_radius = 1.5
 		inside["root"].add_child(drawer)
-		Buildings.solid_box(drawer, Vector3(1.0, 0.9, 0.5), Vector3(0, 0.45, 0), Art.WOOD.darkened(0.2))
+		var dresser_body := Buildings.solid_box(drawer, Vector3(1.0, 0.9, 0.5), Vector3(0, 0.45, 0), Art.WOOD.darkened(0.2))
+		dresser_body.get_child(0).visible = false   # the DresserModel is the visible part
+		drawer.dresser = DresserModel.new()
+		drawer.add_child(drawer.dresser)
 		var closet := Closet.new()
 		closet.name = "Closet_%d" % i
 		closet.position = Vector3(3.0, 0, -1.8)
@@ -488,6 +497,9 @@ func _build_interiors() -> void:
 		npc.door_outside = outside
 		npc.wake_shift = h["shift"]
 		npc.npc_name = h["name"]
+		npc.guard_spot = drawer.global_position
+		npc.gaze_seed = i * 3 + 1
+		npc.room = Buildings.room_rect(2 + i)
 		npc.global_position = npc.home_spot
 		_npcs.append(npc)
 

@@ -37,6 +37,8 @@ const ITEMS := {
 	"tomato": {"name": "Tomato", "buy": 0, "sell": 125},
 	"wood": {"name": "Wood", "buy": 0, "sell": 5},
 	"compost": {"name": "Compost", "buy": 0, "sell": 2},
+	"squeaky_chicken": {"name": "Squeaky Chicken", "buy": 0, "sell": 0},
+	"velvet_picks": {"name": "Velvet Picks", "buy": 0, "sell": 0},
 	"sprinkler": {"name": "Copper Sprinkler", "buy": 0, "sell": 0},
 	"hay": {"name": "Hay Bundle", "buy": 0, "sell": 3},
 	"sunmint": {"name": "Sunmint", "buy": 0, "sell": 14},
@@ -156,6 +158,8 @@ const RECIPES := [
 	{"id": "repair_kit", "name": "Repair Kit", "in": {"copper_ingot": 1, "plank": 2}, "out": {"repair_kit": 1}},
 	{"id": "bull_bar", "name": "Bull Bar", "in": {"copper_ingot": 2, "stone": 4}, "out": {"bull_bar": 1}, "once": true},
 	{"id": "drift_tyres", "name": "Drift Tyres", "in": {"hay": 4, "copper_ingot": 2, "plank": 1}, "out": {"drift_tyres": 1}, "once": true},
+	{"id": "squeaky_chicken", "name": "Squeaky Chicken", "in": {"hay": 3, "plank": 1}, "out": {"squeaky_chicken": 1}},
+	{"id": "velvet_picks", "name": "Velvet Picks", "in": {"copper_ingot": 1, "rabbit_pelt": 1}, "out": {"velvet_picks": 1}, "once": true},
 	{"id": "compost", "name": "Compost", "in": {"hay": 3}, "out": {"compost": 2}},
 	{"id": "sprinkler", "name": "Copper Sprinkler", "in": {"copper_ingot": 1, "plank": 1, "stone": 2}, "out": {"sprinkler": 1}},
 ]
@@ -168,7 +172,7 @@ const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, 
 	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0,
 	"butterfly": 0.05, "grasshopper": 0.05, "frog": 0.3, "firefly": 0.02, "bug_net": 0.0, "firefly_jar": 2.0,
 	"sunmint_bait": 0.05, "springy_rod": 0.0,
-	"bull_bar": 4.0, "drift_tyres": 4.0, "repair_kit": 1.0, "compost": 0.3, "sprinkler": 2.0}
+	"bull_bar": 4.0, "drift_tyres": 4.0, "repair_kit": 1.0, "compost": 0.3, "sprinkler": 2.0, "squeaky_chicken": 0.3, "velvet_picks": 0.0}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 
@@ -439,7 +443,7 @@ func drop_candidate() -> String:
 
 
 ## Items that stay in your pockets: tools, mounts, car parts and stolen loot (the law can find a chest).
-const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet", "scythe", "bug_net", "bull_bar", "drift_tyres"]
+const NO_STASH := ["copper_pickaxe", "gem_pickaxe", "copper_axe", "wheelbarrow", "saddle", "turbo_engine", "offroad_wheels", "rocket_booster", "magnet_gloves", "spring_boots", "glider", "slingshot", "loot_vacuum", "miner_helmet", "scythe", "bug_net", "bull_bar", "drift_tyres", "velvet_picks"]
 
 
 ## Pure (tested): can this item go in a chest?
@@ -908,6 +912,7 @@ func setup_input() -> void:
 	_key_action("help", [KEY_H, KEY_F1])
 	_key_action("drop_item", [KEY_G])
 	_key_action("throw_bomb", [KEY_B])
+	_key_action("throw_decoy", [KEY_V])
 	_key_action("save", [KEY_F5])
 	_key_action("pause", [KEY_ESCAPE])
 	setup_gamepad()
@@ -931,6 +936,7 @@ const PAD_AXES := {
 	"look_left": [JOY_AXIS_RIGHT_X, -1.0], "look_right": [JOY_AXIS_RIGHT_X, 1.0],
 	"look_up": [JOY_AXIS_RIGHT_Y, -1.0], "look_down": [JOY_AXIS_RIGHT_Y, 1.0],
 	"throw_bomb": [JOY_AXIS_TRIGGER_RIGHT, 1.0],
+	"throw_decoy": [JOY_AXIS_TRIGGER_LEFT, 1.0],
 }
 
 

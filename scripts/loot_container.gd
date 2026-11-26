@@ -12,11 +12,27 @@ var loot_id: String = "gold_spoon"
 var state: String = "locked"     ## locked, picking, open
 var lock: Lockpick = null
 var seed_value: int = 1
+var dresser: DresserModel = null   ## set by main; null in headless logic tests
+var _was_in_zone := false
 
 
 func _process(delta: float) -> void:
 	if state == "picking" and lock:
 		lock.tick(delta)
+		var inside := lock.in_zone()
+		if inside and not _was_in_zone:
+			Sfx.play_on(self, "drip", 0.7 + 0.15 * lock.pins_set)   # an audible "now!"
+		_was_in_zone = inside
+		var pl := get_tree().get_first_node_in_group("player") as Node3D
+		if pl != null and pl.global_position.distance_to(global_position) > Stealth.ABANDON_DIST:
+			abandon()
+
+
+## Walking off drops the lock (otherwise the "crime" would carry on without you).
+func abandon() -> void:
+	if state == "picking":
+		state = "locked"
+		lock = null
 
 
 ## Picks an item from LOOT_TABLE using a 0..1 roll.
@@ -34,18 +50,7 @@ func get_prompt(game: GameState) -> String:
 		"locked":
 			return "[E] Pick the lock (the drawer looks smug)"
 		"picking":
-			var bar := ""
-			for i in 20:
-				var p := float(i) / 19.0
-				if lock.in_zone() and absf(p - lock.cursor()) < 0.03:
-					bar += "#"
-				elif absf(p - lock.cursor()) < 0.03:
-					bar += "|"
-				elif absf(p - lock.zone_center) <= lock.zone_width / 2.0:
-					bar += "="
-				else:
-					bar += "-"
-			return "[E] on the = zone!  [%s]  pins %d/%d  picks %d" % [bar, lock.pins_set, Lockpick.PINS, lock.picks_left]
+			return "[E] Push the pin when the pick is in the gold"
 	return "Empty. Only dust and regret."
 
 
@@ -55,7 +60,8 @@ func interact(game: GameState) -> void:
 			if not game.can_carry():
 				game.say("Your pockets are full. Loot is heavy. So is guilt.")
 				return
-			lock = Lockpick.new(difficulty, seed_value + game.day)
+			lock = Lockpick.new(difficulty, seed_value + game.day, game.count("velvet_picks") > 0)
+			_was_in_zone = false
 			state = "picking"
 			game.say("Steady hands... press E in the zone.")
 			game.hint_event.emit("pick")
@@ -64,19 +70,37 @@ func interact(game: GameState) -> void:
 			match r:
 				"pin":
 					game.say("Click!")
+					Sfx.play_on(self, "clang", 0.8 + 0.22 * lock.pins_set)
+					game.shake.emit(0.08)
+					if dresser:
+						dresser.jiggle(0.5)
 				"snap":
 					game.say("SNAP. Pins reset. Picks left: %d" % lock.picks_left)
+					_snap_feedback(game)
 				"broken":
 					game.say("Out of picks. The drawer wins today.")
 					state = "locked"
+					_snap_feedback(game)
 				"open":
 					_open(game)
+
+
+func _snap_feedback(game: GameState) -> void:
+	Sfx.play_on(self, "crunch", 1.9)
+	game.shake.emit(0.22)
+	if dresser:
+		dresser.jiggle(1.0)
+		FX.burst(self, global_position + Vector3(0, 0.8, 0.32), Color(0.85, 0.87, 0.95), 6, 0.05, 2.0, -9.0, "box")
 
 
 func _open(game: GameState) -> void:
 	state = "open"
 	if game.add_loot(loot_id):
 		game.say("Got: %s!" % game.item_name(loot_id))
+		Sfx.play_on(self, "fanfare", 1.5)
+		game.shake.emit(0.18)
+		if dresser:
+			dresser.open_with(loot_id)
 	else:
 		game.say("Too heavy to carry. You leave it. Crime is hard.")
 		state = "locked"
@@ -85,6 +109,8 @@ func _open(game: GameState) -> void:
 func on_new_day(game: GameState) -> void:
 	if state == "open":
 		state = "locked"
+		if dresser:
+			dresser.close()
 		loot_id = roll_loot(game.day * 0.6180339 - floorf(game.day * 0.6180339))
 
 

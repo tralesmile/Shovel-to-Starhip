@@ -13,7 +13,7 @@ const STEPS := [
 
 ## One-time context hints, shown the first time the player does something new.
 const ONCE := {
-	"pick": "Lockpicking: press {interact} when the marker is in the zone. Miss and the pick snaps; get seen and Constable Bumble hears about it.",
+	"pick": "Lockpicking: press {interact} when the pick is in the gold. The floor cone shows what your host can see; 'hm?' means they are about to look.",
 	"cast": "Fishing: cast near a fish shadow. Little tugs are fake-outs; press {interact} when the bobber DUNKS.",
 	"fight": "Hold {interact} to reel. When the fish thrashes, LET GO or the line snaps!",
 	"heat": "Heat! Someone saw you. Duck indoors or crouch ({crouch}) out of sight, or Constable Bumble will take your loot and a slice of your cash.",

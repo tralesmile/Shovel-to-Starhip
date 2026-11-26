@@ -48,6 +48,10 @@ func _view(p: Player, t: float, pos: Vector3, yaw: float, pitch: float, zoom: fl
 
 func _run() -> void:
 	var p: Player = main.player
+	if Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--only=7")):
+		await _heist_before(p)
+		get_tree().quit()
+		return
 	# Prepare a farm in mixed states so the shot shows every stage.
 	var plots := get_tree().get_nodes_in_group("daily").filter(func(n): return n is FarmPlot)
 	for i in plots.size():
@@ -1077,3 +1081,98 @@ func _grab(file: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(out_dir.path_join(file))
 	print("saved ", file)
+
+
+## Heist check: pick the drawer in Pip's home while Pip is in.
+func _heist_before(p: Player) -> void:
+	var hud: Hud = main.get_children().filter(func(n): return n is Hud)[0]
+	hud.set_help_visible(false)
+	hud._click_hint.modulate.a = 0.0
+	Game.time_of_day = 0.76
+	var drawer: LootContainer = main.get_node("Interiors/Interior_2/Drawer_0")
+	var npc: Npc = main.get_node("Npc_0")
+	p.global_position = drawer.global_position + Vector3(0.9, 0.1, 1.35)
+	p._model.rotation.y = PI + 0.55
+	p._yaw = -0.5
+	p._pitch = -0.55
+	p._zoom = 5.0
+	p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+	await _wait(30)
+	npc._gaze_t = 6.0 - float(npc.gaze_seed % 7) * 1.3   # head about to turn
+	drawer.interact(Game)
+	drawer.lock.phase = drawer.lock.zone_center
+	drawer.interact(Game)
+	await _wait(14)
+	drawer.set_process(false)
+	drawer.lock.phase = drawer.lock.zone_center
+	await _shot("70_pick.png")
+	npc.witness.suspicion = 0.6
+	npc._gaze_t = 7.6 - float(npc.gaze_seed % 7) * 1.3
+	await _wait(10)
+	await _shot("71_spotted.png")
+	npc.witness.suspicion = 0.0
+	drawer.lock.picks_left -= 1
+	await _wait(5)
+	await _shot("72_snap.png")
+	for i in 2:
+		drawer.lock.phase = drawer.lock.zone_center
+		drawer.interact(Game)
+	Engine.time_scale = 0.2
+	await _wait(14)
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 1800:
+		await get_tree().process_frame
+	await _freeze_shot("73_open.png")
+	await _wait(80)
+	Game.add_item("squeaky_chicken", 1)
+	drawer.dresser.close()
+	p.global_position = drawer.global_position + Vector3(2.3, 0.1, 1.9)
+	p._yaw = -0.1
+	p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+	p._zoom = 5.5
+	await _wait(10)
+	p.crouching = true
+	var d := Decoy.new()
+	d.game = Game
+	main.add_child(d)
+	d.global_position = drawer.global_position + Vector3(5.6, 1.2, 1.4)
+	await _wait(14)
+	await _freeze_shot("74_decoy.png")
+	print("DECOY landed=", d.landed, " squeaks=", d.squeaks, " pos=", d.global_position - drawer.global_position, " npc_distracted=", npc.is_distracted())
+	var door: Door = main.get_node("Interiors/Interior_2/ExitDoor")
+	p.global_position = door.global_position + Vector3(0.3, 0.1, -1.7)
+	p._yaw = PI - 0.35
+	p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+	p._zoom = 3.5
+	await _wait(40)
+	Engine.time_scale = 0.1
+	door.interact(Game)
+	var t1 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t1 < 1500:
+		await get_tree().process_frame
+	await _freeze_shot("75_door.png")
+	await _wait(10)
+	await _room_shots(p)
+
+
+## The other dressed rooms: your house at night and the shop by day.
+func _room_shots(p: Player) -> void:
+	for cfg in [[0, 0.95, "76_home_night.png"], [1, 0.45, "77_shop.png"]]:
+		Game.time_of_day = cfg[1]
+		p.crouching = false
+		p.global_position = Buildings.interior_origin(cfg[0]) + Vector3(0.9, 0.1, 1.5)
+		p._yaw = 0.25
+		p._pitch = -0.55
+		p._zoom = 5.2
+		p._pivot.global_position = p.global_position + Vector3(0, 1.4, 0)
+		await _wait(30)
+		await _shot(cfg[2])
+
+
+## Screenshot with the action held almost still.
+func _freeze_shot(file: String) -> void:
+	var was := Engine.time_scale
+	Engine.time_scale = 0.001
+	await _shot(file)
+	Engine.time_scale = was if was < 0.999 else 1.0
+	Engine.time_scale = 1.0

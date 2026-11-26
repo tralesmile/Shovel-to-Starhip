@@ -41,6 +41,7 @@ func _ready() -> void:
 	shape.position.y = 0.85
 	add_child(shape)
 	_shape = shape
+	collision_mask |= Buildings.CEILING_LAYER
 	_build_model()
 
 	_pivot = Node3D.new()
@@ -465,6 +466,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		drop_item()
 	elif event.is_action_pressed("throw_bomb"):
 		throw_bomb()
+	elif event.is_action_pressed("throw_decoy"):
+		throw_decoy()
 	elif event.is_action_pressed("pause"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	for i in 7:
@@ -534,6 +537,29 @@ func throw_bomb() -> BoomTurnip:
 	b.add_collision_exception_with(self)
 	Sfx.play_on(self, "sizzle", 1.2)
 	return b
+
+
+## V: toss the Squeaky Chicken along the camera heading. One in flight per chicken owned.
+func throw_decoy() -> Decoy:
+	if vehicle != null or Game.in_closet or _action_time > 0.0:
+		return null
+	if Game.count(Decoy.ITEM) <= 0:
+		Game.say("No Squeaky Chicken. Workbench: 3 hay + 1 plank.")
+		return null
+	Game.remove_item(Decoy.ITEM, 1)
+	var v := Decoy.throw_velocity(_yaw, _pitch)
+	_model.rotation.y = atan2(v.x, v.z)
+	play_action("Throw", 0.4)
+	_squash = 0.9
+	var d := Decoy.new()
+	d.game = Game
+	get_parent().add_child(d)
+	d.global_position = global_position + Vector3(0, 1.35, 0) + Vector3(v.x, 0, v.z).normalized() * 0.6
+	d.linear_velocity = v + Vector3(velocity.x, 0, velocity.z) * 0.3
+	d.angular_velocity = Vector3(randf_range(-7, 7), randf_range(-4, 4), randf_range(-7, 7))
+	d.add_collision_exception_with(self)
+	Sfx.play_on(self, "swish", 1.3)
+	return d
 
 
 var _blast_time := 0.0
