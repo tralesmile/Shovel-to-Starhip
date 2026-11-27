@@ -8,6 +8,7 @@ render_mode diffuse_lambert, specular_disabled;
 uniform vec4 base : source_color = vec4(0.74, 0.52, 0.32, 1.0);
 uniform int surface = 0;      // 0 wood, 1 stone, 2 shingle
 uniform int grain_axis = 1;   // 0 x, 1 y, 2 z : the direction the grain runs
+uniform bool baked = false;   // welded piece: board position and shade come from CUSTOM0
 
 varying vec3 lpos;
 varying float tint;
@@ -25,9 +26,14 @@ float noise(vec3 p) {
 }
 
 void vertex() {
-	lpos = VERTEX;
-	// Every board gets its own shade, from where it ends up in the world.
-	tint = hash(floor(MODEL_MATRIX[3].xyz * 3.0 + 0.37));
+	if (baked) {
+		lpos = CUSTOM0.xyz;
+		tint = CUSTOM0.w;
+	} else {
+		lpos = VERTEX;
+		// Every board gets its own shade, from where it ends up in the world.
+		tint = hash(floor(MODEL_MATRIX[3].xyz * 3.0 + 0.37));
+	}
 }
 
 void fragment() {

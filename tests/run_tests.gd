@@ -20,7 +20,7 @@ func _run() -> void:
 		"test_stealth_gaze", "test_stealth_marker_and_hearing", "test_vision_cone_clip", "test_velvet_picks", "test_abandon_lock", "test_decoy_logic", "test_npc_distraction", "test_lock_meter", "test_heist_art", "test_door_swing", "test_room_dressing",
 		"test_edge_snapping", "test_support_and_collapse", "test_roof_shapes", "test_build_aim", "test_door_cutaway_comfort", "test_build_models",
 		"test_pet_friendship", "test_animal_rig", "test_chicken_flight_and_jobs_logic", "test_goat_ram", "test_mount_steer", "test_pet_gear_and_save",
-		"test_starship_design", "test_flight_ascent", "test_flight_landing", "test_moon_ground_and_cheese", "test_ship_model_and_space",
+		"test_goose_logic", "test_goose_visit", "test_scarecrow", "test_mesh_bake", "test_starship_design", "test_flight_ascent", "test_flight_landing", "test_moon_ground_and_cheese", "test_ship_model_and_space",
 	]:
 		_fresh_game()
 		var ok = call(test)
@@ -3749,4 +3749,202 @@ func test_shards_on_real_ground() -> bool:
 	for f in 3:
 		await physics_frame
 	check(get_nodes_in_group("rock_shard").is_empty(), "shards crumble away")
+	return true
+
+
+# ---------------------------------------------------------------- goose and scarecrow
+
+func test_goose_logic() -> bool:
+	check(Goose.visit_time(1) < 0.0 and Goose.visit_time(2) < 0.0, "no goose in the first two days")
+	var visits := 0
+	var in_hours := true
+	for d in range(3, 203):
+		var t := Goose.visit_time(d)
+		check(t == Goose.visit_time(d), "same answer for day %d" % d)
+		if t >= 0.0:
+			visits += 1
+			in_hours = in_hours and t >= Goose.EARLIEST and t <= Goose.LATEST
+	check(visits > 90 and visits < 175, "she calls on most days, not all (%d of 200)" % visits)
+	check(in_hours, "only in daytime")
+	var bare := {"planted": false, "ripe": false, "growth": 0, "giant": false, "guarded": false}
+	var seedling := {"planted": true, "ripe": false, "growth": 0, "giant": false, "guarded": false}
+	var leafy := {"planted": true, "ripe": false, "growth": 2, "giant": false, "guarded": false}
+	var ripe := {"planted": true, "ripe": true, "growth": 4, "giant": false, "guarded": false}
+	var giant := {"planted": true, "ripe": true, "growth": 4, "giant": true, "guarded": false}
+	var watched := {"planted": true, "ripe": true, "growth": 4, "giant": false, "guarded": true}
+	check(Goose.pick_target([bare, seedling, giant], 3) == -1, "seeds, bare soil and giants are left alone")
+	for roll in 5:
+		check(Goose.pick_target([leafy, ripe, leafy], roll) == 1, "ripe crops come first")
+	check(Goose.pick_target([bare, leafy], 7) == 1, "leaves will do")
+	check(Goose.pick_target([watched, leafy], 0) == 1, "guarded crops are skipped")
+	check(Goose.is_scared_off([watched, bare]), "a fully guarded farm sends her away")
+	check(watched["guarded"], "checking does not change the cells")
+	check(not Goose.is_scared_off([bare, seedling]), "an empty farm is not a scare")
+	check(not Goose.is_scared_off([watched, ripe]), "one open crop is enough")
+	var away := Goose.flee_heading(Vector3(2, 0, 0), Vector3(0, 0, 0), 0.0)
+	check(away.x > 0.9 and is_equal_approx(away.length(), 1.0), "she runs away from you")
+	check(Goose.flee_heading(Vector3.ZERO, Vector3.ZERO, 1.0).length() > 0.9, "even from the same spot")
+	check(Goose.FLEE_SPEED < 8.5, "a sprint (Player.RUN_SPEED 8.5) can catch her")
+	# Out through the gate, not through the fence: walk the escape from every plot.
+	for px in [-3, -1, 1, 3]:
+		for pz in [-3, -1, 1, 3]:
+			var at := Vector3(px, 0, pz)
+			var clean := true
+			var out := false
+			for i in 200:
+				var next: Vector3 = at + Goose.escape_heading(at, Vector3(30, 0, 30), i * 0.05) * Goose.FLEE_SPEED * 0.05
+				var was_in := absf(at.x) < Goose.PEN and absf(at.z) < Goose.PEN
+				var is_in := absf(next.x) < Goose.PEN and absf(next.z) < Goose.PEN
+				if was_in and not is_in:
+					out = true
+					clean = next.z >= Goose.PEN and absf(next.x) < 1.2
+					break
+				at = next
+			check(out and clean, "from plot (%d,%d) she leaves by the gate (%s)" % [px, pz, str(at.snapped(Vector3.ONE * 0.1))])
+	var meter := 0.0
+	for i in 40:
+		meter = Goose.face_off(meter, 1.5, 0.1)
+	check(is_equal_approx(meter, Goose.FACE_OFF_TIME), "standing close fills her nerve meter")
+	check(Goose.face_off(1.0, 9.0, 0.5) < 1.0, "backing off drains it")
+	var a := Vector3(10, 9, 0)
+	check(Goose.glide(a, Vector3.ZERO, 0.0) == a and Goose.glide(a, Vector3.ZERO, 1.0).length() < 0.001, "glide starts and ends right")
+	check(Goose.glide(a, Vector3.ZERO, 0.5).y < 4.5, "she drops early and levels out")
+	return true
+
+
+func _goose_run(g: Goose, secs: float, who: Vector3) -> void:
+	for i in int(secs / 0.05):
+		if g.state == Goose.State.AWAY:
+			return
+		g.tick(0.05, game, who)
+
+
+func test_goose_visit() -> bool:
+	var f := _field()
+	var plot: FarmPlot = f.plots[5]
+	plot.from_dict({"state": FarmPlot.State.PLANTED, "crop": "carrot", "growth": 9})
+	var g := Goose.new()
+	root.add_child(g)
+	var far := Vector3(40, 0, 40)
+	check(not g.bonkable(), "nothing to bonk while she is away")
+	check(g.visit(game), "a ripe carrot brings her in")
+	check(g.state == Goose.State.ARRIVE and g.position.y > 5.0 and not g.bonkable(), "she glides in out of reach")
+	_goose_run(g, Goose.ARRIVE_TIME + 0.1, far)
+	check(g.state == Goose.State.STALK and g.bonkable(), "then waddles")
+	for i in 400:
+		if g.state == Goose.State.FLEE:
+			break
+		g.tick(0.05, game, far)
+	check(g.state == Goose.State.FLEE and g.loot == "carrot", "she pulls the carrot and runs")
+	check(plot.state == FarmPlot.State.TILLED, "the plot is emptied")
+	check(game.count("carrot") == 0, "nothing reaches your pockets")
+	g.bonk(game)
+	check(g.loot == "" and g.state == Goose.State.FLY, "a bonk makes her let go")
+	var drops := get_nodes_in_group("pickup").map(func(n): return (n as WoodLog).item_id)
+	check(drops.has("carrot") and drops.has("goose_feather"), "carrot and feather land as pick-ups (%s)" % str(drops))
+	_goose_run(g, Goose.FLY_TIME + 0.2, far)
+	check(g.state == Goose.State.AWAY and not g.visible, "and leaves")
+	# Standing your ground sends her off with nothing.
+	plot.from_dict({"state": FarmPlot.State.PLANTED, "crop": "carrot", "growth": 9})
+	g.visit(game)
+	_goose_run(g, Goose.ARRIVE_TIME + 0.1, far)
+	for i in 100:
+		if g.state != Goose.State.STALK and g.state != Goose.State.TUG:
+			break
+		g.tick(0.05, game, g.position + Vector3(1.2, 0, 0))
+	check(g.state == Goose.State.FLY and plot.is_ripe(), "out-stared: the carrot stays")
+	_goose_run(g, 5.0, far)
+	# A leafy plant is only nibbled.
+	plot.from_dict({"state": FarmPlot.State.PLANTED, "crop": "tomato", "growth": 2})
+	check(plot.goose_take() == "" and plot.growth == 1, "a nibble costs one day")
+	plot.from_dict({"state": FarmPlot.State.PLANTED, "crop": "tomato", "growth": 9})
+	check(plot.goose_take() == "tomato" and plot.state == FarmPlot.State.PLANTED, "a robbed vine still regrows")
+	# Escaping.
+	plot.from_dict({"state": FarmPlot.State.PLANTED, "crop": "turnip", "growth": 9})
+	g.visit(game)
+	_goose_run(g, 30.0, far)
+	check(g.state == Goose.State.AWAY and plot.state == FarmPlot.State.TILLED, "left alone, she gets away with it")
+	g.from_dict({"visited": 7})
+	check(g.to_dict()["visited"] == 7, "remembers the last visit")
+	return true
+
+
+func test_scarecrow() -> bool:
+	check(ScarecrowSpot.covers(Vector3.ZERO, Vector3(3, 0, 1)), "covers the edge plots")
+	check(not ScarecrowSpot.covers(Vector3.ZERO, Vector3(3, 0, 3)), "but not the far corners")
+	check(ScarecrowSpot.next_outfit(ScarecrowSpot.OUTFITS.size() - 1) == 0, "wardrobe wraps")
+	check(BuildWorld.is_furniture("scarecrow") and BuildWorld.PIECE_ORDER.has("scarecrow"), "buildable")
+	check(GameState.RECIPES.any(func(r): return r["id"] == "scarecrow") and GameState.ITEMS.has("scarecrow") and GameState.ITEMS.has("goose_feather"), "craftable")
+	var f := _field()
+	for i in [5, 6]:
+		(f.plots[i] as FarmPlot).from_dict({"state": FarmPlot.State.PLANTED, "crop": "carrot", "growth": 9})
+	var bw := BuildWorld.new()
+	root.add_child(bw)
+	game.add_item("scarecrow", 1)
+	check(bw.place("scarecrow", Vector3.ZERO, 0, game), "placed")
+	var crow: ScarecrowSpot = (bw.pieces.values()[0] as BuildPiece).get_children().filter(func(c): return c is ScarecrowSpot)[0]
+	check(ScarecrowSpot.guards(self, (f.plots[5] as FarmPlot).global_position), "guards the middle")
+	var g := Goose.new()
+	root.add_child(g)
+	check(g.visit(game) and g.target == null, "she still turns up to glare")
+	_goose_run(g, Goose.ARRIVE_TIME + 0.2, Vector3(40, 0, 40))
+	check(g.state == Goose.State.BALK, "and balks")
+	_goose_run(g, 12.0, Vector3(40, 0, 40))
+	check(g.state == Goose.State.AWAY and (f.plots[5] as FarmPlot).is_ripe(), "then leaves the crops alone")
+	crow.interact(game)
+	crow.interact(game)
+	check(crow.outfit == 2 and "Beaky" in crow.get_prompt(game), "outfits cycle")
+	var again_bw := BuildWorld.new()
+	root.add_child(again_bw)
+	again_bw.rebuild_from_game(game)
+	var again: ScarecrowSpot = (again_bw.pieces.values()[0] as BuildPiece).get_children().filter(func(c): return c is ScarecrowSpot)[0]
+	check(again.outfit == 2, "outfit survives a reload")
+	for i in ScarecrowSpot.OUTFITS.size():
+		again.set_outfit(i)
+		check(again._dress.get_child_count() > 20, "outfit %d is dressed" % i)
+	var rig := AnimalRig.make("goose")
+	root.add_child(rig)
+	rig.animate(0.05, 4.0, {"flap": 1.0})
+	check(rig.legs.size() == 2 and rig.wings.size() == 2 and rig.head != null, "goose rig is jointed")
+	check(Sfx.make("honk").data.size() > 1000, "she honks")
+	return true
+
+
+func test_mesh_bake() -> bool:
+	var bw := BuildWorld.new()
+	root.add_child(bw)
+	for id in ["wood_wall", "wood_window", "wood_door", "stone_wall", "fence_panel", "wood_floor", "wood_stairs", "wood_roof"]:
+		var p := BuildPiece.new()
+		p.piece_id = id
+		root.add_child(p)
+		var loose := p.loose_parts()
+		var tris := 0
+		for m in loose:
+			if not (m as Node).is_in_group("window_pane") and m.get_parent() == p._mesh:   # (the door leaf welds itself)
+				tris += ((m.mesh as PrimitiveMesh).get_mesh_arrays()[Mesh.ARRAY_INDEX] as PackedInt32Array).size()
+		p.weld()
+		var drawn := p.parts().filter(func(m): return m.visible)
+		check(drawn.size() * 2 <= loose.size(), "%s draws far fewer meshes (%d -> %d)" % [id, loose.size(), drawn.size()])
+		check(p.loose_parts().size() == loose.size(), "%s keeps its loose boards for falling apart" % id)
+		var welded := 0
+		var single := 0
+		for m in p._mesh.get_children():
+			if m is MeshInstance3D and m.has_meta(MeshBake.GROUP_META):
+				welded += ((m.mesh as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_INDEX] as PackedInt32Array).size()
+			elif m is MeshInstance3D and m.visible and not m.is_in_group("window_pane"):
+				single += ((m.mesh as PrimitiveMesh).get_mesh_arrays()[Mesh.ARRAY_INDEX] as PackedInt32Array).size()
+		check(welded + single == tris, "%s loses no triangles (%d + %d of %d)" % [id, welded, single, tris])
+		p.weld()
+		check(p.parts().filter(func(m): return m.visible).size() == drawn.size(), "%s welding twice changes nothing" % id)
+		if id == "wood_window":
+			check(drawn.any(func(m): return m.is_in_group("window_pane")), "the glass stays its own mesh, to glow")
+		if id == "wood_roof":
+			p.set_roof_shape([0, 2, true, false])
+			check(p.parts().any(func(m): return m.visible and m.has_meta(MeshBake.GROUP_META)), "a reshaped roof welds again")
+		p.free()
+	var t := MeshBake.board_tint(Vector3(1.2, 0.4, -3.0))
+	check(t >= 0.0 and t < 1.0 and t == MeshBake.board_tint(Vector3(1.2, 0.4, -3.0)), "board shade is stable")
+	var timber := BuildKit.material(Color.RED, 0, 1)
+	var twin := MeshBake.baked_material(timber)
+	check(twin == MeshBake.baked_material(timber) and twin != timber and twin.get_shader_parameter("baked") == true, "one welded twin per material")
 	return true

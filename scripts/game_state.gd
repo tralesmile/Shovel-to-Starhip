@@ -109,6 +109,8 @@ const ITEMS := {
 	"wood_bed": {"name": "Wood Bed", "buy": 0, "sell": 0},
 	"lantern": {"name": "Lantern Post", "buy": 0, "sell": 0},
 	"crystal_lamp": {"name": "Crystal Lamp", "buy": 0, "sell": 0},
+	"scarecrow": {"name": "Scarecrow", "buy": 0, "sell": 0},
+	"goose_feather": {"name": "Goose Feather", "buy": 0, "sell": 18},
 	"storage_chest": {"name": "Storage Chest", "buy": 0, "sell": 0},
 	# Fish: sell at the bin.
 	"boot": {"name": "Old Boot", "buy": 0, "sell": 2},
@@ -173,6 +175,7 @@ const RECIPES := [
 	{"id": "compost", "name": "Compost", "in": {"hay": 3}, "out": {"compost": 2}},
 	{"id": "sprinkler", "name": "Copper Sprinkler", "in": {"copper_ingot": 1, "plank": 1, "stone": 2}, "out": {"sprinkler": 1}},
 	{"id": "crystal_lamp", "name": "Crystal Lamp", "in": {"glow_crystal": 1, "stone": 2, "copper_ingot": 1}, "out": {"crystal_lamp": 1}},
+	{"id": "scarecrow", "name": "Scarecrow", "in": {"hay": 4, "wood": 3, "turnip": 1}, "out": {"scarecrow": 1}},
 	{"id": "saddle_bags", "name": "Saddle Bags", "in": {"hay": 4, "rabbit_pelt": 2, "plank": 1}, "out": {"saddle_bags": 1}, "once": true},
 	{"id": "goat_whistle", "name": "Goat Whistle", "in": {"wood": 3, "sunmint": 1}, "out": {"goat_whistle": 1}, "once": true},
 ]
@@ -185,7 +188,7 @@ const ITEM_WEIGHT := {"moon_cheese": 0.5, "moon_rock": 1.5, "wood": 2.0, "stone"
 	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0,
 	"butterfly": 0.05, "grasshopper": 0.05, "frog": 0.3, "firefly": 0.02, "bug_net": 0.0, "firefly_jar": 2.0,
 	"sunmint_bait": 0.05, "springy_rod": 0.0,
-	"bull_bar": 4.0, "drift_tyres": 4.0, "repair_kit": 1.0, "compost": 0.3, "sprinkler": 2.0, "squeaky_chicken": 0.3, "velvet_picks": 0.0, "saddle_bags": 0.0, "goat_whistle": 0.0, "crystal_lamp": 3.0}
+	"bull_bar": 4.0, "drift_tyres": 4.0, "repair_kit": 1.0, "compost": 0.3, "sprinkler": 2.0, "squeaky_chicken": 0.3, "velvet_picks": 0.0, "saddle_bags": 0.0, "goat_whistle": 0.0, "crystal_lamp": 3.0, "scarecrow": 3.0, "goose_feather": 0.05}
 const CARRY_FREE := 30.0       ## below this you move at full speed
 const CARRY_WHEELBARROW := 40.0  ## extra free capacity with a wheelbarrow
 const CARRY_SADDLE_BAGS := 20.0  ## your friend the goat hauls this much in the bags
@@ -445,7 +448,7 @@ static func invention_ready(inv: Dictionary) -> Dictionary:
 
 
 ## Items that exist as physical things you can drop on the ground (seeds, tools and pieces cannot).
-const DROPPABLE := ["wood", "plank", "stone", "copper_ore", "copper_ingot", "gem", "carrot", "rabbit_meat", "rabbit_pelt", "turnip", "tomato", "rabbit_stew", "cooked_meat", "egg", "glow_crystal", "hay", "sunmint"]
+const DROPPABLE := ["wood", "plank", "stone", "copper_ore", "copper_ingot", "gem", "carrot", "rabbit_meat", "rabbit_pelt", "turnip", "tomato", "rabbit_stew", "cooked_meat", "egg", "glow_crystal", "hay", "sunmint", "goose_feather"]
 
 
 ## Pure (tested): which item G drops: the one adding the most weight to your pockets (ties: alphabetical).

@@ -171,6 +171,8 @@ static func make(kind_name: String, variant: int = 0) -> AnimalRig:
 			r._build_goat()
 		"rabbit":
 			r._build_rabbit(variant)
+		"goose":
+			r._build_goose()
 		_:
 			r._build_chicken(variant)
 	if r.neck != null:
@@ -312,6 +314,47 @@ func _build_rabbit(variant: int) -> void:
 		_ball(hip, Vector3(0, -0.115, 0.03), Vector3(0.035, 0.025, 0.052), white)
 		legs.append(hip)
 		_ball(body, Vector3(sx * 0.11, 0.035, -0.08), Vector3(0.045, 0.033, 0.12), white)   # long hind foot
+
+
+## Lady Honksworth: a long S of a neck, orange bill and a very judgemental eye.
+func _build_goose() -> void:
+	var white := coat(Color(0.97, 0.96, 0.93), Color(0.86, 0.86, 0.88), 0.25, 11.0, 4.0)
+	var soft := coat(Color(0.97, 0.96, 0.93), Color(0.86, 0.86, 0.88), 0.25, 11.0, 4.0, false)
+	var grey := coat(Color(0.62, 0.64, 0.7), Color(0.48, 0.5, 0.57), 0.4, 15.0, 2.0, false)
+	var orange := coat(Color(1.0, 0.55, 0.08), Color.WHITE, 0.0, 1.0, 0.0, false)
+	var black := coat(Color(0.12, 0.1, 0.11), Color.WHITE, 0.0, 1.0, 0.0, false)
+	_ball(body, Vector3(0, 0.47, -0.04), Vector3(0.23, 0.2, 0.33), white)
+	_ball(body, Vector3(0, 0.48, 0.14), Vector3(0.19, 0.19, 0.2), soft)
+	_ball(body, Vector3(0, 0.54, -0.27), Vector3(0.13, 0.11, 0.18), soft, Vector3(0.35, 0, 0))
+	tail = _pivot(body, Vector3(0, 0.57, -0.4))
+	for i in 3:
+		var a := (i - 1) * 0.4
+		_ball(tail, Vector3(sin(a) * 0.05, 0.05, -0.07), Vector3(0.035, 0.03, 0.13), grey if i == 1 else soft, Vector3(0.55, -a, 0))
+	neck = _pivot(body, Vector3(0, 0.57, 0.23))
+	_rod(neck, Vector3(0, -0.08, -0.04), Vector3(0, 0.17, 0.12), 0.105, 0.062, soft)
+	_ball(neck, Vector3(0, 0.17, 0.12), Vector3.ONE * 0.062, soft)
+	_rod(neck, Vector3(0, 0.17, 0.12), Vector3(0, 0.39, 0.1), 0.062, 0.056, soft)
+	head = _pivot(neck, Vector3(0, 0.42, 0.11))
+	_ball(head, Vector3(0, 0.01, 0.01), Vector3(0.083, 0.08, 0.105), white)
+	_ball(head, Vector3(0, 0.005, 0.095), Vector3(0.046, 0.045, 0.042), orange)   # bill knob
+	_rod(head, Vector3(0, -0.005, 0.09), Vector3(0, -0.03, 0.235), 0.044, 0.012, orange)
+	jaw = _pivot(head, Vector3(0, -0.037, 0.08))
+	_rod(jaw, Vector3.ZERO, Vector3(0, -0.012, 0.13), 0.03, 0.008, orange)
+	for sx in [-1.0, 1.0]:
+		_eye(head, Vector3(sx * 0.061, 0.03, 0.052), 0.021, Color(1.0, 0.72, 0.1), false)
+		_ball(head, Vector3(sx * 0.058, 0.066, 0.058), Vector3(0.014, 0.009, 0.045), black, Vector3(0.3, 0, -sx * 0.3))   # frown
+		var w := _pivot(body, Vector3(sx * 0.2, 0.56, 0.08))
+		w.set_meta("side", sx)
+		_ball(w, Vector3(sx * 0.02, -0.06, -0.14), Vector3(0.045, 0.12, 0.25), white, Vector3(-0.16, 0, 0))
+		for k in 4:
+			_ball(w, Vector3(sx * 0.027, -0.045 - k * 0.032, -0.35 + k * 0.03), Vector3(0.018, 0.028, 0.13), grey, Vector3(-0.2 - k * 0.09, 0, 0))
+		wings.append(w)
+		var hip := _pivot(body, Vector3(sx * 0.1, 0.31, -0.02))
+		_rod(hip, Vector3(0, 0.02, 0), Vector3(0, -0.29, 0.01), 0.032, 0.022, orange)
+		for toe in [-0.6, 0.0, 0.6]:
+			_rod(hip, Vector3(0, -0.29, 0), Vector3(sin(toe) * 0.12, -0.3, cos(toe) * 0.12), 0.02, 0.009, orange)
+		_ball(hip, Vector3(0, -0.298, 0.055), Vector3(0.065, 0.008, 0.06), orange)   # web
+		legs.append(hip)
 
 
 # ---------------------------------------------------------------- posing

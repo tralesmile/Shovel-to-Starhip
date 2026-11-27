@@ -60,6 +60,22 @@ func _run() -> void:
 		await _whistle_shot(p)
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=g0"):
+		await _farm_overview(p, "g0_farm.png")
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=g1"):
+		await _goose_shots(p)
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=greal"):
+		await _goose_real_input(p)
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=perf"):
+		await _perf_shot(p)
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=20"):
 		await _pet_shots(p, "20")
 		get_tree().quit()
@@ -1876,3 +1892,170 @@ func _rock_after(p: Player) -> void:
 	await _wait(60)
 	_rock_cam(at + Vector3(0, 0, 1.5), Vector3(0.8, 2.4, 6.5), 50.0)
 	await _shot("k7_lamps_night.png")
+
+
+## Draw calls for a roofed cottage, measured by the renderer.
+func _perf_shot(p: Player) -> void:
+	var at := _house_site()
+	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+	_free_cam(at + Vector3(9.0, 5.2, 10.0), at + Vector3(2.0, 1.4, 1.0), 50.0)
+	p.global_position = at + Vector3(9, 0.1, 9)
+	Game.time_of_day = 0.42
+	await _wait(40)
+	var empty := int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
+	_cottage(bw, at)
+	await _game_wait(1.2)
+	_roof_over(bw, at)
+	await _game_wait(2.5)
+	await _wait(10)
+	var built := int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
+	print("DRAWCALLS empty=", empty, " with_cottage=", built, " cottage=", built - empty)
+	await _snap("p_cottage.png")
+
+
+## Lady Honksworth's visit driven by hand-stepped ticks (software frames are too slow to time),
+## then the scarecrow wardrobe, its placement ring and her huff.
+func _goose_shots(p: Player) -> void:
+	await _farm_overview(p, "none")
+	var goose: Goose = main.goose
+	goose.set_process(false)
+	var far := Vector3(30, 0, 30)
+	var plot: FarmPlot = main.get_node("Farm/Plot_07")
+	var cam := get_viewport().get_camera_3d()
+	cam.queue_free()
+	goose.visit(Game)
+	plot = goose.target
+	print("TARGET ", plot.name, " ", plot.crop)
+	for i in 30:
+		goose.tick(0.05, Game, far)
+	var c := _free_cam(goose.position + Vector3(2.6, 0.6, 3.4), goose.position, 52.0)
+	await _snap("g1_glide.png")
+	c.queue_free()
+	for i in 400:
+		if goose.state == Goose.State.TUG:
+			break
+		goose.tick(0.05, Game, far)
+	for i in 28:
+		goose.tick(0.05, Game, far)
+	var at := plot.global_position
+	var c2 := _free_cam(at + Vector3(1.9, 1.5, 2.5), at + Vector3(0, 0.55, 0), 48.0)
+	await _snap("g2_tug.png")
+	for i in 400:
+		if goose.state == Goose.State.FLEE:
+			break
+		goose.tick(0.05, Game, far)
+	p.global_position = goose.position + Vector3(-1.5, 0.1, -0.6)
+	p._model.rotation.y = atan2(1.5, 0.6)
+	for i in 6:
+		goose.tick(0.05, Game, p.global_position)
+	c2.queue_free()
+	var c3 := _free_cam(goose.position + Vector3(1.0, 1.5, 3.3), goose.position + Vector3(-0.4, 0.6, 0), 50.0)
+	await _snap("g3_chase.png")
+	goose.bonk(Game)
+	Engine.time_scale = 0.12
+	await _game_wait(0.22)
+	await _snap("g4_bonk.png")
+	Engine.time_scale = 1.0
+	await _wait(25)
+	await _snap("g5_drops.png")
+	goose._leave()
+	c3.queue_free()
+	# The wardrobe.
+	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+	Game.add_item("scarecrow", 8)
+	for n in get_tree().get_nodes_in_group("pickup"):
+		n.queue_free()
+	for i in 5:
+		bw.place("scarecrow", Vector3(-4 + i * 2, 0, 8), 0, Game)
+	await _game_wait(0.8)
+	var row := 0
+	for piece in bw.pieces.values():
+		for ch in piece.get_children():
+			if ch is ScarecrowSpot:
+				ch.set_outfit(row)
+				ch._ring_t = 0.0
+				row += 1
+	p.global_position = Vector3(6.5, 0.1, 9)
+	var c4 := _free_cam(Vector3(0.3, 2.1, 13.4), Vector3(0, 1.1, 8), 50.0)
+	await _wait(60)
+	await _snap("g6_wardrobe.png")
+	c4.queue_free()
+	for k in bw.pieces.keys():
+		bw.demolish(k, Game)
+	for n in get_tree().get_nodes_in_group("pickup") + get_tree().get_nodes_in_group("build_debris"):
+		n.queue_free()
+	await _game_wait(0.3)
+	for i in [5, 6, 9]:
+		(main.get_node("Farm/Plot_%02d" % i) as FarmPlot).from_dict({"state": FarmPlot.State.PLANTED, "crop": "carrot", "growth": 9})
+	for i in [0, 1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15, 10]:
+		(main.get_node("Farm/Plot_%02d" % i) as FarmPlot).from_dict({"state": FarmPlot.State.TILLED})
+	bw.place("scarecrow", Vector3(0, 0, 0), 0, Game)
+	goose.visit(Game)
+	for i in 75:
+		goose.tick(0.05, Game, far)
+	print("BALK state ", goose.state)
+	p.global_position = Vector3(0.5, 0.1, 10.5)
+	_free_cam(Vector3(5.6, 5.4, 9.8), Vector3(0.0, 0.2, 2.2), 52.0)
+	await _wait(8)
+	for piece in bw.pieces.values():
+		for ch in piece.get_children():
+			if ch is ScarecrowSpot:
+				ch.show_reach(20.0)
+	await _wait(25)
+	await _snap("g7_guarded.png")
+
+
+## The real game, real input actions: let her steal, sprint after her, swing, walk over the loot.
+func _goose_real_input(p: Player) -> void:
+	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+	var goose: Goose = main.goose
+	var results: Array = []
+	for round in 5:
+		for n in get_tree().get_nodes_in_group("pickup"):
+			n.queue_free()
+		Game.inventory.erase("carrot")
+		Game.inventory.erase("goose_feather")
+		for i in 16:
+			(main.get_node("Farm/Plot_%02d" % i) as FarmPlot).from_dict({"state": FarmPlot.State.TILLED})
+		var at: int = [5, 0, 15, 3, 10][round]
+		(main.get_node("Farm/Plot_%02d" % at) as FarmPlot).from_dict({"state": FarmPlot.State.PLANTED, "crop": "carrot", "growth": 9})
+		p.global_position = Vector3(0.0, 0.2, 8.5)
+		p.velocity = Vector3.ZERO
+		Game.set_tool(GameState.Tool.HOE)
+		await _wait(10)
+		goose.visit(Game)
+		await _until(func(): return goose.state == Goose.State.FLEE)
+		var started := goose.position
+		var t := 0.0
+		var swings := 0
+		var cool := 0.0
+		while goose.state == Goose.State.FLEE and t < 8.0:
+			var to := goose.global_position - p.global_position
+			p._yaw = atan2(-to.x, -to.z)
+			_key("move_forward", true)
+			_key("sprint", true)
+			cool -= get_process_delta_time()
+			if Vector2(to.x, to.z).length() < 1.7 and cool <= 0.0:
+				_tap("interact")
+				swings += 1
+				cool = 0.35
+			await get_tree().process_frame
+			t += get_process_delta_time()
+		_key("move_forward", false)
+		_key("sprint", false)
+		var bonked := goose.loot == "" and goose.state == Goose.State.FLY and t < Goose.FLEE_TIME
+		# Walk to whatever dropped.
+		var w := 0.0
+		while w < 6.0:
+			var items := get_tree().get_nodes_in_group("pickup")
+			if items.is_empty():
+				break
+			var to2: Vector3 = (items[0] as Node3D).global_position - p.global_position
+			p._yaw = atan2(-to2.x, -to2.z)
+			_key("move_forward", Vector2(to2.x, to2.z).length() > 0.4)
+			await get_tree().process_frame
+			w += get_process_delta_time()
+		_key("move_forward", false)
+		print("ROUND plot ", at, " bonked=", bonked, " chase_s=", snappedf(t, 0.1), " swings=", swings, " ran_from=", started.snapped(Vector3.ONE * 0.1), " carrot=", Game.count("carrot"), " feather=", Game.count("goose_feather"), " player=", p.global_position.snapped(Vector3.ONE * 0.1))
+		goose._leave()
+		await _wait(10)

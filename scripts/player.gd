@@ -934,6 +934,16 @@ func _use() -> void:
 			else:
 				Game.shake.emit(0.12)
 			return
+	# A goose in front of you comes before whatever crop she is standing over.
+	if _action_time <= 0.0 and Game.current_tool != GameState.Tool.BUILD:
+		var gs := _goose_ahead()
+		if gs != null:
+			var tg := gs.global_position - global_position
+			_model.rotation.y = atan2(tg.x, tg.z)
+			play_action("1H_Melee_Attack_Chop", 0.5)
+			gs.bonk(Game)
+			FX.hit_stop(get_tree(), 0.55)
+			return
 	if target == null and _action_time <= 0.0:
 		var rb := _rabbit_ahead()
 		if rb != null:
@@ -1044,6 +1054,17 @@ func _crate_ahead() -> PropCrate:
 			best = c
 			best_d = d
 	return best
+
+
+## The goose, if she is on the ground within swatting reach in front of you.
+func _goose_ahead() -> Goose:
+	var forward := Vector3(sin(_model.rotation.y), 0, cos(_model.rotation.y))
+	var probe := global_position + forward * 0.9
+	for n in get_tree().get_nodes_in_group("goose"):
+		var g := n as Goose
+		if g.bonkable() and Vector2(probe.x - g.global_position.x, probe.z - g.global_position.z).length() < 1.5:
+			return g
+	return null
 
 
 ## Nearest huntable rabbit within bonking reach in front of you (any tool but the builder).

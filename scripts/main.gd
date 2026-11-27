@@ -17,6 +17,7 @@ var _thunder_in := -1.0      ## countdown to the rumble
 var _bolt_dist := 0.0
 var _rain_level := 0.0   ## eased 0..1 so rain fades in/out
 var _day_critters: Array[Node3D] = []
+var goose: Goose
 var _npcs: Array[Npc] = []
 var _water_mat: ShaderMaterial
 var _police: Police
@@ -106,6 +107,8 @@ func _ready() -> void:
 	_spawn_player_car()
 	if OS.get_cmdline_user_args().has("--launch-ready"):
 		_playtest_launch_ready()
+	if OS.get_cmdline_user_args().has("--goose"):
+		_playtest_goose()
 	if loaded:
 		hud.set_help_visible(false)
 		Game.say("Welcome back to Bumpkin Bay! Day %d." % Game.day)
@@ -134,6 +137,17 @@ func _playtest_launch_ready() -> void:
 		Game.add_item(spec[0], spec[1])
 	player.position = (get_node("Spaceport/LaunchConsole") as Node3D).global_position + Vector3(-1.2, 0.5, 1.8)
 	Game.say("Playtest: the Starship is ready. Use the launch console.")
+
+
+## Playtest shortcut (run with  -- --goose): ripe crops, a scarecrow to place and Lady
+## Honksworth on her way. It changes the save it is used on.
+func _playtest_goose() -> void:
+	for i in [0, 5, 6, 10]:
+		var plot := get_node("Farm/Plot_%02d" % i) as FarmPlot
+		plot.from_dict({"state": FarmPlot.State.PLANTED, "crop": "carrot", "growth": 9})
+	Game.add_item("scarecrow", 2)
+	player.position = Vector3(0, 0.5, 9.0)
+	get_tree().create_timer(6.0).timeout.connect(func(): goose.visit(Game))
 
 
 var _creak_t := 0.0
@@ -392,6 +406,8 @@ func _build_farm() -> void:
 	for k in i:
 		field.plots.append(farm.get_node("Plot_%02d" % k))
 	farm.add_child(field)
+	goose = Goose.new()
+	add_child(goose)
 	# Wooden fence around the field, with a gap on the south side.
 	var fence := Models.MED + "fence_wood_straight.gltf"
 	for k in 5:

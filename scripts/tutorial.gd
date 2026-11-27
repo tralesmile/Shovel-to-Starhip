@@ -19,6 +19,7 @@ const ONCE := {
 	"heat": "Heat! Someone saw you. Duck indoors or crouch ({crouch}) out of sight, or Constable Bumble will take your loot and a slice of your cash.",
 	"fence": "Fencing: Shady Sal pays half price for stolen goods, a bit more the more Outlaw you are. No receipts.",
 	"arrest": "Busted. Loot confiscated, wallet lighter, heat down to 1. Lawful or not, the constable is very proud.",
+	"goose": "Goose thief! Sprint after her and swing (or sling a pebble) to get your crop back. A Scarecrow (workbench, then Builder [6]) keeps her away.",
 	"drive": "Driving: WASD or the left stick steers. Hold Space while turning to drift, let go for a turbo. {interact} hops out.",
 }
 

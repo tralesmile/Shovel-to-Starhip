@@ -211,6 +211,31 @@ func _harvest(game: GameState) -> void:
 			_fling(old_plant))
 
 
+## The goose helps herself. A ripe plot gives up its produce (returned; nothing lands in your
+## pockets). A leafy one is only nibbled back a day and "" is returned.
+func goose_take() -> String:
+	if state != State.PLANTED or giant:
+		return ""
+	if not is_ripe():
+		growth = maxi(0, growth - 1)
+		_refresh()
+		kick(Vector2(0.6, 0.4))
+		return ""
+	var taken := crop
+	picks += 1
+	var again := regrow_growth(crop, picks)
+	if again >= 0:
+		growth = again
+	else:
+		state = State.TILLED
+		growth = 0
+		picks = 0
+		watered = false
+	composted = false
+	_refresh()
+	return taken
+
+
 ## Produce jumps out of the ground as physics pick-ups.
 func _pop_produce(game: GameState, what: String, amount: int) -> void:
 	for i in amount:

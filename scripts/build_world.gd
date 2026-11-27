@@ -30,8 +30,9 @@ const PIECES := {
 	"wood_window": {"name": "Window Wall", "size": Vector3(1.96, 2.2, 0.2), "color": Color(0.74, 0.52, 0.32), "style": "window"},
 	"wood_stairs": {"name": "Wood Stairs", "size": Vector3(1.6, 2.34, 2.0), "color": Color(0.72, 0.5, 0.3), "style": "stairs"},
 	"crystal_lamp": {"name": "Crystal Lamp", "size": Vector3(0.6, 1.1, 0.6), "color": Color(0.55, 0.56, 0.6), "style": "crystallamp"},
+	"scarecrow": {"name": "Scarecrow", "size": Vector3(0.4, 1.8, 0.4), "color": Color(0.82, 0.68, 0.43), "style": "scarecrow"},
 }
-const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern", "storage_chest", "campfire", "furnace", "anvil", "invention_bench", "hay_bale", "firefly_jar", "sprinkler", "wood_window", "wood_stairs", "crystal_lamp"]
+const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern", "storage_chest", "campfire", "furnace", "anvil", "invention_bench", "hay_bale", "firefly_jar", "sprinkler", "wood_window", "wood_stairs", "crystal_lamp", "scarecrow"]
 
 var pieces := {}   ## cell key -> BuildPiece
 var piece_id := "fence_panel"
@@ -93,7 +94,7 @@ static func default_level(id: String) -> int:
 
 ## Pure (tested): furniture lives in its own key space (one per cell, stands on floors).
 static func is_furniture(id: String) -> bool:
-	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed", "campfire", "chest", "furnace", "anvil", "invention", "bale", "firejar", "sprinkler", "crystallamp"]
+	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed", "campfire", "chest", "furnace", "anvil", "invention", "bale", "firejar", "sprinkler", "crystallamp", "scarecrow"]
 
 
 ## Pure (tested): height above the ground a piece sits at (roofs rest on top of 2.2m walls).
@@ -206,6 +207,11 @@ func _rebuild_ghost(shape: Array = [0, 1, true, true]) -> void:
 	for m in model.find_children("*", "MeshInstance3D", true, false):
 		(m as MeshInstance3D).material_override = _ghost_mat
 		(m as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Show how far it reaches before you commit (guessing a scarecrow's range is no fun).
+	if def["style"] == "scarecrow":
+		_ghost.add_child(ScarecrowSpot.reach_ring(ScarecrowSpot.REACH, Color(1.0, 0.82, 0.3)))
+	elif def["style"] == "sprinkler":
+		_ghost.add_child(ScarecrowSpot.reach_ring(SprinklerSpot.REACH, Color(0.45, 0.78, 1.0)))
 	_ghost_look = "%s%s" % [piece_id, str(shape)]
 
 
@@ -244,6 +250,10 @@ func _spawn(id: String, x: float, z: float, r: int, animate: bool, level: int, g
 			p.roof_shape = roof_shape_at(grid_items(g.built), x, z, level, r)
 	add_child(p)
 	pieces[key_for(id, p.position, r, level)] = p
+	if id == "scarecrow" and animate:
+		for c in p.get_children():
+			if c is ScarecrowSpot:
+				c.show_reach(4.0)
 	if animate:
 		p.assemble() if PIECES[id]["style"] in BuildKit.STYLES else p.pop_in()
 	return p
@@ -277,7 +287,10 @@ func refresh_roofs(g: GameState, skip: BuildPiece = null) -> void:
 		if it["kind"] != "roof" or not pieces.has(k):
 			continue
 		var p: BuildPiece = pieces[k]
-		if is_instance_valid(p) and p.set_roof_shape(roof_shape_at(items, it["x"], it["z"], it["l"], it["r"])) and p != skip and p.is_inside_tree():
+		if not is_instance_valid(p) or not p.set_roof_shape(roof_shape_at(items, it["x"], it["z"], it["l"], it["r"])):
+			continue
+		_unhide(p)   # the new shingles must be cut away afresh
+		if p != skip and p.is_inside_tree():
 			var tw := p.create_tween()
 			var home := world_y(it["x"], it["z"], it["l"])
 			tw.tween_property(p, "position:y", home + 0.18, 0.09).set_ease(Tween.EASE_OUT)

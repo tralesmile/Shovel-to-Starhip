@@ -40,6 +40,7 @@ const KINDS := {
 	"flap": [520.0, 260.0, 0.09, 0.96],
 	"whistle": [1250.0, 2100.0, 0.34, 0.03],
 	"creak": [310.0, 190.0, 0.3, 0.35],
+	"honk": [392.0, 330.0, 0.26, 0.04],
 }
 
 var _cache := {}
@@ -171,7 +172,11 @@ static func make(kind: String) -> AudioStreamWAV:
 		var wobble := 1.0 + 0.09 * sin(t * 62.0) if kind == "bleat" else 1.0   # meh-eh-eh
 		phase += TAU * lerpf(float(p[0]), float(p[1]), t) * wobble / RATE
 		var env := minf(1.0, t * 40.0) * pow(1.0 - t, 2.0)
-		var s := (sin(phase) * (1.0 - float(p[3])) + rng.randf_range(-1, 1) * float(p[3])) * env * 0.6
+		var tone := sin(phase)
+		if kind == "honk":
+			tone = clampf(tone * 3.0 + 0.45 * sin(phase * 2.02) + 0.3 * sin(phase * 3.0), -1.0, 1.0)   # brassy and rude
+			env = minf(1.0, t * 25.0) * minf(1.0, (1.0 - t) * 6.0) * 0.75
+		var s := (tone * (1.0 - float(p[3])) + rng.randf_range(-1, 1) * float(p[3])) * env * 0.6
 		data.encode_s16(i * 2, int(clampf(s, -1.0, 1.0) * 32767.0))
 	var w := AudioStreamWAV.new()
 	w.format = AudioStreamWAV.FORMAT_16_BITS

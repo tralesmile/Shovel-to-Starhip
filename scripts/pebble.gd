@@ -108,6 +108,13 @@ func _physics_process(delta: float) -> void:
 			game.shake.emit(0.15)
 			_pop(end, Color(1, 1, 1))
 			return
+	for n2 in get_tree().get_nodes_in_group("goose"):
+		var goose := n2 as Goose
+		if goose.bonkable() and (hits_target(end, goose.global_position, Goose.HIT_RADIUS) or hits_target((start + end) * 0.5, goose.global_position, Goose.HIT_RADIUS)):
+			goose.bonk(game)
+			FX.hit_stop(get_tree(), 0.4)
+			_pop(end, Color(1, 1, 1))
+			return
 	var q := PhysicsRayQueryParameters3D.create(start, end)
 	if shooter is CollisionObject3D:
 		q.exclude = [(shooter as CollisionObject3D).get_rid()]

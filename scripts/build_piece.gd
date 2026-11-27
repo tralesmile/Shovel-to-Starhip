@@ -1,7 +1,8 @@
 class_name BuildPiece
 extends StaticBody3D
 ## One placed building piece. Structural pieces assemble themselves board by board and fall apart
-## into physics debris; furniture pops in with a squash bounce.
+## into physics debris; furniture pops in with a squash bounce. Settled boards are welded into a
+## few meshes (MeshBake) so a big house stays cheap to draw.
 
 var piece_id := "fence_panel"
 var rot := 0
@@ -148,6 +149,10 @@ func _ready() -> void:
 		var jar := FireflyJar.new()
 		jar.position.y = 1.13
 		_mesh.add_child(jar)
+	elif def["style"] == "scarecrow":
+		var crow := ScarecrowSpot.new()
+		crow.interact_radius = 1.4
+		add_child(crow)
 	elif def["style"] == "crystallamp":
 		var lamp := CrystalLampSpot.new()
 		lamp.interact_radius = 1.5
@@ -287,6 +292,33 @@ func _ready() -> void:
 		add_child(fs)
 	_mesh.position.y = 0.0
 	rotation.y = BuildWorld.yaw_of(rot)
+	# A piece that is just loaded welds straight away; one being built welds after assemble().
+	_bake_later.call_deferred()
+
+
+var _assembling := false
+
+
+func _bake_later() -> void:
+	if not _assembling:
+		weld()
+
+
+## Weld the settled boards together (structural pieces only; furniture has moving bits).
+func weld() -> void:
+	if _mesh == null or falling or is_queued_for_deletion() or not BuildWorld.PIECES[piece_id]["style"] in BuildKit.STYLES:
+		return
+	MeshBake.unbake(_mesh)
+	MeshBake.bake(_mesh)
+	for c in _mesh.get_children():
+		if c is DoorLeaf:   # the door swings as one, so its planks can be welded too
+			MeshBake.unbake(c)
+			MeshBake.bake(c)
+
+
+## The loose boards, stones and shingles (not the welded copies): what flies when it breaks.
+func loose_parts() -> Array:
+	return parts().filter(func(m): return not m.has_meta(MeshBake.GROUP_META))
 
 
 ## Recolour a piece that has colours (the Crystal Lamp).
@@ -294,6 +326,8 @@ func set_tint(i: int) -> void:
 	for c in get_children():
 		if c is CrystalLampSpot:
 			c.set_tint(i)
+		elif c is ScarecrowSpot:
+			c.set_outfit(i)
 
 
 func _add_box(size: Vector3, xf: Transform3D) -> void:
@@ -341,6 +375,8 @@ func set_roof_shape(shape: Array) -> bool:
 		c.free()
 	BuildKit.roof(_mesh, BuildWorld.PIECES[piece_id]["color"], shape[0], shape[1], shape[2], shape[3])
 	_roof_collision()
+	if not _assembling:
+		weld()
 	return true
 
 
@@ -355,6 +391,7 @@ func assemble() -> void:
 	if items.size() < 3:
 		pop_in()
 		return
+	_assembling = true
 	items.sort_custom(func(a, b): return (a as Node3D).position.y < (b as Node3D).position.y)
 	for i in items.size():
 		var part: Node3D = items[i]
@@ -378,6 +415,12 @@ func assemble() -> void:
 	settle.tween_callback(_settle_puff)
 	settle.tween_property(_mesh, "scale", Vector3(1.04, 0.94, 1.04), 0.07)
 	settle.tween_property(_mesh, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	settle.tween_callback(_finish_assembly)
+
+
+func _finish_assembly() -> void:
+	_assembling = false
+	weld()
 
 
 func _settle_puff() -> void:
@@ -396,7 +439,7 @@ func collapse(from: Vector3) -> void:
 		col.set_deferred("disabled", true)
 	var host := get_parent()
 	if host != null and is_inside_tree():
-		var meshes := parts()
+		var meshes := loose_parts()
 		var step := maxi(1, ceili(meshes.size() / 16.0))
 		for i in range(0, meshes.size(), step):
 			var m := meshes[i] as MeshInstance3D

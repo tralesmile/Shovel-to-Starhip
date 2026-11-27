@@ -267,6 +267,7 @@ static func drop_color(id: String) -> Color:
 		"rabbit_pelt": return Color(0.78, 0.7, 0.6)
 		"hay": return Color(0.93, 0.78, 0.3)
 		"sunmint": return Color(0.45, 0.95, 0.65)
+		"goose_feather": return Color(0.97, 0.96, 0.92)
 		"turnip_seed": return Color(0.7, 0.55, 0.3)
 		"egg":
 			return Color(0.98, 0.95, 0.85)
@@ -284,7 +285,7 @@ static func drop_color(id: String) -> Color:
 
 ## Organic drops (meat, pelts, carrots) do not shimmer like ore.
 static func is_organic(id: String) -> bool:
-	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "egg", "rabbit_stew", "turnip", "tomato", "hay", "sunmint", "turnip_seed"]
+	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "egg", "rabbit_stew", "turnip", "tomato", "hay", "sunmint", "turnip_seed", "goose_feather"]
 
 
 ## Pure (tested): things that come out of a rock and look like it.
@@ -336,6 +337,12 @@ func _build_chunk() -> void:
 		var mi := Art.box(Vector3.ONE * sz, chunk_color)
 		if not is_organic(item_id):
 			mi.material_override = Art.mat(chunk_color, true)   # ingots and other treasures shimmer
+		if item_id == "goose_feather":
+			# A long flat vane with a pale quill poking out of one end.
+			mi.scale = Vector3(0.45, 0.12, 1.35)
+			var quill := Art.box(Vector3(0.018, 0.022, sz * 1.9), Color(0.85, 0.72, 0.45))
+			quill.position.z = -0.03
+			add_child(quill)
 		if item_id == "rabbit_pelt":
 			mi.scale = Vector3(1.3, 0.35, 1.3)   # a flat furry rug
 		add_child(mi)
