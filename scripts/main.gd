@@ -220,6 +220,7 @@ func _update_daylight() -> void:
 	if player != null:
 		player.set_helmet(Game.count("miner_helmet") > 0, underground or dark > 0.35)
 	Toon.set_night(dark)
+	BuildKit.set_night(dark)
 	for c in get_tree().get_nodes_in_group("car"):
 		if c.has_method("set_dark"):
 			c.set_dark(dark)

@@ -1,81 +1,56 @@
 class_name BuildPiece
 extends StaticBody3D
-## One placed building piece (fence panel or stone wall). Pops in with a squash bounce and dust;
-## crumbles into debris when demolished.
+## One placed building piece. Structural pieces assemble themselves board by board and fall apart
+## into physics debris; furniture pops in with a squash bounce.
 
 var piece_id := "fence_panel"
 var rot := 0
+var level := 0
+## Roofs only: which tile of a shared gable this is, and which ends are open.
+var roof_shape := [0, 1, true, true]
+var falling := false
 var _mesh: Node3D
+var _cols: Array[CollisionShape3D] = []
+
+const ASSEMBLE_SPREAD := 0.34
+const FLOOR_LIP := 0.22
+const DOOR_HEIGHT := 1.98   ## head room for someone stepping up onto the floor
 
 
 func _ready() -> void:
 	var def: Dictionary = BuildWorld.PIECES[piece_id]
 	var sz: Vector3 = def["size"]
-	var by := BuildWorld.base_y(piece_id)
-	if def["style"] == "doorway":
+	var style: String = def["style"]
+	if style == "doorway":
 		# Two jambs + a lintel: you walk straight through the gap.
-		for box in [[Vector3(0.55, sz.y, sz.z), Vector3(-0.705, sz.y * 0.5, 0)], [Vector3(0.55, sz.y, sz.z), Vector3(0.705, sz.y * 0.5, 0)], [Vector3(0.86, 0.4, sz.z), Vector3(0, sz.y - 0.2, 0)]]:
-			var dc := CollisionShape3D.new()
-			var db := BoxShape3D.new()
-			db.size = box[0]
-			dc.shape = db
-			dc.position = box[1]
-			add_child(dc)
+		_add_box(Vector3(0.55, sz.y, sz.z), Transform3D(Basis(), Vector3(-0.705, sz.y * 0.5, 0)))
+		_add_box(Vector3(0.55, sz.y, sz.z), Transform3D(Basis(), Vector3(0.705, sz.y * 0.5, 0)))
+		_add_box(Vector3(0.86, sz.y - DOOR_HEIGHT, sz.z), Transform3D(Basis(), Vector3(0, (sz.y + DOOR_HEIGHT) * 0.5, 0)))
+	elif style == "stairs":
+		# A smooth ramp under the treads, so you can simply walk up.
+		var top := BuildGrid.STOREY + BuildKit.FLOOR_TOP
+		var slope := atan2(top, 2.0)
+		var basis := Basis(Vector3.RIGHT, -slope)
+		_add_box(Vector3(1.5, 0.12, Vector2(2.0, top).length()), Transform3D(basis, Vector3(0, top * 0.5, 0) - basis.y * 0.06))
+	elif style == "floor":
+		# Only ground floors need the bevel; upstairs it would snag people climbing the stairs.
+		if level == 0:
+			_floor_collision(sz)
+		else:
+			_add_box(sz, Transform3D(Basis(), Vector3(0, sz.y * 0.5, 0)))
+	elif style == "roof":
+		_roof_collision()
 	else:
-		var col := CollisionShape3D.new()
-		var bs := BoxShape3D.new()
-		bs.size = Vector3(sz.x, 0.25, sz.z) if def["style"] == "roof" else sz
-		col.shape = bs
-		col.position.y = (0.3 if def["style"] == "roof" else sz.y * 0.5)
-		add_child(col)
+		_add_box(sz, Transform3D(Basis(), Vector3(0, sz.y * 0.5, 0)))
 	_mesh = Node3D.new()
 	add_child(_mesh)
 	var c: Color = def["color"]
-	if def["style"] == "fence":
-		for sx in [-0.85, 0.85]:
-			var post := Art.box(Vector3(0.16, sz.y + 0.15, 0.16), c.darkened(0.15))
-			post.position = Vector3(sx, (sz.y + 0.15) * 0.5, 0)
-			_mesh.add_child(post)
-		for ry in [0.3, 0.68]:
-			var rail := Art.box(Vector3(sz.x, 0.12, 0.08), c)
-			rail.position = Vector3(0, ry, 0)
-			_mesh.add_child(rail)
-	elif def["style"] == "floor":
-		# Planks laid side by side with a darker gap + a pale edge: reads as boards, not a slab.
-		for k in 5:
-			var shade := c.lightened(0.05) if k % 2 == 0 else c.darkened(0.06)
-			var b := Art.box(Vector3(sz.x / 5.0 - 0.02, sz.y, sz.z - 0.02), shade)
-			b.position = Vector3(-sz.x * 0.4 + k * sz.x * 0.2, sz.y * 0.5, 0)
-			_mesh.add_child(b)
-	elif def["style"] == "plank_wall":
-		for k in 6:
-			var shade2 := c.lightened(0.05) if k % 2 == 0 else c.darkened(0.07)
-			var b2 := Art.box(Vector3(sz.x / 6.0 - 0.02, sz.y, sz.z), shade2)
-			b2.position = Vector3(-sz.x * 0.417 + k * sz.x / 6.0, sz.y * 0.5, 0)
-			_mesh.add_child(b2)
-		for ry2 in [0.3, sz.y - 0.3]:
-			var brace := Art.box(Vector3(sz.x, 0.14, sz.z + 0.06), c.darkened(0.25))
-			brace.position = Vector3(0, ry2, 0)
-			_mesh.add_child(brace)
-	elif def["style"] == "doorway":
-		for sx2 in [-0.705, 0.705]:
-			var jamb := Art.box(Vector3(0.55, sz.y, sz.z), c.lightened(0.04))
-			jamb.position = Vector3(sx2, sz.y * 0.5, 0)
-			_mesh.add_child(jamb)
-		var lintel := Art.box(Vector3(sz.x, 0.4, sz.z + 0.06), c.darkened(0.2))
-		lintel.position = Vector3(0, sz.y - 0.2, 0)
-		_mesh.add_child(lintel)
-		# Door leaf hanging ajar on the left hinge (visual only; the gap stays walkable).
-		var hinge := Node3D.new()
-		hinge.position = Vector3(-0.43, 0, 0.0)
-		hinge.rotation.y = 1.25
-		_mesh.add_child(hinge)
-		var leaf := Art.box(Vector3(0.86, sz.y - 0.42, 0.07), c.lightened(0.18))
-		leaf.position = Vector3(0.43, (sz.y - 0.42) * 0.5, 0)
-		hinge.add_child(leaf)
-		var knob := Art.box(Vector3(0.08, 0.08, 0.14), Color(0.95, 0.8, 0.3))
-		knob.position = Vector3(0.78, 1.0, 0)
-		hinge.add_child(knob)
+	if style == "roof":
+		BuildKit.roof(_mesh, c, roof_shape[0], roof_shape[1], roof_shape[2], roof_shape[3])
+	elif style in BuildKit.STYLES:
+		BuildKit.build(_mesh, style, sz, c)
+		if style == "doorway":
+			_mesh.add_child(DoorLeaf.new())
 	elif def["style"] == "bale":
 		# A fat straw block: banded, with loose stalks poking out so it reads as soft and springy.
 		var core := Art.box(Vector3(sz.x, sz.y - 0.04, sz.z), c)
@@ -306,31 +281,120 @@ func _ready() -> void:
 		fs.interact_radius = 2.0
 		fs.mouth = mouth
 		add_child(fs)
-	elif def["style"] == "roof":
-		# Gable: two tilted slabs meeting at a ridge, shingle rows, gable cap hides the seam.
-		for side in [-1, 1]:
-			var slab := Node3D.new()
-			slab.position = Vector3(side * 0.55, 0.0, 0)
-			slab.rotation.z = -side * 0.5
-			_mesh.add_child(slab)
-			for row in 4:
-				var shade3 := c.lightened(0.05) if row % 2 == 0 else c.darkened(0.08)
-				var shingle := Art.box(Vector3(1.4, 0.07, sz.z / 4.0 - 0.02), shade3)
-				shingle.position = Vector3(side * 0.0, 0.0, -sz.z * 0.375 + row * sz.z / 4.0)
-				slab.add_child(shingle)
-		var ridge := Art.box(Vector3(0.22, 0.12, sz.z), c.darkened(0.3))
-		ridge.position = Vector3(0, 0.5, 0)
-		_mesh.add_child(ridge)
-	else:
-		for row in 3:
-			var off := 0.0 if row % 2 == 0 else 0.25
-			for k in 2:
-				var b := Art.box(Vector3(0.95, sz.y / 3.0 - 0.03, sz.z), c.lightened(0.06 * ((row + k) % 2)))
-				b.position = Vector3(-0.5 + k * 1.0 + off - 0.12, sz.y / 6.0 + row * sz.y / 3.0, 0)
-				_mesh.add_child(b)
 	_mesh.position.y = 0.0
 	rotation.y = BuildWorld.yaw_of(rot)
-	position.y += by
+
+
+func _add_box(size: Vector3, xf: Transform3D) -> void:
+	var col := CollisionShape3D.new()
+	var bs := BoxShape3D.new()
+	bs.size = size
+	col.shape = bs
+	col.transform = xf
+	add_child(col)
+	_cols.append(col)
+
+
+## A slab with bevelled sides: a square 14 cm edge is just too steep for a round-bottomed
+## walker, so without this you had to jump to get onto your own floor.
+func _floor_collision(sz: Vector3) -> void:
+	var pts := PackedVector3Array()
+	for sx in [-0.5, 0.5]:
+		for z in [-0.5, 0.5]:
+			pts.append(Vector3(sx * sz.x, sz.y, z * sz.z))
+			pts.append(Vector3(sx * (sz.x + FLOOR_LIP * 2.0), 0.0, z * (sz.z + FLOOR_LIP * 2.0)))
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = pts
+	var col := CollisionShape3D.new()
+	col.shape = shape
+	add_child(col)
+	_cols.append(col)
+
+
+func _roof_collision() -> void:
+	for c in _cols:
+		c.free()
+	_cols.clear()
+	for shape in BuildKit.roof_shapes(roof_shape[0], roof_shape[1]):
+		_add_box(shape[0], shape[1])
+
+
+## A roof tile re-shapes itself when its neighbours change. Returns true if it did.
+func set_roof_shape(shape: Array) -> bool:
+	if shape == roof_shape:
+		return false
+	roof_shape = shape
+	if _mesh == null:
+		return true
+	for c in _mesh.get_children():
+		c.free()
+	BuildKit.roof(_mesh, BuildWorld.PIECES[piece_id]["color"], shape[0], shape[1], shape[2], shape[3])
+	_roof_collision()
+	return true
+
+
+func parts() -> Array:
+	return _mesh.find_children("*", "MeshInstance3D", true, false) if _mesh != null else []
+
+
+## The construction animation: boards fly in one after another, lowest first, each landing with
+## a hammer tap that climbs in pitch, then the whole piece gives a settling bounce.
+func assemble() -> void:
+	var items: Array = _mesh.get_children().filter(func(n): return n is Node3D)
+	if items.size() < 3:
+		pop_in()
+		return
+	items.sort_custom(func(a, b): return (a as Node3D).position.y < (b as Node3D).position.y)
+	for i in items.size():
+		var part: Node3D = items[i]
+		var home := part.position
+		var turn := part.rotation
+		part.position = home + Vector3(randf_range(-0.5, 0.5), randf_range(0.7, 1.4), randf_range(-0.9, 0.9))
+		part.rotation = turn + Vector3(randf_range(-1.2, 1.2), randf_range(-0.8, 0.8), randf_range(-1.2, 1.2))
+		part.visible = false
+		var delay := ASSEMBLE_SPREAD * float(i) / items.size()
+		var tw := part.create_tween()
+		tw.tween_interval(delay)
+		tw.tween_callback(part.show)
+		tw.tween_property(part, "position", home, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(part, "rotation", turn, 0.17).set_ease(Tween.EASE_OUT)
+	for k in 5:
+		var tap := create_tween()
+		tap.tween_interval(0.12 + ASSEMBLE_SPREAD * k / 5.0)
+		tap.tween_callback(func(): Sfx.play_on(self, "step_wood", 0.85 + 0.17 * k))
+	var settle := create_tween()
+	settle.tween_interval(ASSEMBLE_SPREAD + 0.2)
+	settle.tween_callback(_settle_puff)
+	settle.tween_property(_mesh, "scale", Vector3(1.04, 0.94, 1.04), 0.07)
+	settle.tween_property(_mesh, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+
+func _settle_puff() -> void:
+	if not is_inside_tree():
+		return
+	Sfx.play_on(self, "thud", 1.35)
+	var along := global_basis.x
+	for k in 3:
+		FX.burst(self, global_position + along * (k - 1) * 0.8 + Vector3(0, 0.1, 0), Color(0.8, 0.72, 0.56), 7, 0.11, 1.8, -1.0, "sphere", 85.0)
+
+
+## Knocked down because nothing holds it up: bursts into tumbling parts.
+func collapse(from: Vector3) -> void:
+	collision_layer = 0   # gone this instant: debris and bundles must not be flung out of it
+	for col in _cols:
+		col.set_deferred("disabled", true)
+	var host := get_parent()
+	if host != null and is_inside_tree():
+		var meshes := parts()
+		var step := maxi(1, ceili(meshes.size() / 16.0))
+		for i in range(0, meshes.size(), step):
+			var m := meshes[i] as MeshInstance3D
+			var away := m.global_position - from
+			away.y = 0.0
+			BuildDebris.fling(host, m, away.normalized() * randf_range(0.6, 2.2) + Vector3(randf_range(-0.8, 0.8), randf_range(0.3, 2.6), randf_range(-0.8, 0.8)))
+		FX.burst(host, global_position + Vector3(0, 0.5, 0), Color(0.8, 0.72, 0.56), 16, 0.18, 2.2, -1.0, "sphere", 90.0)
+		Sfx.play_on(host, "crunch", randf_range(0.85, 1.2))
+	queue_free()
 
 
 ## Squash-and-bounce arrival (juice): drops in tall, lands wide, settles.
@@ -348,13 +412,9 @@ func pop_in() -> void:
 			FX.burst(self, global_position + Vector3(0, 0.4, 0), c, 6, 0.08, 2.5))
 
 
-## Demolish: debris burst, then free.
+## Demolish: the piece comes apart into its boards.
 func crumble() -> void:
-	var c: Color = BuildWorld.PIECES[piece_id]["color"]
-	var parent := get_parent()
-	if parent != null:
-		FX.burst(parent, global_position + Vector3(0, 0.5, 0), c, 14, 0.1, 3.5)
-	queue_free()
+	collapse(global_position - global_basis.z)
 
 
 ## A hay bale squishes flat and springs back when something lands on it.

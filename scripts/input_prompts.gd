@@ -4,12 +4,12 @@ extends Node
 
 const KEY_LABELS := {
 	"interact": "E", "jump": "Space", "sprint": "Shift", "crouch": "C", "help": "H", "save": "F5", "pause": "Esc",
-	"tool_1": "1", "tool_2": "2", "tool_3": "3", "tool_4": "4", "tool_5": "5", "tool_6": "6", "tool_7": "7", "build_cycle": "F", "interact_click": "Click", "craft_next": "Q", "drop_item": "G", "throw_bomb": "B", "throw_decoy": "V", "whistle": "R",
+	"tool_1": "1", "tool_2": "2", "tool_3": "3", "tool_4": "4", "tool_5": "5", "tool_6": "6", "tool_7": "7", "build_cycle": "F", "build_level": "T", "interact_click": "Click", "craft_next": "Q", "drop_item": "G", "throw_bomb": "B", "throw_decoy": "V", "whistle": "R",
 	"move": "WASD", "look": "Mouse", "tools": "1-6", "use": "E / Left click",
 }
 const PAD_LABELS := {
 	"interact": "X", "jump": "A", "sprint": "L3", "crouch": "B", "help": "Y", "save": "F5", "pause": "Start",
-	"tool_1": "D-pad Up", "tool_2": "D-pad Right", "tool_3": "D-pad Down", "tool_4": "D-pad Left", "tool_5": "LB", "tool_6": "R3", "tool_7": "L3 click", "build_cycle": "L3",
+	"tool_1": "D-pad Up", "tool_2": "D-pad Right", "tool_3": "D-pad Down", "tool_4": "D-pad Left", "tool_5": "LB", "tool_6": "R3", "tool_7": "L3 click", "build_cycle": "L3", "build_level": "Paddle 3",
 	"interact_click": "RB", "craft_next": "Back", "drop_item": "Paddle", "throw_bomb": "RT", "throw_decoy": "LT", "whistle": "Paddle 2",
 	"move": "Left stick", "look": "Right stick", "tools": "D-pad", "use": "X / RB",
 }
@@ -23,7 +23,8 @@ const HELP_TEMPLATE := """SHOVEL TO STARSHIP  —  prototype 0.3
 Goal: till, plant, water, sleep, harvest, sell.
 Seeds at the General Store. Sell at the red bin.
 Sleep in the bed (inside your house) to skip the night.
-Chop trees with the Axe for wood. Craft fence panels, then [6] Builder to place them.
+Chop trees with the Axe for wood. Craft pieces, then [6] Builder: {craft_next} turn,
+{build_level} storey. A roofed, walled bedroom with furniture leaves you well rested.
 Gran's Old Mine is north-west of the farm. {throw_bomb}  throw a Boom Turnip.
 
 Cut tall grass with the Hoe (craft a Scythe!) for hay. Crouch in it to hide.

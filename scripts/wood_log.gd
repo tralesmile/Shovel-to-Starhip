@@ -77,6 +77,9 @@ func _ready() -> void:
 	if item_id == "sunmint":
 		_build_herb()
 		return
+	if BuildWorld.PIECES.has(item_id):
+		_build_bundle()
+		return
 	if chunk_color.a > 0.0:
 		_build_chunk()
 		return
@@ -161,6 +164,24 @@ func _build_produce() -> void:
 	var veg := CropModel.produce(item_id)
 	veg.scale = Vector3.ONE * 0.85
 	add_child(veg)
+
+
+## A fallen build piece: its timbers (or stones) tied into a bundle you can carry off.
+func _build_bundle() -> void:
+	mass = 2.5
+	angular_damp = 2.5
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(0.7, 0.28, 0.42)
+	cs.shape = bx
+	add_child(cs)
+	var stone := item_id == "stone_wall"
+	for k in 6:
+		var at := Vector3(0.02 * (k % 3) - 0.02, -0.06 if k < 3 else 0.06, (k % 3 - 1) * 0.13)
+		BuildKit.board(self, Vector3(0.7 - 0.05 * (k % 2), 0.11, 0.12), at, chunk_color.lightened(0.09 * (k % 3) - 0.06), BuildKit.STONE_SURFACE if stone else BuildKit.WOOD_SURFACE)
+	for x in [-0.2, 0.2]:
+		add_child(Art.box(Vector3(0.05, 0.27, 0.43), Color(0.85, 0.72, 0.45)))
+		(get_child(get_child_count() - 1) as Node3D).position.x = x
 
 
 ## A tied sheaf of straw.

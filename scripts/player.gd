@@ -50,6 +50,8 @@ func _ready() -> void:
 	add_child(shape)
 	_shape = shape
 	collision_mask |= Buildings.CEILING_LAYER
+	floor_max_angle = deg_to_rad(52.0)   # built stairs are steep
+	floor_constant_speed = true          # and should not feel like wading
 	_build_model()
 
 	_pivot = Node3D.new()
@@ -1129,7 +1131,7 @@ func _physics_process(delta: float) -> void:
 	var dir := (basis_yaw * Vector3(input.x, 0, input.y))
 	crouching = Input.is_action_pressed("crouch") and is_on_floor() and mount == null
 	var sr := FX.stamina_step(stamina, Input.is_action_pressed("sprint") and not crouching, dir.length() > 0.01, winded, delta)
-	stamina = sr["stamina"]
+	stamina = FX.rested_stamina(stamina, sr["stamina"], Game.rested)
 	if sr["winded"] and not winded:
 		Game.say("Huff... puff... turnips are heavy.")
 	winded = sr["winded"]

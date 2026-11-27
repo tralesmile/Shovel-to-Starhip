@@ -93,6 +93,8 @@ const ITEMS := {
 	"wood_wall": {"name": "Wood Wall", "buy": 0, "sell": 16},
 	"wood_door": {"name": "Wood Doorway", "buy": 0, "sell": 20},
 	"wood_roof": {"name": "Wood Roof", "buy": 0, "sell": 18},
+	"wood_window": {"name": "Window Wall", "buy": 0, "sell": 22},
+	"wood_stairs": {"name": "Wood Stairs", "buy": 0, "sell": 22},
 	"rocket_plate": {"name": "Rocket Hull Plate", "buy": 0, "sell": 0},
 	"copper_pickaxe": {"name": "Copper Pickaxe", "buy": 0, "sell": 0},
 	"gem_pickaxe": {"name": "Gem Pickaxe", "buy": 0, "sell": 0},
@@ -133,6 +135,8 @@ const RECIPES := [
 	{"id": "wood_wall", "name": "Wood Wall", "in": {"plank": 4}, "out": {"wood_wall": 1}},
 	{"id": "wood_door", "name": "Wood Doorway", "in": {"plank": 4, "copper_ingot": 1}, "out": {"wood_door": 1}},
 	{"id": "wood_roof", "name": "Wood Roof", "in": {"plank": 5}, "out": {"wood_roof": 1}},
+	{"id": "wood_window", "name": "Window Wall", "in": {"plank": 4, "stone": 1}, "out": {"wood_window": 1}},
+	{"id": "wood_stairs", "name": "Wood Stairs", "in": {"plank": 6}, "out": {"wood_stairs": 1}},
 	{"id": "wood_table", "name": "Wood Table", "in": {"plank": 4}, "out": {"wood_table": 1}},
 	{"id": "wood_chair", "name": "Wood Chair", "in": {"plank": 2}, "out": {"wood_chair": 1}},
 	{"id": "wood_bed", "name": "Wood Bed", "in": {"plank": 5, "rabbit_pelt": 1}, "out": {"wood_bed": 1}},
@@ -170,7 +174,7 @@ const RECIPES := [
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
 const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
-	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "anvil": 10.0, "invention_bench": 9.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
+	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_window": 5.0, "wood_stairs": 7.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "anvil": 10.0, "invention_bench": 9.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
 	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0, "loot_vacuum": 0.0,
 	"glow_crystal": 0.5, "boom_turnip": 0.5, "miner_helmet": 0.0,
 	"hay": 0.4, "sunmint": 0.1, "scythe": 0.0, "hay_bale": 4.0,
@@ -215,7 +219,8 @@ const NEW_DAY_JOKES := [
 
 var money: int = 50
 var inventory: Dictionary = {"turnip_seed": 5}
-var built: Array = []   ## placed building pieces: {id, x, z, r}
+var built: Array = []   ## placed building pieces: {id, x, z, r, l (storey, optional)}
+var rested := 0   ## comfort of the bed you woke in (0..4): easier sprinting
 var day: int = 1
 var time_of_day: float = START_TIME
 var current_tool: int = Tool.HOE
@@ -763,6 +768,7 @@ func weather() -> String:
 
 ## Skip to the next morning (used by the bed).
 func sleep() -> void:
+	rested = 0   # only a cosy bed of your own sets this again
 	time_of_day = START_TIME
 	advance_day()
 
@@ -799,6 +805,7 @@ func to_dict() -> Dictionary:
 		"money": money,
 		"inventory": inventory,
 		"built": built.duplicate(true),
+		"rested": rested,
 		"day": day,
 		"time_of_day": time_of_day,
 		"current_tool": current_tool,
@@ -826,6 +833,7 @@ func from_dict(data: Dictionary) -> void:
 	var inv: Dictionary = data.get("inventory", {})
 	for k in inv.keys():
 		inventory[k] = int(inv[k])
+	rested = clampi(int(data.get("rested", 0)), 0, BuildGrid.COZY_MAX)
 	built = []
 	for d in data.get("built", []):
 		if typeof(d) == TYPE_DICTIONARY:
@@ -916,6 +924,7 @@ func setup_input() -> void:
 	_key_action("tool_6", [KEY_6])
 	_key_action("tool_7", [KEY_7])
 	_key_action("build_cycle", [KEY_F])
+	_key_action("build_level", [KEY_T])
 	_key_action("craft_next", [KEY_Q])
 	_key_action("help", [KEY_H, KEY_F1])
 	_key_action("drop_item", [KEY_G])
@@ -937,7 +946,7 @@ const PAD_BUTTONS := {
 	"jump": [JOY_BUTTON_A], "interact": [JOY_BUTTON_X], "interact_click": [JOY_BUTTON_RIGHT_SHOULDER],
 	"sprint": [JOY_BUTTON_LEFT_STICK], "crouch": [JOY_BUTTON_B], "help": [JOY_BUTTON_Y], "pause": [JOY_BUTTON_START],
 	"tool_1": [JOY_BUTTON_DPAD_UP], "tool_2": [JOY_BUTTON_DPAD_RIGHT],
-	"craft_next": [JOY_BUTTON_BACK], "tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER], "tool_6": [JOY_BUTTON_RIGHT_STICK], "tool_7": [JOY_BUTTON_LEFT_STICK], "build_cycle": [JOY_BUTTON_LEFT_STICK], "drop_item": [JOY_BUTTON_PADDLE1], "whistle": [JOY_BUTTON_PADDLE2],
+	"craft_next": [JOY_BUTTON_BACK], "tool_3": [JOY_BUTTON_DPAD_DOWN], "tool_4": [JOY_BUTTON_DPAD_LEFT], "tool_5": [JOY_BUTTON_LEFT_SHOULDER], "tool_6": [JOY_BUTTON_RIGHT_STICK], "tool_7": [JOY_BUTTON_LEFT_STICK], "build_cycle": [JOY_BUTTON_LEFT_STICK], "drop_item": [JOY_BUTTON_PADDLE1], "whistle": [JOY_BUTTON_PADDLE2], "build_level": [JOY_BUTTON_PADDLE3],
 }
 const PAD_AXES := {
 	"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],

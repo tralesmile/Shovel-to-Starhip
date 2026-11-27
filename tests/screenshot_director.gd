@@ -64,6 +64,18 @@ func _run() -> void:
 		await _pet_shots(p, "20")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=b0"):
+		await _house_before(p)
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=b1,b2,b3,b4,b5,b6,b7,b8"):
+		await _house_after(p)
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=b9"):
+		await _house_walk(p)
+		get_tree().quit()
+		return
 	# Prepare a farm in mixed states so the shot shows every stage.
 	var plots := get_tree().get_nodes_in_group("daily").filter(func(n): return n is FarmPlot)
 	for i in plots.size():
@@ -1375,3 +1387,183 @@ func _whistle_shot(p: Player) -> void:
 	await _game_wait(5.0)
 	for c in pets:
 		print("  ", c.name, " dist ", snappedf((c as Critter).global_position.distance_to(p.global_position), 0.1))
+
+
+## Clears trees around the building plot so the house can be framed.
+func _house_site() -> Vector3:
+	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+	var at := Vector3(12, 0, -10)
+	for o in main.get_node("Trees").get_children():
+		(o as Node3D).visible = (o as Node3D).global_position.distance_to(at) > 12.0
+	return at
+
+
+## What a player could build before the run-31 overhaul: walls only fit in tile centres.
+func _house_before(p: Player) -> void:
+	var at := _house_site()
+	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+	for id in ["wood_floor", "wood_wall", "wood_door", "wood_roof"]:
+		Game.add_item(id, 40)
+	for cx in 3:
+		for cz in 2:
+			bw.place("wood_floor", at + Vector3(cx * 2, 0, cz * 2), 0, Game)
+			bw.place("wood_roof", at + Vector3(cx * 2, 0, cz * 2), 0, Game)
+	for cx in 3:
+		bw.place("wood_wall" if cx != 1 else "wood_door", at + Vector3(cx * 2, 0, 2), 0, Game)
+		bw.place("wood_wall", at + Vector3(cx * 2, 0, 0), 0, Game)
+	bw.place("wood_wall", at + Vector3(0, 0, 2), 1, Game)
+	bw.place("wood_wall", at + Vector3(4, 0, 2), 1, Game)
+	Game.time_of_day = 0.42
+	p.global_position = at + Vector3(2, 0.1, 9)
+	_free_cam(at + Vector3(9.0, 5.2, 10.0), at + Vector3(2.0, 1.4, 1.0), 50.0)
+	await _wait(60)
+	await _shot("b0_house_before.png")
+
+
+## A two-room cottage with real corners, windows, a swinging door and one shared roof.
+func _cottage(bw: BuildWorld, at: Vector3) -> void:
+	for id in ["wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_window", "wood_stairs", "wood_table", "wood_chair", "wood_bed", "lantern", "stone_wall", "fence_panel"]:
+		Game.add_item(id, 60)
+	for cx in 3:
+		for cz in 2:
+			bw.place("wood_floor", at + Vector3(cx * 2, 0, cz * 2), 0, Game, 0)
+		bw.place("wood_wall" if cx == 1 else "wood_window", at + Vector3(cx * 2, 0, -1), 0, Game, 0)
+		bw.place("wood_door" if cx == 1 else "wood_window", at + Vector3(cx * 2, 0, 3), 0, Game, 0)
+	for cz2 in 2:
+		bw.place("wood_wall", at + Vector3(-1, 0, cz2 * 2), 1, Game, 0)
+		bw.place("wood_window" if cz2 == 1 else "wood_wall", at + Vector3(5, 0, cz2 * 2), 1, Game, 0)
+
+
+func _roof_over(bw: BuildWorld, at: Vector3) -> void:
+	for cx in 3:
+		for cz in 2:
+			bw.place("wood_roof", at + Vector3(cx * 2, 0, cz * 2), 1, Game, 1)
+
+
+func _house_after(p: Player) -> void:
+	var at := _house_site()
+	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+	_cottage(bw, at)
+	await _game_wait(1.2)
+	_roof_over(bw, at)
+	for x in [0, 2, 4]:
+		bw.place("fence_panel", at + Vector3(x - 4.0, 0, 5), 0, Game, 0)
+	bw.place("stone_wall", at + Vector3(8, 0, 3), 0, Game, 0)
+	bw.place("lantern", at + Vector3(6, 0, 4), 0, Game, 0)
+	Game.time_of_day = 0.42
+	p.global_position = at + Vector3(8, 0.1, 8)
+	var cam := _free_cam(at + Vector3(9.5, 5.0, 10.5), at + Vector3(1.8, 1.3, 1.0), 50.0)
+	# Mid-assembly: slow motion while the roof is still flying together.
+	Engine.time_scale = 0.12
+	await _wait(2)
+	for i in 400:
+		await get_tree().process_frame
+		if i > 4:
+			break
+	await _freeze_shot("b4_assembling.png")
+	await _game_wait(1.5)
+	await _shot("b1_cottage.png")
+	Game.time_of_day = 0.93
+	await _wait(40)
+	await _shot("b2_cottage_night.png")
+	# Walk up to the door: it swings, and the roof cuts away once inside.
+	Game.time_of_day = 0.45
+	cam.global_position = at + Vector3(5.0, 3.0, 8.0)
+	cam.look_at(at + Vector3(2.0, 1.0, 2.5))
+	p.global_position = at + Vector3(2.0, 0.2, 4.1)
+	p._model.rotation.y = PI
+	await _game_wait(1.2)
+	await _shot("b3_door.png")
+	cam.current = false
+	p.camera.current = true
+	bw.place("wood_bed", at + Vector3(0, 0, 0), 0, Game, 0)
+	bw.place("wood_table", at + Vector3(4, 0, 0), 0, Game, 0)
+	bw.place("wood_chair", at + Vector3(4, 0, 2), 2, Game, 0)
+	var bed: BuildPiece = bw.pieces[BuildWorld.key_for("wood_bed", at, 0)]
+	print("COMFORT ", bw.comfort_at(bed))
+	await _view(p, 0.45, at + Vector3(2.0, 0.25, 1.2), 0.3, -0.62, 6.0, "b5_indoors.png")
+	print("HIDDEN ", bw._hidden.size())
+	# An upstairs balcony with stairs, and the support-coloured ghost.
+	var b2 := at + Vector3(-10, 0, 2)
+	bw.place("wood_stairs", b2 + Vector3(0, 0, -2), 0, Game, 0)
+	for x2 in [0, 2]:
+		bw.place("wood_wall", b2 + Vector3(x2, 0, 1), 0, Game, 0)
+		bw.place("wood_floor", b2 + Vector3(x2, 0, 0), 0, Game, 1)
+		bw.place("wood_floor", b2 + Vector3(x2, 0, 2), 0, Game, 1)
+		bw.place("wood_window", b2 + Vector3(x2, 0, 3), 0, Game, 1)
+	bw.place("wood_wall", b2 + Vector3(3, 0, 0), 1, Game, 1)
+	bw.place("fence_panel", b2 + Vector3(-1, 0, 0), 1, Game, 1)
+	Game.set_tool(GameState.Tool.BUILD)
+	bw.piece_id = "wood_floor"
+	p.global_position = b2 + Vector3(2.0, 2.5, 0.2)
+	p._model.rotation.y = PI * 0.5
+	cam.current = true
+	cam.global_position = b2 + Vector3(9.0, 5.6, -7.0)
+	cam.look_at(b2 + Vector3(1.0, 1.8, 0.5))
+	await _game_wait(1.5)
+	print("GHOST support=", bw._ghost_support, " level=", bw._ghost_level, " ok=", bw._ghost_ok, " py=", p.global_position.y)
+	await _shot("b6_upstairs_ghost.png")
+	# Pull out both supporting walls: the whole balcony comes down.
+	Game.set_tool(GameState.Tool.HOE)
+	p.global_position = b2 + Vector3(7, 0.2, -3)
+	bw.demolish(BuildWorld.key_for("wood_wall", b2 + Vector3(0, 0, 1), 0, 0), Game)
+	await _game_wait(0.8)
+	bw.demolish(BuildWorld.key_for("wood_wall", b2 + Vector3(2, 0, 1), 0, 0), Game)
+	Engine.time_scale = 1.0
+	await _game_wait(0.55)
+	await _freeze_shot("b7_collapse.png")
+	await _game_wait(4.5)
+	await _shot("b8_rubble_bundles.png")
+	print("PICKUPS ", get_tree().get_nodes_in_group("pickup").size(), " debris ", get_tree().get_nodes_in_group("build_debris").size())
+
+
+func _walk(p: Player, secs: float) -> void:
+	Input.action_press("move_forward")
+	var t := 0.0
+	while t < secs:
+		await get_tree().physics_frame
+		t += 1.0 / 60.0
+	Input.action_release("move_forward")
+	await _game_wait(0.3)
+
+
+## Real player, real input: through the swinging door, up the stairs, and a placement via use().
+func _house_walk(p: Player) -> void:
+	var at := _house_site()
+	var bw := get_tree().get_first_node_in_group("buildworld") as BuildWorld
+	_cottage(bw, at)
+	_roof_over(bw, at)
+	Game.time_of_day = 0.45
+	await _game_wait(1.0)
+	p.global_position = at + Vector3(2.0, 0.2, 6.0)
+	p._yaw = 0.0   # forward is -Z, into the house
+	await _game_wait(0.5)
+	await _walk(p, 1.5)
+	var door: BuildPiece = bw.pieces[BuildWorld.key_for("wood_door", at + Vector3(2, 0, 3), 0)]
+	print("WALKED_IN z=", p.global_position.z - at.z, " covered=", bw.is_covered(p.global_position), " door_angle=", door.find_children("*", "DoorLeaf", true, false)[0].angle)
+	var s0 := at + Vector3(-8, 0, 0)
+	bw.place("wood_stairs", s0, 0, Game, 0)
+	bw.place("wood_wall", s0 + Vector3(0, 0, 3), 0, Game, 0)
+	bw.place("wood_floor", s0 + Vector3(0, 0, 2), 0, Game, 1)
+	await _game_wait(1.0)
+	p.global_position = s0 + Vector3(0, 0.2, -2.4)
+	p._yaw = PI    # forward is +Z, up the stairs
+	await _game_wait(0.4)
+	await _walk(p, 1.5)
+	print("CLIMBED y=", p.global_position.y, " z=", p.global_position.z - s0.z)
+	await _walk(p, 0.45)
+	print("TOP y=", p.global_position.y, " z=", p.global_position.z - s0.z)
+	Game.set_tool(GameState.Tool.BUILD)
+	bw.piece_id = "fence_panel"
+	p.global_position = at + Vector3(-4, 0.2, 8)
+	p._model.rotation.y = 0.0
+	await _game_wait(0.8)
+	var n := Game.built.size()
+	var anim := bw.use(p)
+	await _game_wait(0.8)
+	print("USE placed=", Game.built.size() - n, " anim=", anim, " entry=", Game.built[-1])
+	n = Game.built.size()
+	await _game_wait(0.2)
+	bw.use(p)
+	await _game_wait(0.3)
+	print("USE demolished=", n - Game.built.size())

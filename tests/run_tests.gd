@@ -18,6 +18,7 @@ func _run() -> void:
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
 		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models", "test_car_physics", "test_car_damage_parts", "test_street_props", "test_harvest_regrow_compost", "test_crop_models", "test_giant_crops", "test_sprinkler",
 		"test_stealth_gaze", "test_stealth_marker_and_hearing", "test_vision_cone_clip", "test_velvet_picks", "test_abandon_lock", "test_decoy_logic", "test_npc_distraction", "test_lock_meter", "test_heist_art", "test_door_swing", "test_room_dressing",
+		"test_edge_snapping", "test_support_and_collapse", "test_roof_shapes", "test_build_aim", "test_door_cutaway_comfort", "test_build_models",
 		"test_pet_friendship", "test_animal_rig", "test_chicken_flight_and_jobs_logic", "test_goat_ram", "test_mount_steer", "test_pet_gear_and_save",
 	]:
 		_fresh_game()
@@ -35,6 +36,15 @@ func _run() -> void:
 	game.free()
 	_fresh_game()
 	check(await test_car_on_real_ground() == true, "test_car_on_real_ground ran to the end (no script error)")
+	game.free()
+	_fresh_game()
+	check(await test_demolish_collapses() == true, "test_demolish_collapses ran to the end (no script error)")
+	game.free()
+	_fresh_game()
+	check(await test_collapse_on_real_ground() == true, "test_collapse_on_real_ground ran to the end (no script error)")
+	game.free()
+	_fresh_game()
+	check(await test_stairs_on_real_ground() == true, "test_stairs_on_real_ground ran to the end (no script error)")
 	game.free()
 	print("\n%d checks passed, %d failed" % [passes, failures.size()])
 	for f in failures:
@@ -3012,4 +3022,301 @@ func test_hen_on_real_ground() -> bool:
 			break
 	check(grabbed, "she picks up distant loot")
 	check(delivered and is_instance_valid(egg) and Vector2(egg.global_position.x, egg.global_position.z).length() < 2.6, "and brings it within magnet reach")
+	return true
+
+
+func _gi(style: String, x: float, z: float, r: int, l: int) -> Dictionary:
+	return {"id": style, "style": style, "kind": BuildGrid.kind_of(style), "x": x, "z": z, "r": r, "l": l}
+
+
+## A one-tile hut: floor, four walls on its edges, a roof, and furniture of choice inside.
+func _hut() -> Dictionary:
+	return {
+		"floor": _gi("floor", 0, 0, 0, 0), "n": _gi("plank_wall", 0, -1, 0, 0), "s": _gi("doorway", 0, 1, 0, 0),
+		"w": _gi("plank_wall", -1, 0, 1, 0), "e": _gi("window", 1, 0, 1, 0), "roof": _gi("roof", 0, 0, 0, 1),
+	}
+
+
+func test_edge_snapping() -> bool:
+	check(BuildGrid.snap_edge(Vector3(0.3, 0, 0.4), 0) == Vector3(0, 0, 1), "wall along X sits on the near z edge")
+	check(BuildGrid.snap_edge(Vector3(0.3, 0, -0.4), 0) == Vector3(0, 0, -1), "or the far one")
+	check(BuildGrid.snap_edge(Vector3(0.4, 0, 0.3), 1) == Vector3(1, 0, 0), "wall along Z sits on an x edge")
+	check(BuildGrid.facing_axis(0.0) == 0 and BuildGrid.facing_axis(PI * 0.5) == 1 and BuildGrid.facing_axis(PI) == 0, "walls turn with you")
+	check(BuildGrid.facing_quarter(PI * 0.5) == 1 and BuildGrid.facing_quarter(-PI * 0.5) == 3, "quarter turns wrap")
+	check(BuildGrid.edge_cells(0, 1, 0) == [Vector2i(0, 0), Vector2i(0, 1)], "an edge borders two tiles")
+	check(BuildGrid.edge_cells(2, 2, 0) == [Vector2i(1, 1)], "old mid-tile walls still count for their tile")
+	var keys := {}
+	for e in [[0, 1, 0], [0, -1, 0], [1, 0, 1], [-1, 0, 1], [0, 0, 0], [0, 0, 1]]:
+		keys[BuildWorld.key_for("wood_wall", Vector3(e[0], 0, e[1]), e[2], 0)] = true
+	check(keys.size() == 6, "every edge (and old mid-tile slot) has its own key")
+	check(BuildWorld.key_for("wood_wall", Vector3(0, 0, 1), 0, 1) != BuildWorld.key_for("wood_wall", Vector3(0, 0, 1), 0, 0), "storeys have their own slots")
+	check(BuildWorld.key_for("wood_roof", Vector3.ZERO, 0) == BuildWorld.key_for("wood_roof", Vector3.ZERO, 0, 1), "roofs default to the first storey")
+	return true
+
+
+func test_support_and_collapse() -> bool:
+	var h := _hut()
+	var s := BuildGrid.supports(h)
+	check(s["floor"] == 1.0 and s["n"] == 1.0, "ground pieces are solid")
+	check(is_equal_approx(s["roof"], BuildGrid.FROM_BELOW), "roof leans on the walls")
+	check(BuildGrid.collapsed(h, "n").is_empty(), "three walls still hold the roof")
+	for k in ["n", "s", "w"]:
+		h.erase(k)
+	check(BuildGrid.collapsed(h, "e") == ["roof"], "last wall gone, roof falls")
+	# A balcony can only reach so far from its wall.
+	var items := {"w0": _gi("plank_wall", 0, 1, 0, 0)}
+	for i in 5:
+		items["f%d" % i] = _gi("floor", 0, -2 * i, 0, 1)
+	items["f0"] = _gi("floor", 0, 0, 0, 1)
+	var sp := BuildGrid.supports(items)
+	check(sp["f0"] > sp["f1"] and sp["f1"] > sp["f2"], "support fades along a cantilever")
+	check(sp["f2"] >= BuildGrid.MIN_SUPPORT and sp["f3"] < BuildGrid.MIN_SUPPORT, "three tiles is the limit")
+	var fell := BuildGrid.collapsed(items, "w0")
+	check(fell.size() == 3, "pull the wall and the whole balcony goes (%d)" % fell.size())
+	check(not fell.has("f4"), "already-unsupported old pieces never collapse by surprise")
+	var tower := {"a": _gi("plank_wall", 0, 1, 0, 0), "b": _gi("plank_wall", 0, 1, 0, 1), "c": _gi("plank_wall", 0, 1, 0, 2)}
+	check(BuildGrid.supports(tower)["c"] > BuildGrid.MIN_SUPPORT, "walls stack three high")
+	check(BuildGrid.collapsed(tower, "a") == ["b", "c"], "kick out the bottom and it falls lowest first")
+	check(BuildGrid.support_color(1.0).g > BuildGrid.support_color(1.0).r and BuildGrid.support_color(0.1).r > BuildGrid.support_color(0.1).g, "green is solid, red is not")
+	check(BuildGrid.support_word(0.3) == "wobbly", "support words")
+	return true
+
+
+func test_demolish_collapses() -> bool:
+	var bw := BuildWorld.new()
+	root.add_child(bw)
+	game.add_item("wood_wall", 2)
+	game.add_item("wood_roof", 1)
+	check(bw.place("wood_wall", Vector3(20, 0, 21), 0, game, 0) and bw.place("wood_wall", Vector3(20, 0, 21), 0, game, 1), "wall on wall")
+	check(bw.place("wood_roof", Vector3(20, 0, 20), 0, game, 2), "roof on top")
+	check(game.built[1].get("l") == 1 and not game.built[0].has("l"), "storey saved only when needed")
+	game.from_dict(game.to_dict())
+	bw.rebuild_from_game(game)
+	check(bw.pieces.size() == 3, "stacked house survives save and load")
+	check(bw.demolish(BuildWorld.key_for("wood_wall", Vector3(20, 0, 21), 0, 0), game), "knock out the bottom wall")
+	check(bw.pieces.is_empty() and game.built.is_empty(), "everything above came down")
+	check(game.count("wood_wall") == 1 and game.count("wood_roof") == 0, "only the demolished piece goes to your pockets")
+	await create_timer(0.7).timeout
+	var bundles: Array = []
+	for n in bw.get_children():
+		if n is WoodLog:
+			bundles.append(n.item_id)
+	bundles.sort()
+	check(bundles == ["wood_roof", "wood_wall"], "fallen pieces lie on the ground as pick-ups %s" % str(bundles))
+	check(get_nodes_in_group("build_debris").size() > 5, "boards go flying")
+	for d in get_nodes_in_group("build_debris"):
+		d.free()
+	bw.free()
+	return true
+
+
+func test_roof_shapes() -> bool:
+	var roofs := {}
+	for x in [0, 2, 4]:
+		roofs[BuildGrid.roof_id(x, 0, 1)] = 0
+	check(BuildGrid.roof_span(roofs, 0, 0, 1, 0) == Vector2i(0, 3) and BuildGrid.roof_span(roofs, 4, 0, 1, 0) == Vector2i(2, 3), "three tiles share one gable")
+	check(BuildGrid.roof_span(roofs, 0, 0, 1, 1) == Vector2i(0, 1), "turned tiles do not join sideways")
+	var along_z := {BuildGrid.roof_id(0, 0, 1): 1, BuildGrid.roof_id(0, -2, 1): 1}
+	check(BuildGrid.roof_span(along_z, 0, 0, 1, 1) == Vector2i(0, 2), "axis 1 slopes toward -Z")
+	check(is_zero_approx(BuildGrid.roof_height(0.0, 3)) and is_zero_approx(BuildGrid.roof_height(6.0, 3)), "eaves are level")
+	check(BuildGrid.roof_height(3.0, 3) > BuildGrid.roof_height(2.0, 3), "ridge is highest")
+	for n in range(1, 6):
+		check(BuildGrid.roof_height(n * 1.0, n) <= 1.65, "wide roofs stay sensible (%d)" % n)
+		for i in n:
+			for seg in BuildGrid.roof_segments(i, n):
+				check(seg[1] > seg[0] and seg[0] >= i * 2.0 and seg[1] <= i * 2.0 + 2.0, "segments stay inside the tile")
+	check(BuildGrid.roof_segments(1, 3).size() == 2 and BuildGrid.roof_segments(0, 3).size() == 1, "only the ridge tile is split")
+	# In the world: placing a neighbour reshapes the first tile, demolishing reshapes it back.
+	var bw := BuildWorld.new()
+	root.add_child(bw)
+	game.add_item("wood_roof", 2)
+	bw.place("wood_roof", Vector3(30, 0, 30), 0, game)
+	var first: BuildPiece = bw.pieces[BuildWorld.key_for("wood_roof", Vector3(30, 0, 30), 0)]
+	check(first.roof_shape == [0, 1, true, true], "a lone roof is its own gable")
+	bw.place("wood_roof", Vector3(32, 0, 30), 0, game)
+	check(first.roof_shape == [0, 2, true, true], "it becomes half of a bigger one")
+	bw.demolish(BuildWorld.key_for("wood_roof", Vector3(32, 0, 30), 0), game)
+	check(first.roof_shape == [0, 1, true, true], "and back again")
+	var items := {"a": _gi("roof", 0, 0, 0, 1), "b": _gi("roof", 0, 2, 0, 1)}
+	check(BuildWorld.roof_shape_at(items, 0, 0, 1, 0) == [0, 1, true, false], "no gable boards between tiles in a row")
+	for d in get_nodes_in_group("build_debris"):
+		d.free()
+	bw.free()
+	return true
+
+
+func test_build_aim() -> bool:
+	var at := Vector3(0, Terrain.height_at(0, 0), -2.4)
+	var a := BuildWorld.aim("wood_wall", at, 0.0, 0, 0, {})
+	check(a["r"] == 0 and a["level"] == 0 and posmod(roundi((a["pos"] as Vector3).z), 2) == 1, "wall aims at an edge, running across your view")
+	check(BuildWorld.aim("wood_wall", at, PI * 0.5, 0, 0, {})["r"] == 1, "turn and the wall turns")
+	check(BuildWorld.aim("wood_wall", at, 0.0, 1, 0, {})["r"] == 1, "Q flips it")
+	check(BuildWorld.aim("wood_wall", at, 0.0, 0, 1, {})["level"] == 1, "T lifts a storey")
+	check(BuildWorld.aim("wood_floor", at + Vector3(0, 2.34, 0), 0.0, 0, 0, {})["level"] == 1, "standing upstairs builds upstairs")
+	check(BuildWorld.aim("wood_roof", at, 0.0, 0, 0, {})["level"] == 1, "a roof starts one storey up")
+	var cell: Vector3 = BuildWorld.aim("wood_roof", at, 0.0, 0, 0, {})["pos"]
+	var items := {"w0": _gi("plank_wall", cell.x, cell.z + 1.0, 0, 0), "w1": _gi("plank_wall", cell.x, cell.z + 1.0, 0, 1)}
+	check(BuildWorld.aim("wood_roof", at, 0.0, 0, 0, items)["level"] == 2, "roof sits on the highest wall")
+	var nb := {"r": _gi("roof", cell.x + 2.0, cell.z, 1, 1)}
+	check(BuildWorld.aim("wood_roof", at, 0.0, 0, 0, nb)["r"] == 1, "roof copies its neighbour's direction")
+	check(BuildWorld.aim("wood_stairs", at, PI, 0, 0, {})["r"] == 2, "stairs climb away from you")
+	check(BuildWorld.storey_of(0.14) == 0 and BuildWorld.storey_of(2.34) == 1 and BuildWorld.storey_of(9.0) == 2, "storeys by height")
+	var st := {"s": _gi("stairs", 0, 0, 0, 0)}
+	check(BuildWorld.blocks_stairwell(st, "wood_floor", 0, 0, 1) and not BuildWorld.blocks_stairwell(st, "wood_floor", 2, 0, 1), "stairwell stays open")
+	check(BuildWorld.blocks_stairwell({"f": _gi("floor", 0, 0, 0, 1)}, "wood_stairs", 0, 0, 0), "no stairs under a floor")
+	check(BuildWorld.prompt_for("wood_wall", 2, false, 1, 0.3).contains("wobbly"), "prompt warns about support")
+	return true
+
+
+func test_door_cutaway_comfort() -> bool:
+	check(DoorLeaf.target_angle(Vector3(0, 0, 3), 0.0) == 0.0, "door stays shut from afar")
+	check(DoorLeaf.target_angle(Vector3(0, 0, 1), 0.0) > 0.0 and DoorLeaf.target_angle(Vector3(0, 0, -1), 0.0) < 0.0, "door swings away from you")
+	check(DoorLeaf.target_angle(Vector3(0, 0, -0.5), DoorLeaf.OPEN_ANGLE) == DoorLeaf.OPEN_ANGLE, "no slamming back as you walk through")
+	var a := 0.0
+	var v := 0.0
+	var peak := 0.0
+	for i in 180:
+		var r := DoorLeaf.spring(a, v, DoorLeaf.OPEN_ANGLE, 1.0 / 60.0)
+		a = r[0]
+		v = r[1]
+		peak = maxf(peak, a)
+	check(peak > DoorLeaf.OPEN_ANGLE + 0.05 and absf(a - DoorLeaf.OPEN_ANGLE) < 0.01, "springy overshoot that settles")
+	check(BuildWorld.cuts_away(1, "roof", Vector3(0, 2.2, 0), true) and not BuildWorld.cuts_away(1, "roof", Vector3(0, 2.2, 0), false), "roof only hides when you are inside")
+	check(not BuildWorld.cuts_away(0, "plank_wall", Vector3(1, 0, 0), true), "your walls stay")
+	var items: Array = _hut().values()
+	check(BuildGrid.comfort(items, 0, 0, 0) == 1, "a roofed, walled room is snug")
+	items.append(_gi("table", 0, 0, 0, 0))
+	items.append(_gi("lantern", 0, 0, 0, 0))
+	items.append(_gi("lantern", 1, 0, 0, 0))
+	check(BuildGrid.comfort(items, 0, 0, 0) == 3, "each kind of furniture counts once")
+	check(BuildGrid.comfort(items.filter(func(i): return i["kind"] != "roof"), 0, 0, 0) == 0, "no roof, no comfort")
+	check(BuildGrid.comfort(items.filter(func(i): return i["kind"] != "edge"), 0, 0, 0) == 0, "no walls, no comfort")
+	check(FX.rested_stamina(100.0, 90.0, 4) > 90.0 and FX.rested_stamina(50.0, 60.0, 4) == 60.0 and FX.rested_stamina(100.0, 90.0, 0) == 90.0, "rested only slows the drain")
+	game.rested = 3
+	var d := game.to_dict()
+	game.rested = 0
+	game.from_dict(d)
+	check(game.rested == 3, "rest is saved")
+	game.sleep()
+	check(game.rested == 0, "sleeping elsewhere clears it")
+	return true
+
+
+func test_build_models() -> bool:
+	for id in ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_window", "wood_stairs"]:
+		var p := BuildPiece.new()
+		p.piece_id = id
+		root.add_child(p)
+		check(p.parts().size() >= 8, "%s is built from many parts (%d)" % [id, p.parts().size()])
+		check(p.find_children("*", "CollisionShape3D", true, false).size() >= 1, id + " is solid")
+		if id == "wood_door":
+			check(p.find_children("*", "DoorLeaf", true, false).size() == 1, "doorway has a real door")
+		p.free()
+	for id2 in ["wood_window", "wood_stairs"]:
+		var i := _recipe_index(id2)
+		check(i >= 0 and GameState.ITEMS.has(id2) and GameState.ITEM_WEIGHT.has(id2) and BuildWorld.PIECE_ORDER.has(id2), id2 + " is craftable and placeable")
+	BuildKit.set_night(1.0)
+	check(BuildKit.glass().emission_energy_multiplier > 1.0, "windows glow at night")
+	BuildKit.set_night(0.0)
+	check(BuildKit.glass().emission_energy_multiplier == 0.0, "and not by day")
+	return true
+
+
+## Real physics: a body walks up the built stairs onto the upper floor.
+func test_stairs_on_real_ground() -> bool:
+	var ground := StaticBody3D.new()
+	var gs := CollisionShape3D.new()
+	var gb := BoxShape3D.new()
+	gb.size = Vector3(40, 1, 40)
+	gs.shape = gb
+	gs.position.y = -0.5
+	ground.add_child(gs)
+	root.add_child(ground)
+	var stairs := BuildPiece.new()
+	stairs.piece_id = "wood_stairs"
+	root.add_child(stairs)
+	var floor_up := BuildPiece.new()
+	floor_up.piece_id = "wood_floor"
+	floor_up.level = 1
+	floor_up.position = Vector3(0, BuildGrid.STOREY, 2)
+	root.add_child(floor_up)
+	var walker := CharacterBody3D.new()
+	walker.floor_max_angle = deg_to_rad(52.0)
+	walker.floor_snap_length = 0.3
+	var ws := CollisionShape3D.new()
+	var cap := CapsuleShape3D.new()
+	cap.radius = 0.35
+	cap.height = 1.7
+	ws.shape = cap
+	ws.position.y = 0.85
+	walker.add_child(ws)
+	walker.position = Vector3(0, 0.05, -2.2)
+	root.add_child(walker)
+	await physics_frame
+	var top := 0.0
+	walker.floor_constant_speed = true
+	for k in 260:
+		await physics_frame
+		walker.velocity = Vector3(0, walker.velocity.y - (0.0 if walker.is_on_floor() else 18.0 / 60.0), 3.0)
+		walker.move_and_slide()
+		if walker.position.z > 2.0:
+			break
+	top = walker.position.y
+	check(top > 2.1 and walker.position.z > 1.5, "walked upstairs (y %.2f z %.2f)" % [walker.position.y, walker.position.z])
+	var slab := BuildPiece.new()
+	slab.piece_id = "wood_floor"
+	slab.position = Vector3(8, 0, 0)
+	root.add_child(slab)
+	walker.position = Vector3(8, 0.02, -2.2)
+	walker.velocity = Vector3.ZERO
+	for k2 in 60:
+		await physics_frame
+		walker.velocity = Vector3(0, walker.velocity.y - (0.0 if walker.is_on_floor() else 18.0 / 60.0), 3.0)
+		walker.move_and_slide()
+		if walker.position.z > 0.0:
+			break
+	check(walker.position.y > 0.1 and walker.position.z > -0.3, "walk onto your floor without jumping (y %.2f z %.2f)" % [walker.position.y, walker.position.z])
+	for n in [walker, floor_up, stairs, ground, slab]:
+		n.free()
+	return true
+
+
+## Real physics: a collapse drops bundles that hop and land, never rocketing off.
+func test_collapse_on_real_ground() -> bool:
+	var ground := StaticBody3D.new()
+	var gs := CollisionShape3D.new()
+	var gb := BoxShape3D.new()
+	gb.size = Vector3(80, 1, 80)
+	gs.shape = gb
+	gs.position = Vector3(20, Terrain.height_at(20, 20) - 0.5, 20)
+	ground.add_child(gs)
+	root.add_child(ground)
+	var bw := BuildWorld.new()
+	root.add_child(bw)
+	game.add_item("wood_wall", 1)
+	game.add_item("wood_floor", 3)
+	bw.place("wood_wall", Vector3(20, 0, 21), 0, game, 0)
+	for k in 3:
+		bw.place("wood_floor", Vector3(20, 0, 20 - 2 * k), 0, game, 1)
+	await create_timer(0.2).timeout
+	bw.demolish(BuildWorld.key_for("wood_wall", Vector3(20, 0, 21), 0, 0), game)
+	var apex := 0.0
+	var low := 100.0
+	var seen := 0
+	for f in 200:
+		await physics_frame
+		for n in bw.get_children():
+			if n is WoodLog:
+				apex = maxf(apex, n.global_position.y - Terrain.height_at(20, 20))
+	for n2 in bw.get_children():
+		if n2 is WoodLog:
+			seen += 1
+			low = minf(low, n2.global_position.y - Terrain.height_at(20, 20))
+	check(seen == 3, "three bundles on the ground (%d)" % seen)
+	check(apex < 5.5, "bundles hop, they do not rocket off (apex %.1f)" % apex)
+	check(low > -0.1, "and nothing falls through the ground (%.2f)" % low)
+	for d in get_nodes_in_group("build_debris"):
+		d.free()
+	bw.free()
+	ground.free()
 	return true

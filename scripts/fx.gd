@@ -373,3 +373,8 @@ static func bounce_vy(fall: float, holding_jump: bool) -> float:
 	if holding_jump:
 		return minf(maxf(fall * 1.12 + 2.4, 8.0), BOUNCE_MAX)
 	return minf(fall * 0.62, 7.0)
+
+
+## Well rested (a cosy bed of your own): stamina drains slower; refilling is unchanged.
+static func rested_stamina(before: float, after: float, comfort: int) -> float:
+	return before - (before - after) * BuildGrid.rested_drain_mult(comfort) if after < before else after
