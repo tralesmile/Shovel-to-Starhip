@@ -80,6 +80,10 @@ func _run() -> void:
 		await _space_shots(p)
 		get_tree().quit()
 		return
+	if Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--only=k1")):
+		await _rock_after(p)
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=b0"):
 		await _house_before(p)
 		get_tree().quit()
@@ -1798,3 +1802,77 @@ func _space_real_input(p: Player) -> void:
 	await _until(func(): return sp.state == SpaceProgram.State.IDLE, 60000)
 	_key("jump", false)
 	print("ABORT recovered state=", sp.state, " model=", p._model.visible, " physics=", p.is_physics_processing(), " rocket=", sp.rocket.visible)
+
+
+## Before/after view: three kinds of rock side by side on open ground.
+func _rock_row(p: Player) -> Array:
+	main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+	Game.set_tool(GameState.Tool.PICKAXE)
+	var at := _clear_spot(p) + Vector3(3.0, 0, 0)
+	for t in main.find_children("*", "Node3D", true, false):
+		if t is TrafficCar:
+			t.queue_free()
+	var rocks := []
+	for i in 3:
+		var r := MineRock.new()
+		r.name = ["ShotRockA", "ShotRockB", "ShotRockC"][i]
+		r.kind = ["", "rich", "geode"][i]
+		r.position = at + Vector3(-2.6 + 2.6 * i, 0, 0)
+		r.position.y = Terrain.height_at(r.position.x, r.position.z)
+		main.add_child(r)
+		rocks.append(r)
+	return rocks
+
+
+func _rock_cam(target: Vector3, off: Vector3, fov: float = 45.0) -> void:
+	_free_cam(target + off, target + Vector3(0, 0.6, 0), fov)
+
+
+func _rock_after(p: Player) -> void:
+	var rocks := _rock_row(p)
+	var mid: MineRock = rocks[1]
+	var at := mid.global_position
+	Game.time_of_day = 0.42
+	await _wait(30)
+	# The player stands in front of the middle rock, with the gold mark turned toward them.
+	p.global_position = at + Vector3(0.9, 0.1, 1.7)
+	p._model.rotation.y = PI + 0.4
+	mid.spot_yaw = 0.15
+	mid._refresh()
+	_rock_cam(at, Vector3(0.6, 2.2, 5.6))
+	await _wait(40)
+	await _shot("k1_rocks.png")
+	_rock_cam(at, Vector3(-0.5, 1.5, 2.9))
+	await _shot("k2_sweetspot.png")
+	mid.strike(Game, Vector3(1, 0, 0.9).normalized(), 0.9)
+	await _wait(150)
+	Engine.time_scale = 1.0
+	mid.spot_yaw = -0.1
+	mid._refresh()
+	_rock_cam(at, Vector3(0.4, 1.8, 3.6))
+	await _shot("k3_cracked.png")
+	mid.strike(Game, Vector3(0, 0, 1), 0.3)
+	await _game_wait(0.14)
+	_rock_cam(at, Vector3(0.6, 2.2, 4.8))
+	await _freeze_shot("k4_sweet_hit.png")
+	await _wait(30)
+	var yaw: float = mid.spot_yaw
+	mid.strike(Game, Vector3(sin(yaw), 0, cos(yaw)), 0.6)
+	await _game_wait(0.2)
+	await _freeze_shot("k5_burst.png")
+	p.global_position = at + Vector3(-12, 0.1, 9)
+	await _game_wait(1.6)
+	_rock_cam(at, Vector3(0.3, 2.6, 4.2))
+	await _freeze_shot("k6_loot.png")
+	# Crystal Lamps beside a cheese boulder at night.
+	var bw: BuildWorld = main.get_tree().get_first_node_in_group("buildworld")
+	for i in 5:
+		Game.add_item("crystal_lamp", 1)
+		var spot := Vector3(roundf(at.x) - 4.0 + 2.0 * i, 0, roundf(at.z) + 2.0)
+		bw.place("crystal_lamp", spot, 0, Game)
+		var piece: BuildPiece = bw.pieces[BuildWorld.key_for("crystal_lamp", spot, 0)]
+		piece.set_tint(i)
+	Game.time_of_day = 0.92
+	await _wait(60)
+	_rock_cam(at + Vector3(0, 0, 1.5), Vector3(0.8, 2.4, 6.5), 50.0)
+	await _shot("k7_lamps_night.png")

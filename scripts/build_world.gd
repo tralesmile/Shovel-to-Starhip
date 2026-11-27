@@ -29,8 +29,9 @@ const PIECES := {
 	"wood_roof": {"name": "Wood Roof", "size": Vector3(2.3, 0.7, 2.3), "color": Color(0.7, 0.3, 0.22), "style": "roof", "y": 2.2},
 	"wood_window": {"name": "Window Wall", "size": Vector3(1.96, 2.2, 0.2), "color": Color(0.74, 0.52, 0.32), "style": "window"},
 	"wood_stairs": {"name": "Wood Stairs", "size": Vector3(1.6, 2.34, 2.0), "color": Color(0.72, 0.5, 0.3), "style": "stairs"},
+	"crystal_lamp": {"name": "Crystal Lamp", "size": Vector3(0.6, 1.1, 0.6), "color": Color(0.55, 0.56, 0.6), "style": "crystallamp"},
 }
-const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern", "storage_chest", "campfire", "furnace", "anvil", "invention_bench", "hay_bale", "firefly_jar", "sprinkler", "wood_window", "wood_stairs"]
+const PIECE_ORDER := ["fence_panel", "stone_wall", "wood_floor", "wood_wall", "wood_door", "wood_roof", "wood_table", "wood_chair", "wood_bed", "lantern", "storage_chest", "campfire", "furnace", "anvil", "invention_bench", "hay_bale", "firefly_jar", "sprinkler", "wood_window", "wood_stairs", "crystal_lamp"]
 
 var pieces := {}   ## cell key -> BuildPiece
 var piece_id := "fence_panel"
@@ -92,7 +93,7 @@ static func default_level(id: String) -> int:
 
 ## Pure (tested): furniture lives in its own key space (one per cell, stands on floors).
 static func is_furniture(id: String) -> bool:
-	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed", "campfire", "chest", "furnace", "anvil", "invention", "bale", "firejar", "sprinkler"]
+	return PIECES.has(id) and PIECES[id]["style"] in ["table", "chair", "lantern", "bed", "campfire", "chest", "furnace", "anvil", "invention", "bale", "firejar", "sprinkler", "crystallamp"]
 
 
 ## Pure (tested): height above the ground a piece sits at (roofs rest on top of 2.2m walls).
@@ -220,7 +221,9 @@ func rebuild_from_game(source: GameState = null) -> void:
 		return
 	for d in g.built:
 		var id := str(d.get("id", "fence_panel"))
-		_spawn(id, float(d.get("x", 0)), float(d.get("z", 0)), int(d.get("r", 0)), false, int(d.get("l", default_level(id))), g)
+		var made := _spawn(id, float(d.get("x", 0)), float(d.get("z", 0)), int(d.get("r", 0)), false, int(d.get("l", default_level(id))), g)
+		if made != null and d.has("c"):
+			made.set_tint(int(d["c"]))
 	refresh_roofs(g)
 
 
@@ -309,6 +312,18 @@ func place(id: String, pos: Vector3, r: int, g: GameState, level: int = -1) -> b
 				c.water_around()
 				c.spray(SprinklerSpot.SPRAY_TIME)
 	return true
+
+
+## Remember a piece's chosen colour in its saved entry.
+func save_tint(piece: BuildPiece, tint: int, g: GameState) -> void:
+	var key = pieces.find_key(piece)
+	if key == null:
+		return
+	for d in g.built:
+		var id := str(d["id"])
+		if key_for(id, Vector3(d["x"], 0, d["z"]), int(d["r"]), int(d.get("l", default_level(id)))) == key:
+			d["c"] = tint
+			return
 
 
 func _forget(key: String, g: GameState) -> void:

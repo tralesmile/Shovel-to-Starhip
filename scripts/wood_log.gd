@@ -287,6 +287,35 @@ static func is_organic(id: String) -> bool:
 	return id in ["rabbit_meat", "rabbit_pelt", "carrot", "cooked_meat", "egg", "rabbit_stew", "turnip", "tomato", "hay", "sunmint", "turnip_seed"]
 
 
+## Pure (tested): things that come out of a rock and look like it.
+static func is_mineral(id: String) -> bool:
+	return id in ["stone", "copper_ore", "gem", "glow_crystal", "moon_rock"]
+
+
+## What lies on the ground: a faceted stone, a nugget streaked with ore, or a little crystal cluster.
+static func nugget(id: String, color: Color, size: float) -> Node3D:
+	var seed_value := absi(hash(id)) + randi() % 90
+	if id == "gem" or id == "glow_crystal":
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_value
+		var cluster := MineCave.crystal_cluster(color, 3, size * 1.5, rng)
+		cluster.position.y = -size * 0.5
+		var holder := Node3D.new()
+		holder.add_child(cluster)
+		return holder
+	var mi := MeshInstance3D.new()
+	mi.mesh = RockMesh.lump_mesh(Vector3(0.62, 0.5, 0.56) * size * 1.15, Vector3.ZERO, seed_value, 1, RockMesh.UV_BREAK if id == "stone" else RockMesh.UV_SKIN)
+	var m := MineRock.rock_material("", id == "copper_ore", false)
+	if id == "copper_ore":
+		m.set_shader_parameter("albedo_color", Color(0.46, 0.37, 0.34))
+		m.set_shader_parameter("veins", 1.0)
+		m.set_shader_parameter("glint", 1.0)
+	elif id == "moon_rock":
+		m.set_shader_parameter("albedo_color", color)
+	mi.material_override = m
+	return mi
+
+
 ## Stone / ore / gem chunk: a small tumbling rock.
 func _build_chunk() -> void:
 	mass = 1.0
@@ -301,12 +330,15 @@ func _build_chunk() -> void:
 	bx.size = Vector3.ONE * sz
 	cs.shape = bx
 	add_child(cs)
-	var mi := Art.box(Vector3.ONE * sz, chunk_color)
-	if item_id != "stone" and not is_organic(item_id):
-		mi.material_override = Art.mat(chunk_color, true)   # ore and gems shimmer
-	if item_id == "rabbit_pelt":
-		mi.scale = Vector3(1.3, 0.35, 1.3)   # a flat furry rug
-	add_child(mi)
+	if is_mineral(item_id):
+		add_child(nugget(item_id, chunk_color, sz))
+	else:
+		var mi := Art.box(Vector3.ONE * sz, chunk_color)
+		if not is_organic(item_id):
+			mi.material_override = Art.mat(chunk_color, true)   # ingots and other treasures shimmer
+		if item_id == "rabbit_pelt":
+			mi.scale = Vector3(1.3, 0.35, 1.3)   # a flat furry rug
+		add_child(mi)
 	if item_id != "stone" and not is_organic(item_id):
 		var sp := FX.emitter(self, chunk_color.lightened(0.5), 4, 0.9, 0.05, Vector3(0.15, 0.1, 0.15), Vector3(0, 0.4, 0), true, "sphere")
 		sp.emitting = true

@@ -16,7 +16,7 @@ func _run() -> void:
 		"test_economy", "test_sell_all", "test_farm_cycle", "test_dry_crop_does_not_grow",
 		"test_no_seeds", "test_tree_chop_and_regrow", "test_mining", "test_feel_and_grading", "test_shop_station", "test_clock_text",
 		"test_save_roundtrip", "test_door_enter_exit", "test_npc_schedule", "test_npc_routine_movement",
-		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models", "test_car_physics", "test_car_damage_parts", "test_street_props", "test_harvest_regrow_compost", "test_crop_models", "test_giant_crops", "test_sprinkler",
+		"test_lockpick", "test_loot_container", "test_carry_limit", "test_witness_cone", "test_witness_meter", "test_heat", "test_fence_reputation", "test_police", "test_car", "test_fishing", "test_delivery", "test_crops", "test_traffic", "test_police_car", "test_audio_settings", "test_sfx", "test_steps", "test_settings_menu", "test_tutorial", "test_gamepad", "test_engine_sfx", "test_music", "test_music_fade", "test_main_menu", "test_input_prompts", "test_closet", "test_fence_cap", "test_shop_rep", "test_npc_barks", "test_crafting", "test_jump_step", "test_stamina", "test_pickaxe_upgrade", "test_axe_combo", "test_build_mode", "test_carry_weight", "test_props_furniture", "test_hunting", "test_drop_items", "test_campfire_taming", "test_riding", "test_car_parts", "test_timber_chest", "test_gem_pickaxe_cracks", "test_story", "test_furnace", "test_anvil", "test_invention", "test_glider_chips", "test_slingshot_weather", "test_lightning_vacuum", "test_mine", "test_rock_mesh", "test_sweet_spot", "test_rock_breaking", "test_crystal_lamp", "test_boom_turnip", "test_meadow", "test_momentum_bounce", "test_felled_trunk", "test_bugs", "test_fish_fight", "test_pond_life", "test_fish_log_and_models", "test_car_physics", "test_car_damage_parts", "test_street_props", "test_harvest_regrow_compost", "test_crop_models", "test_giant_crops", "test_sprinkler",
 		"test_stealth_gaze", "test_stealth_marker_and_hearing", "test_vision_cone_clip", "test_velvet_picks", "test_abandon_lock", "test_decoy_logic", "test_npc_distraction", "test_lock_meter", "test_heist_art", "test_door_swing", "test_room_dressing",
 		"test_edge_snapping", "test_support_and_collapse", "test_roof_shapes", "test_build_aim", "test_door_cutaway_comfort", "test_build_models",
 		"test_pet_friendship", "test_animal_rig", "test_chicken_flight_and_jobs_logic", "test_goat_ram", "test_mount_steer", "test_pet_gear_and_save",
@@ -46,6 +46,9 @@ func _run() -> void:
 	game.free()
 	_fresh_game()
 	check(await test_collapse_on_real_ground() == true, "test_collapse_on_real_ground ran to the end (no script error)")
+	game.free()
+	_fresh_game()
+	check(await test_shards_on_real_ground() == true, "test_shards_on_real_ground ran to the end (no script error)")
 	game.free()
 	_fresh_game()
 	check(await test_stairs_on_real_ground() == true, "test_stairs_on_real_ground ran to the end (no script error)")
@@ -2009,7 +2012,7 @@ func test_gem_pickaxe_cracks() -> bool:
 	rock._ready()
 	rock.hits = 3
 	rock._refresh()
-	check(rock._cracks.get_child_count() == 6, "rock shows 6 crack lines after 3 hits")
+	check(is_equal_approx(rock._mat.get_shader_parameter("crack"), 0.75), "cracks spread over the rock after 3 hits")
 	var other := MineRock.new()
 	other.name = "R2"
 	other._ready()
@@ -3548,4 +3551,202 @@ func test_moon_walk() -> bool:
 	check(get_nodes_in_group("saveable").any(func(n): return n.name == "MoonRock_0" and n.kind == "cheese"), "cheese boulders are saved rocks")
 	body.free()
 	moon.free()
+	return true
+
+
+func test_rock_mesh() -> bool:
+	var radii := MineRock.RADII
+	var wedges := RockMesh.fracture(MineRock.WEDGES, radii, MineRock.CENTER, 77)
+	check(wedges.size() >= 10, "a boulder cuts into many wedges")
+	var tris := 0
+	var closed := true
+	var outward := true
+	var floor_ok := true
+	for w in wedges:
+		var skin: PackedVector3Array = w["skin"]
+		tris += skin.size() / 3
+		# Watertight: every directed edge has its opposite, so a flying wedge looks solid.
+		var edges := {}
+		var all := skin.duplicate()
+		all.append_array(w["cut"])
+		for i in range(0, all.size(), 3):
+			for k in 3:
+				var a := all[i + k].snapped(Vector3.ONE * 0.0001)
+				var b := all[i + (k + 1) % 3].snapped(Vector3.ONE * 0.0001)
+				if a == b:
+					continue
+				edges[[a, b]] = int(edges.get([a, b], 0)) + 1
+				floor_ok = floor_ok and a.y >= -0.001
+		for e in edges:
+			if int(edges.get([e[1], e[0]], 0)) != edges[e]:
+				closed = false
+		# Signed volume is positive when the faces point outwards.
+		var vol := 0.0
+		for i in range(0, all.size(), 3):
+			vol += all[i].dot(all[i + 1].cross(all[i + 2]))
+		outward = outward and vol > 0.0
+	check(tris == 320, "wedges share out the whole skin with no gaps or doubles")
+	check(closed, "every wedge is a closed solid")
+	check(outward, "wedge faces point outwards")
+	check(floor_ok, "the boulder sits flat on the ground")
+	var again := RockMesh.fracture(MineRock.WEDGES, radii, MineRock.CENTER, 77)
+	check(again.size() == wedges.size() and again[0]["skin"] == wedges[0]["skin"], "the same rock always cuts the same way")
+	var mesh := RockMesh.wedge_mesh(wedges[0])
+	var arr := mesh.surface_get_arrays(0)
+	var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var n: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+	check(v.size() > 0 and (v[2] - v[0]).cross(v[1] - v[0]).dot(n[0]) > 0.0, "clockwise front faces match the normals")
+	check(RockMesh.shed_target(0, 4, 13) == 0 and RockMesh.shed_target(4, 4, 13) == 13 and RockMesh.shed_target(9, 4, 13) == 13, "none before, all at the end")
+	var last := 0
+	var rising := true
+	for h in range(1, 4):
+		var t := RockMesh.shed_target(h, 4, 13)
+		rising = rising and t > last and t < 13
+		last = t
+	check(rising, "every hit knocks more off")
+	var dirs := [Vector3(0, 0, 1), Vector3(0, 0, -1), Vector3(1, 0, 0), Vector3(0, -1, 0)]
+	check(RockMesh.pick_shed(dirs, [], Vector3(0, 0, 1), 1) == [0], "wedge facing the pickaxe goes first")
+	check(RockMesh.pick_shed(dirs, [0], Vector3(0, 0, 1), 1) != [0], "gone wedges are skipped")
+	check(RockMesh.pick_shed(dirs, [], Vector3(0, 0, 1), 9).back() == 3, "the underside goes last")
+	return true
+
+
+func test_sweet_spot() -> bool:
+	check(MineRock.is_sweet(Vector3(0, 0, 1), 0.0), "head on the mark is sweet")
+	check(MineRock.is_sweet(Vector3(0, 0, -1), PI - 0.1) and MineRock.is_sweet(Vector3(-0.05, 0, -1), PI), "angles wrap round the back")
+	check(not MineRock.is_sweet(Vector3(1, 0, 0), 0.0), "side-on misses")
+	check(not MineRock.is_sweet(Vector3.ZERO, 0.0), "no direction, no bonus")
+	check(MineRock.hit_damage(true) == 2 and MineRock.hit_damage(false) == 1, "sweet counts double")
+	var moved := true
+	for i in 20:
+		var from := -3.0 + i * 0.31
+		var nxt := MineRock.next_spot_yaw(from, fposmod(i * 0.137, 1.0))
+		var d := absf(angle_difference(from, nxt))
+		moved = moved and d > MineRock.SWEET_ARC and d < 2.2 and absf(nxt) <= PI + 0.001
+	check(moved, "the mark jumps far enough that you must step round, but not behind you")
+	check(MineRock.clean_break_bonus("", true)["item"] == "copper_ore" and MineRock.clean_break_bonus("", false)["item"] == "stone", "clean break bonus")
+	check(MineRock.clean_break_bonus("geode", false)["item"] == "glow_crystal" and MineRock.clean_break_bonus("cheese", false)["item"] == "moon_cheese", "special rocks give their own bonus")
+	return true
+
+
+func test_rock_breaking() -> bool:
+	var world := Node3D.new()
+	root.add_child(world)
+	game.set_tool(GameState.Tool.PICKAXE)
+	var rock := MineRock.new()
+	rock.name = "Break_T"
+	rock.kind = "plain"
+	world.add_child(rock)
+	var total := rock.wedge_count()
+	check(total >= 10, "rock is built from wedges")
+	check(rock._whole.visible and not rock._core.visible and rock._wedges.all(func(w): return not w.visible), "an untouched rock draws as one mesh")
+	var miss := rock.spot_yaw + PI
+	var away := Vector3(sin(miss), 0, cos(miss))
+	check(not rock.strike(game, away, 0.9), "a swing from the wrong side is ordinary")
+	var after_one := rock.gone.size()
+	check(rock.hits == 1 and after_one > 0 and after_one < total, "first hit knocks wedges off")
+	check(not rock._whole.visible and rock._core.visible and rock._wedges.filter(func(w): return w.visible).size() == total - after_one, "damaged rock swaps to its wedges and shows the core")
+	check(get_nodes_in_group("rock_shard").size() == after_one, "each one becomes a physics shard")
+	check(get_nodes_in_group("pickup").is_empty(), "no loot until it breaks")
+	var beside := absf(angle_difference(miss, rock.spot_yaw))
+	check(beside > MineRock.SWEET_ARC and beside < 2.2, "after a miss the mark moves beside you, never stuck behind a wall")
+	var mark := rock.spot_yaw
+	var on := Vector3(sin(mark), 0, cos(mark))
+	check(rock.strike(game, on, 0.9), "lining up with the mark is a sweet hit")
+	check(rock.hits == 3 and rock.gone.size() > after_one and rock.spot_yaw != mark, "sweet hit does double and moves the mark")
+	# Half-mined rocks keep their shape across a save.
+	var saved: Dictionary = JSON.parse_string(JSON.stringify(rock.to_dict()))
+	var copy := MineRock.new()
+	copy.name = "Break_T"
+	copy.kind = "plain"
+	world.add_child(copy)
+	copy.from_dict(saved)
+	check(copy.gone == rock.gone and copy.hits == 3 and is_equal_approx(copy.spot_yaw, rock.spot_yaw), "save keeps the missing wedges and the mark")
+	var old := MineRock.new()
+	old.name = "Old_T"
+	world.add_child(old)
+	old.from_dict({"hits": 2, "broken": false, "days_broken": 0})
+	check(old.gone.size() > 0, "old saves show damage too")
+	var before := get_nodes_in_group("pickup").size()
+	var last := rock.spot_yaw
+	rock.strike(game, Vector3(sin(last), 0, cos(last)), 0.2)
+	check(rock.broken and rock.gone.size() == total, "the last hit takes the rest")
+	check(get_nodes_in_group("pickup").size() - before >= 3, "clean break gives two stones plus a bonus")
+	check(not rock.strike(game, on, 0.5), "rubble cannot be struck")
+	for i in MineRock.REGROW_DAYS:
+		rock.on_new_day(game)
+	check(not rock.broken and rock.gone.is_empty(), "regrown rock is whole again")
+	var goat := MineRock.new()
+	goat.name = "Goat_T"
+	world.add_child(goat)
+	goat.ram(game)
+	check(goat.gone.size() > 0 and not goat.broken, "a headbutt chips wedges off")
+	check(goat.blast(game) and goat.gone.size() == goat.wedge_count(), "a blast takes everything")
+	check(get_nodes_in_group("rock_shard").size() <= RockShard.MAX_LIVE, "shards are capped")
+	for id in ["stone", "copper_ore", "gem", "glow_crystal", "moon_rock"]:
+		check(WoodLog.is_mineral(id) and WoodLog.nugget(id, WoodLog.drop_color(id), 0.25) != null, "nugget model: " + id)
+	for kind in ["crack", "clack", "chime"]:
+		check(Sfx.make(kind).data.size() > 0, "sound exists: " + kind)
+	return true
+
+
+func test_crystal_lamp() -> bool:
+	var idx := _recipe_index("crystal_lamp")
+	check(idx >= 0, "crystal lamp recipe")
+	check(BuildWorld.PIECE_ORDER.has("crystal_lamp") and BuildWorld.is_furniture("crystal_lamp"), "lamp is furniture")
+	var n := CrystalLampSpot.TINTS.size()
+	var i := 0
+	for k in n:
+		i = CrystalLampSpot.next_tint(i)
+	check(i == 0 and CrystalLampSpot.next_tint(0) == 1, "colours cycle")
+	var bw := BuildWorld.new()
+	root.add_child(bw)
+	game.add_item("crystal_lamp", 1)
+	check(bw.place("crystal_lamp", Vector3(4, 0, 4), 0, game), "lamp places")
+	var piece: BuildPiece = bw.pieces.values()[0]
+	var spot: CrystalLampSpot = piece.get_children().filter(func(c): return c is CrystalLampSpot)[0]
+	spot.interact(game)
+	spot.interact(game)
+	check(spot.tint == 2 and int(game.built[0].get("c", -1)) == 2, "retuning is remembered in the house")
+	game.built = JSON.parse_string(JSON.stringify(game.built))
+	bw.rebuild_from_game(game)
+	var again: BuildPiece = bw.pieces.values()[0]
+	var spot2: CrystalLampSpot = again.get_children().filter(func(c): return c is CrystalLampSpot)[0]
+	check(spot2.tint == 2 and "Minty" in spot2.get_prompt(game), "colour survives a reload")
+	return true
+
+
+## Real physics: wedges flung off a rock fall, stay close, land on the ground and tidy themselves up.
+func test_shards_on_real_ground() -> bool:
+	var world := Node3D.new()
+	root.add_child(world)
+	var ground := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(60, 1, 60)
+	cs.shape = bx
+	ground.add_child(cs)
+	ground.position.y = -0.5
+	world.add_child(ground)
+	var rock := MineRock.new()
+	rock.name = "Real_T"
+	world.add_child(rock)
+	await physics_frame
+	game.set_tool(GameState.Tool.PICKAXE)
+	rock.blast(game)
+	var shards := get_nodes_in_group("rock_shard")
+	check(shards.size() >= 10, "blast throws the whole rock")
+	var highest := 0.0
+	for f in 150:
+		await physics_frame
+		for s in shards:
+			highest = maxf(highest, (s as Node3D).global_position.y)
+	check(highest < 6.0, "nothing is launched into the sky")
+	var resting := shards.filter(func(s): return (s as Node3D).global_position.y > -0.3 and (s as Node3D).global_position.y < 1.2 and (s as Node3D).global_position.length() < 14.0)
+	check(resting.size() == shards.size(), "all shards come to rest on the ground nearby")
+	for s in shards:
+		(s as RockShard)._age = RockShard.LIFE
+	for f in 3:
+		await physics_frame
+	check(get_nodes_in_group("rock_shard").is_empty(), "shards crumble away")
 	return true

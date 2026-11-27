@@ -14,7 +14,7 @@ const FLOOR_CANTILEVER := 0.55
 const ROOF_SPAN := 0.6
 const FURNITURE_ON_FLOOR := 0.9
 const COZY_MAX := 4
-const COMFORT_STYLES := ["table", "chair", "lantern", "firejar", "chest", "campfire"]
+const COMFORT_STYLES := ["table", "chair", "lantern", "firejar", "crystallamp", "chest", "campfire"]
 
 
 ## "edge" (walls and fences), "floor", "roof" or "cell" (stairs and furniture).

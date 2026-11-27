@@ -148,6 +148,10 @@ func _ready() -> void:
 		var jar := FireflyJar.new()
 		jar.position.y = 1.13
 		_mesh.add_child(jar)
+	elif def["style"] == "crystallamp":
+		var lamp := CrystalLampSpot.new()
+		lamp.interact_radius = 1.5
+		add_child(lamp)
 	elif def["style"] == "lantern":
 		var post := Art.box(Vector3(0.1, 1.2, 0.1), c)
 		post.position.y = 0.6
@@ -283,6 +287,13 @@ func _ready() -> void:
 		add_child(fs)
 	_mesh.position.y = 0.0
 	rotation.y = BuildWorld.yaw_of(rot)
+
+
+## Recolour a piece that has colours (the Crystal Lamp).
+func set_tint(i: int) -> void:
+	for c in get_children():
+		if c is CrystalLampSpot:
+			c.set_tint(i)
 
 
 func _add_box(size: Vector3, xf: Transform3D) -> void:
