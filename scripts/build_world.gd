@@ -457,7 +457,7 @@ func _process(delta: float) -> void:
 	var pl := get_tree().get_first_node_in_group("player") as Node3D
 	if pl != null:
 		_update_cutaway(pl)
-	if g == null or pl == null or g.current_tool != GameState.Tool.BUILD or pl.get("vehicle") != null:
+	if g == null or pl == null or g.current_tool != GameState.Tool.BUILD or pl.get("vehicle") != null or Moon.inside(pl.global_position):
 		_ghost.visible = false
 		return
 	_update_ghost(g, pl)

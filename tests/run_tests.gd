@@ -20,11 +20,15 @@ func _run() -> void:
 		"test_stealth_gaze", "test_stealth_marker_and_hearing", "test_vision_cone_clip", "test_velvet_picks", "test_abandon_lock", "test_decoy_logic", "test_npc_distraction", "test_lock_meter", "test_heist_art", "test_door_swing", "test_room_dressing",
 		"test_edge_snapping", "test_support_and_collapse", "test_roof_shapes", "test_build_aim", "test_door_cutaway_comfort", "test_build_models",
 		"test_pet_friendship", "test_animal_rig", "test_chicken_flight_and_jobs_logic", "test_goat_ram", "test_mount_steer", "test_pet_gear_and_save",
+		"test_starship_design", "test_flight_ascent", "test_flight_landing", "test_moon_ground_and_cheese", "test_ship_model_and_space",
 	]:
 		_fresh_game()
 		var ok = call(test)
 		check(ok == true, "%s ran to the end (no script error)" % test)
 		game.free()
+	_fresh_game()
+	check(await test_moon_walk() == true, "test_moon_walk ran to the end (no script error)")
+	game.free()
 	_fresh_game()
 	check(await test_giant_on_real_ground() == true, "test_giant_on_real_ground ran to the end (no script error)")
 	game.free()
@@ -3319,4 +3323,229 @@ func test_collapse_on_real_ground() -> bool:
 		d.free()
 	bw.free()
 	ground.free()
+	return true
+
+
+func test_starship_design() -> bool:
+	var d := StarshipDesign.default_design()
+	for slot in StarshipDesign.SLOTS:
+		check(StarshipDesign.is_unlocked(slot, d[slot], []), "default %s is free" % slot)
+		var id: String = d[slot]
+		for k in StarshipDesign.OPTIONS[slot].size():
+			id = StarshipDesign.cycle(slot, id, 1)
+		check(id == d[slot], "cycling %s wraps round" % slot)
+	check(StarshipDesign.cycle("nose", "cone", -1) == "dome", "cycles backwards")
+	check(StarshipDesign.sanitize({"nose": "banana", "fins": "wings"}) == {"nose": "cone", "fins": "wings", "engine": "faithful", "paint": "red"}, "unknown parts fall back")
+	var base := StarshipDesign.stats(d)
+	check(base["lift"] == 1.0 and base["balance"] == 1.0, "stock ship is the baseline")
+	d["engine"] = "triple"
+	var s := StarshipDesign.stats(d)
+	check(s["lift"] > 1.0 and s["range"] < 1.0 and s["cool"] < 1.0, "triple boosters trade range and cooling for lift")
+	check(not StarshipDesign.unlock("engine", "triple", game), "cannot build without parts")
+	check(StarshipDesign.missing("engine", "triple", game).find("Copper Ingot") >= 0, "says what is missing")
+	check(ShipWorkshop.launch_block(true, d, game.ship_unlocked) != "", "locked part blocks launch")
+	game.add_item("copper_ingot", 2)
+	game.stash["copper_ingot"] = 2
+	game.add_item("rocket_plate", 1)
+	check(StarshipDesign.unlock("engine", "triple", game), "pockets plus chest pay for it")
+	check(game.count("copper_ingot") == 0 and int(game.stash.get("copper_ingot", 0)) == 1, "pockets first, then chest")
+	check(not StarshipDesign.unlock("engine", "triple", game), "never pay twice")
+	check(ShipWorkshop.launch_block(true, d, game.ship_unlocked) == "", "ready to launch")
+	check(ShipWorkshop.launch_block(false, d, game.ship_unlocked) != "", "story must be finished")
+	check(StarshipDesign.ending(3.0)["id"] == "hero" and StarshipDesign.ending(-3.0)["id"] == "outlaw", "two endings")
+	game.ship_design = d.duplicate()
+	game.moon_landings = 2
+	game.moon_flag = true
+	game.ending = "outlaw"
+	game.story_act = Story.act_count()
+	check(Story.hud_text(game.story_act, game).find("Notorious") >= 0, "HUD shows the ending")
+	var saved := game.to_dict()
+	game.from_dict({})
+	check(game.ship_design["engine"] == "faithful" and game.moon_landings == 0 and not game.moon_flag, "old saves get defaults")
+	game.from_dict(JSON.parse_string(JSON.stringify(saved)))
+	check(game.ship_design["engine"] == "triple" and game.ship_unlocked.has("engine:triple") and game.moon_landings == 2 and game.moon_flag and game.ending == "outlaw", "workshop and Moon progress saved")
+	return true
+
+
+func _fly(f: FlightSim, drop_at: float = -1.0) -> void:
+	for i in 6000:
+		var a: Array = f.autopilot()
+		if drop_at > 0.0 and f.alt >= drop_at:
+			f.separate()
+		f.step(1.0 / 60.0, a[0], a[1])
+		if f.outcome != "":
+			return
+
+
+func test_flight_ascent() -> bool:
+	for build in [{}, {"engine": "triple", "fins": "stubby"}, {"engine": "turnip", "fins": "wings", "nose": "cheese"}]:
+		var d := StarshipDesign.default_design()
+		d.merge(build, true)
+		var f := FlightSim.new(FlightSim.Mode.ASCENT, StarshipDesign.stats(d), 5)
+		f.hiccups = d["engine"] == "turnip"
+		_fly(f, 530.0)
+		check(f.outcome == "orbit" and f.time > 12.0 and f.time < 45.0, "a sensible pilot reaches orbit %s (%.1fs)" % [str(build), f.time])
+		check(f.fuel > 0.2, "with fuel to spare (%.2f)" % f.fuel)
+	var top := FlightSim.new()
+	var fastest := 0.0
+	for i in 600:
+		top.heat = 0.0
+		top.tilt = 0.0
+		top.step(1.0 / 60.0, true, 0.0)
+		fastest = maxf(fastest, top.vel)
+	check(fastest <= FlightSim.MAX_CLIMB + 0.01, "climb speed is capped (%.1f)" % fastest)
+	var hot := FlightSim.new()
+	for i in 600:
+		hot.tilt = 0.0
+		hot.step(1.0 / 60.0, true, 0.0)
+		if hot.overheated:
+			break
+	check(hot.overheated and hot.time > 4.0, "holding the throttle overheats the engine")
+	hot.step(1.0 / 60.0, true, 0.0)
+	check(not hot.thrusting, "an overheated engine cuts out")
+	for i in 240:
+		hot.step(1.0 / 60.0, false, 0.0)
+	check(not hot.overheated, "and relights once cool")
+	var lean := FlightSim.new()
+	lean.alt = 200.0
+	lean.tilt = 0.3
+	var other := FlightSim.new()
+	other.alt = 200.0
+	other.tilt = 0.3
+	for i in 20:
+		lean.step(1.0 / 60.0, true, -1.0)
+		other.step(1.0 / 60.0, true, 1.0)
+	check(lean.tilt < 0.3 and other.tilt > lean.tilt, "steering against the lean rights her")
+	lean.tilt = 1.2
+	lean.step(1.0 / 60.0, true, 0.0)
+	check(lean.tumbles == 1 and absf(lean.tilt) < 0.4, "a tumble is caught, not fatal")
+	var sep := FlightSim.new()
+	check(sep.separate() == "", "no dropping boosters on the pad")
+	sep.alt = 540.0
+	check(sep.separate() == "perfect" and sep.separate() == "", "perfect drop, once only")
+	var auto := FlightSim.new()
+	auto.alt = FlightSim.SEP_AUTO + 1.0
+	auto.vel = 20.0
+	auto.step(1.0 / 60.0, true, 0.0)
+	check(auto.separated and auto.events.has("sep_auto"), "forgotten boosters fall off by themselves")
+	var dry := FlightSim.new()
+	dry.alt = 300.0
+	dry.fuel = 0.0
+	for i in 300:
+		dry.step(1.0 / 60.0, true, 0.0)
+	check(dry.outcome == "abort", "out of fuel parachutes home")
+	return true
+
+
+func test_flight_landing() -> bool:
+	var perfect := 0
+	for k in 12:
+		var f := FlightSim.new(FlightSim.Mode.LANDING, {}, k + 1)
+		_fly(f)
+		check(f.outcome == "landed", "lands (seed %d)" % k)
+		if f.grade == "perfect":
+			perfect += 1
+	check(perfect >= 9, "careful flying lands perfectly (%d/12)" % perfect)
+	var lazy := FlightSim.new(FlightSim.Mode.LANDING, {}, 2)
+	for i in 3000:
+		lazy.step(1.0 / 60.0, false, 0.0)
+		if lazy.outcome != "":
+			break
+	check(lazy.outcome == "landed" and lazy.grade == "bumpy" and lazy.bounces >= 1, "hands off: she bounces but never explodes")
+	check(FlightSim.landing_grade(3.0, 2.0, 0) == "perfect", "soft and centred")
+	check(FlightSim.landing_grade(3.0, 20.0, 0) == "good", "soft but off the ring")
+	return true
+
+
+func test_moon_ground_and_cheese() -> bool:
+	check(Moon.height_local(0.0, 0.0) == 0.0 and Moon.height_local(3.0, 2.0) == 0.0, "flat landing spot")
+	var c: Array = Moon.CRATERS[1]
+	check(Moon.height_local(c[0], c[1]) < -1.2, "craters are bowls")
+	check(Moon.height_local(c[0] + c[2] * 1.05, c[1]) > Moon.height_local(c[0], c[1]) + 1.5, "with raised rims")
+	check(Moon.height_local(Moon.RADIUS + 20.0, 0.0) > 3.0, "hills ring the playground")
+	check(Moon.tone(-1.5).v < Moon.tone(0.8).v, "bowls are darker than rims")
+	check(Moon.inside(Moon.ORIGIN) and not Moon.inside(Vector3.ZERO) and not Moon.inside(MineCave.ORIGIN), "the Moon is its own place")
+	check(Sfx.surface_at(Moon.ORIGIN) == "road", "crunchy footsteps")
+	var drops := MineRock.cheese_drops(0.9)
+	check(drops.filter(func(d): return d["item"] == "moon_cheese").size() == 2, "cheese boulders give cheese")
+	check(MineRock.cheese_drops(0.1).size() == drops.size() + 1, "sometimes extra")
+	check(BugLife.ambient_kind(0.4, false) == "butterfly", "butterflies still live at home")
+	game.add_item("moon_cheese", 2)
+	var m := game.money
+	game.sell_all()
+	check(game.money == m + 240, "Moon cheese sells at the bin")
+	return true
+
+
+func test_ship_model_and_space() -> bool:
+	for nose in ["cone", "cheese", "dome"]:
+		for engine in ["faithful", "triple", "turnip"]:
+			var built := ShipModel.build({"nose": nose, "engine": engine, "fins": "wings"})
+			check(built["parts"].size() == GranRocket.STAGES, "five story parts (%s, %s)" % [nose, engine])
+			(built["root"] as Node).free()
+	check(ShipModel.nozzles("triple").size() == 3 and ShipModel.nozzles("faithful").size() == 1, "triple really has three engines")
+	var mesh := ShipModel.lathe(ShipModel.HULL_PROFILE)
+	var bb := mesh.get_aabb()
+	check(absf(bb.size.x - 2.3) < 0.1 and absf(bb.size.y - 4.33) < 0.1, "lathed hull has the right size %s" % bb.size)
+	check(SpaceProgram.space_amount(0.0) == 0.0 and SpaceProgram.space_amount(1000.0) == 1.0, "sky goes black with height")
+	var roar := SpaceProgram.make_roar()
+	check(roar.loop_mode == AudioStreamWAV.LOOP_FORWARD and roar.data.size() > 20000, "engine roar loops")
+	var r := GranRocket.new()
+	root.add_child(r)
+	r.set_stage(2, false)
+	r.preview({"paint": "pond", "fins": "stubby"}, true)
+	check(r._parts.all(func(p): return p.visible), "workshop preview shows the whole ship")
+	r.end_preview()
+	check(r._parts[1].visible and not r._parts[2].visible, "then back to the story stage")
+	r.free()
+	return true
+
+
+## Real physics on the real Moon mesh: a body falls at Moon gravity, lands, leaves prints.
+func test_moon_walk() -> bool:
+	var moon := Moon.new()
+	root.add_child(moon)
+	var body := CharacterBody3D.new()
+	var cs := CollisionShape3D.new()
+	var cap := CapsuleShape3D.new()
+	cap.radius = 0.35
+	cap.height = 1.7
+	cs.shape = cap
+	cs.position.y = 0.85
+	body.add_child(cs)
+	root.add_child(body)
+	body.global_position = Moon.ground(2.0, 5.0) + Vector3(0, 0.1, 0)
+	var g := 9.8 * Moon.GRAVITY_SCALE
+	var peak := 0.0
+	var airborne := 0
+	var y0 := 0.0
+	for i in 600:
+		await physics_frame
+		if i == 60:
+			check(body.is_on_floor(), "stands on the Moon (y %.2f)" % body.global_position.y)
+			y0 = body.global_position.y
+			body.velocity.y = 5.0   # an ordinary hop
+		elif not body.is_on_floor():
+			body.velocity.y -= g / 60.0
+			if i > 60:
+				airborne += 1
+		if i > 60:
+			peak = maxf(peak, body.global_position.y - y0)
+		body.move_and_slide()
+		moon.track(body)
+	check(peak > 3.5 and peak < 6.5, "a Moon jump is huge (%.1f m)" % peak)
+	check(airborne > 140 and body.is_on_floor(), "floaty, and back down (%d ticks)" % airborne)
+	var before := moon.print_count()
+	for i in 120:
+		await physics_frame
+		body.velocity = Vector3(0, body.velocity.y - g / 60.0, -4.0)
+		body.move_and_slide()
+		moon.track(body)
+	check(moon.print_count() >= before + 4, "walking leaves footprints (%d)" % moon.print_count())
+	check(not moon.flag.planted, "no flag yet")
+	moon.flag.interact(game)
+	check(moon.flag.planted and game.moon_flag, "flag planted and remembered")
+	check(get_nodes_in_group("saveable").any(func(n): return n.name == "MoonRock_0" and n.kind == "cheese"), "cheese boulders are saved rocks")
+	body.free()
+	moon.free()
 	return true

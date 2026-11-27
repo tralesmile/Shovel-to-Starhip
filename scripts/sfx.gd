@@ -59,6 +59,8 @@ static func step_progress(acc: float, moved: float) -> Array:
 ## Surface under a world position: interiors are wood floors, the town road is
 ## a strip along z=16, everything else is grass.
 static func surface_at(pos: Vector3) -> String:
+	if Moon.inside(pos):
+		return "road"   # crunchy dust
 	if pos.x > 300.0:
 		return "road" if MineCave.inside(pos) else "wood"   # the mine has a stone floor
 	if absf(pos.z - 16.0) < 2.4 and absf(pos.x) < 62.0:

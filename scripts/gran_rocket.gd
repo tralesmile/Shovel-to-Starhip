@@ -6,6 +6,9 @@ extends Node3D
 const STAGES := 5
 var stage := 0
 var _body: Node3D
+var _model: Node3D
+var _label: Label3D
+var _hull_mat: ShaderMaterial
 var _parts: Array[Node3D] = []   ## _parts[i] becomes visible at stage i+1
 var _smoke: CPUParticles3D
 var _glow: OmniLight3D
@@ -23,23 +26,10 @@ static func smoke_for(s: int) -> float:
 
 
 func _ready() -> void:
+	add_to_group("gran_rocket")
 	_body = Node3D.new()
 	add_child(_body)
-	var hull := Art.cylinder(0.9, 1.1, 4.2, Color(0.85, 0.87, 0.92), 10)
-	hull.position.y = 2.1
-	_body.add_child(hull)
-	var stripe := Art.cylinder(1.02, 1.05, 0.5, Color(0.9, 0.3, 0.25), 10)
-	stripe.position.y = 1.2
-	_body.add_child(stripe)
-	_add_part(Art.cylinder(0.02, 0.9, 1.6, Color(0.9, 0.3, 0.25), 10), Vector3(0, 5.0, 0))   # nose cone
-	_add_part(_fins(), Vector3.ZERO)
-	var win := Art.sphere(0.4, Color(0.5, 0.85, 1.0), 6, 8)
-	win.position = Vector3(0, 3.0, 0.8)
-	win.scale = Vector3(1, 1, 0.5)
-	_add_part(win, win.position)
-	_add_part(Art.cylinder(0.5, 0.7, 0.6, Color(0.35, 0.35, 0.4), 8), Vector3(0, -0.1, 0))   # engine bell
-	var star := Art.sphere(0.5, Color(1.0, 0.85, 0.3), 4, 6)
-	_add_part(star, Vector3(0, 6.4, 0))
+	_dress(_saved_design())
 	_smoke = FX.emitter(_body, Color(0.4, 0.4, 0.42, 0.6), 14, 2.6, 0.3, Vector3(0.3, 0.05, 0.3), Vector3(0.1, 1.2, 0), false, "sphere")
 	_smoke.position.y = 3.6
 	_smoke.spread = 20
@@ -50,7 +40,8 @@ func _ready() -> void:
 	_glow.position.y = 1.0
 	add_child(_glow)
 	var l := Art.label("GRAN'S ROCKET\n(mostly a shed)", 80, Color(1.0, 0.9, 0.7))
-	l.position = Vector3(0, 7.6, 0)
+	l.position = Vector3(0, 8.8, 0)
+	_label = l
 	l.visibility_range_end = 0.0
 	add_child(l)
 	var base := StaticBody3D.new()
@@ -70,25 +61,50 @@ func _ready() -> void:
 		set_stage(0, false)
 
 
-func _add_part(n: Node3D, pos: Vector3) -> void:
-	n.position = pos
-	_body.add_child(n)
-	_parts.append(n)
+func _saved_design() -> Dictionary:
+	var g: Node = get_tree().root.get_node_or_null("Game")
+	return g.get("ship_design") if g != null else StarshipDesign.default_design()
 
 
-func _fins() -> Node3D:
-	var f := Node3D.new()
-	for i in 3:
-		var fin := Art.prism(Vector3(0.2, 1.6, 1.2), Color(0.9, 0.3, 0.25))
-		var a := i * TAU / 3.0
-		fin.position = Vector3(cos(a) * 1.15, 0.9, sin(a) * 1.15)
-		fin.rotation.y = -a
-		f.add_child(fin)
-	return f
+## (Re)builds the hull from a workshop design, keeping the story stage's visible parts.
+func _dress(d: Dictionary) -> void:
+	if _model != null:
+		_body.remove_child(_model)
+		_model.queue_free()
+	var built := ShipModel.build(d, clampf(1.0 - float(stage) / 3.0, 0.0, 1.0))
+	_model = built["root"]
+	_hull_mat = built["hull_mat"]
+	_parts = built["parts"]
+	_body.add_child(_model)
+	for i in _parts.size():
+		_parts[i].visible = stage > i
+
+
+## Workshop preview: swap parts with a squash-and-pop. all_parts shows the finished ship.
+func preview(d: Dictionary, all_parts: bool) -> void:
+	if _label != null:
+		_label.visible = false
+	_dress(d)
+	if all_parts:
+		for p in _parts:
+			p.visible = true
+	_body.scale = Vector3(1.12, 0.88, 1.12)
+	var tw := create_tween()
+	tw.tween_property(_body, "scale", Vector3.ONE, 0.55).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+
+## Back to what the story has actually repaired.
+func end_preview() -> void:
+	if _label != null:
+		_label.visible = true
+	_dress(_saved_design())
+	set_stage(stage, false)
 
 
 func set_stage(s: int, juice: bool) -> void:
 	stage = clampi(s, 0, STAGES)
+	if _hull_mat != null:
+		_hull_mat.set_shader_parameter("patched", clampf(1.0 - float(stage) / 3.0, 0.0, 1.0))
 	for i in _parts.size():
 		_parts[i].visible = stage > i
 	_glow.visible = stage >= STAGES

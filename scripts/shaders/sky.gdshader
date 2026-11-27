@@ -6,6 +6,7 @@ uniform float day = 1.0;
 uniform float sunset = 0.0;
 uniform float night = 0.0;
 uniform float flash = 0.0;       // lightning: 0..1 whole-sky flash
+uniform float space = 0.0;      // 0 on the ground .. 1 above the air (and on the Moon)
 uniform float overcast = 0.0;   // rain: 0 clear .. 1 grey storm
 
 uniform vec3 day_top : source_color = vec3(0.30, 0.55, 0.92);
@@ -51,5 +52,16 @@ void sky() {
 	col += vec3(star) * night * smoothstep(0.02, 0.2, d.y);
 	// Below the horizon fade to a dark ground colour (hidden by terrain anyway).
 	col = mix(col, ground * (0.3 + 0.7 * (1.0 - night)), smoothstep(0.0, -0.08, d.y));
+	// Above the air: black sky, a dense star field and a faint river of light.
+	if (space > 0.0) {
+		vec3 deep = vec3(0.004, 0.005, 0.018);
+		float river = pow(max(1.0 - abs(dot(d, normalize(vec3(0.35, 0.75, 0.55)))), 0.0), 9.0);
+		deep += vec3(0.05, 0.035, 0.09) * river * (0.6 + 0.8 * hash(floor(d * 60.0)));
+		vec3 c2 = floor(d * 300.0);
+		float s2 = hash(c2 + 3.0);
+		float pin = step(0.9955 - river * 0.006, s2) * (0.35 + 0.65 * fract(s2 * 91.7));
+		deep += pin * mix(vec3(0.75, 0.84, 1.0), vec3(1.0, 0.9, 0.7), fract(s2 * 37.3)) * (0.8 + 0.2 * sin(TIME * 2.5 + s2 * 300.0));
+		col = mix(col, deep, space);
+	}
 	COLOR = col;
 }

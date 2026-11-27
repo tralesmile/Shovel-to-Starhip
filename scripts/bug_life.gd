@@ -118,7 +118,7 @@ func _meadow_spot(centre: Vector3) -> Variant:
 
 ## Tops up (or clears) the ambient flyers around `centre`.
 func populate(centre: Vector3, time_of_day: float, wet: bool, per_call: int = 3) -> void:
-	var want := ambient_kind(time_of_day, wet)
+	var want := "" if Moon.inside(centre) else ambient_kind(time_of_day, wet)   # no butterflies in a vacuum
 	for b in bugs():
 		if b.life > 0.0:
 			continue

@@ -60,6 +60,9 @@ const ITEMS := {
 	"glow_crystal": {"name": "Glow Crystal", "buy": 0, "sell": 45},
 	"boom_turnip": {"name": "Boom Turnip", "buy": 0, "sell": 15},
 	"miner_helmet": {"name": "Miner's Helmet", "buy": 0, "sell": 0},
+	# From the Moon.
+	"moon_cheese": {"name": "Moon Cheese", "buy": 0, "sell": 120},
+	"moon_rock": {"name": "Moon Rock", "buy": 0, "sell": 40},
 	# Hunting and cooking.
 	"rabbit_meat": {"name": "Rabbit Meat", "buy": 0, "sell": 12},
 	"rabbit_pelt": {"name": "Rabbit Pelt", "buy": 0, "sell": 20},
@@ -173,7 +176,7 @@ const RECIPES := [
 ]
 
 ## Carry weight per item (kg-ish, Valheim-style encumbrance). Missing = 0.2 (light stuff, seeds, fish).
-const ITEM_WEIGHT := {"wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
+const ITEM_WEIGHT := {"moon_cheese": 0.5, "moon_rock": 1.5, "wood": 2.0, "stone": 3.0, "copper_ore": 2.5, "gem": 0.5, "plank": 1.0, "copper_ingot": 1.5,
 	"stone_wall": 6.0, "fence_panel": 3.0, "wood_floor": 4.0, "wood_wall": 5.0, "wood_door": 5.0, "wood_roof": 5.0, "wood_window": 5.0, "wood_stairs": 7.0, "wood_table": 4.0, "wood_chair": 2.0, "wood_bed": 6.0, "lantern": 2.0, "storage_chest": 6.0, "campfire": 4.0, "furnace": 8.0, "anvil": 10.0, "invention_bench": 9.0, "saddle": 1.0, "turbo_engine": 4.0, "offroad_wheels": 4.0, "rocket_booster": 5.0, "rocket_plate": 5.0, "turnip": 0.5, "carrot": 0.4, "tomato": 0.3,
 	"copper_pickaxe": 0.0, "gem_pickaxe": 0.0, "copper_axe": 0.0, "wheelbarrow": 0.0, "magnet_gloves": 0.0, "spring_boots": 0.0, "glider": 0.0, "slingshot": 0.0, "loot_vacuum": 0.0,
 	"glow_crystal": 0.5, "boom_turnip": 0.5, "miner_helmet": 0.0,
@@ -237,6 +240,11 @@ var goat_friend := false   ## the goat is tamed (restored from the goat's own sa
 var car_owned: bool = false
 var stash: Dictionary = {}  ## shared contents of every Storage Chest (Gran's magic stash)
 var story_act: int = 0   ## index into Story.ACTS (saved)
+var ship_design: Dictionary = StarshipDesign.default_design()   ## starship workshop (saved)
+var ship_unlocked: Array = []    ## "slot:id" parts already paid for (saved)
+var moon_landings: int = 0       ## saved
+var moon_flag := false           ## flag planted (saved)
+var ending := ""                 ## "hero" / "outlaw" once the Moon is reached (saved)
 var meadow_cut: Dictionary = {}  ## cut grass tuft index (as text) -> day it was cut (saved)
 var _story_timer := 0.0
 var car_parts: Array = []   ## installed Car.PARTS ids
@@ -819,6 +827,11 @@ func to_dict() -> Dictionary:
 		"car_parts": car_parts,
 		"car_damage": car_damage,
 		"story_act": story_act,
+		"ship_design": ship_design.duplicate(),
+		"ship_unlocked": ship_unlocked.duplicate(),
+		"moon_landings": moon_landings,
+		"moon_flag": moon_flag,
+		"ending": ending,
 		"stash": stash,
 		"meadow_cut": meadow_cut.duplicate(),
 		"car_pos": car_pos,
@@ -856,6 +869,13 @@ func from_dict(data: Dictionary) -> void:
 	car_parts = data.get("car_parts", [])
 	car_damage = clampf(float(data.get("car_damage", 0.0)), 0.0, 1.0)
 	story_act = clampi(int(data.get("story_act", 0)), 0, Story.act_count())
+	ship_design = StarshipDesign.sanitize(data.get("ship_design", {}))
+	ship_unlocked = []
+	for k in data.get("ship_unlocked", []):
+		ship_unlocked.append(str(k))
+	moon_landings = int(data.get("moon_landings", 0))
+	moon_flag = bool(data.get("moon_flag", false))
+	ending = str(data.get("ending", ""))
 	stash = {}
 	var st: Dictionary = data.get("stash", {})
 	for k in st.keys():

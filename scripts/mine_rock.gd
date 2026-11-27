@@ -10,8 +10,9 @@ const STONE_COLOR := Color(0.55, 0.56, 0.6)
 const ORE_COLOR := Color(0.85, 0.5, 0.28)
 const GEM_COLOR := Color(0.4, 0.9, 1.0)
 const CRYSTAL_COLOR := Color(0.55, 0.95, 0.9)
+const CHEESE_COLOR := Color(0.9, 0.68, 0.22)
 
-var kind := ""   ## "" = random surface rock, "plain", "rich" (copper veins) or "geode" (needs copper pickaxe)
+var kind := ""   ## "" = random surface rock, "plain", "rich" (copper veins), "geode" (needs copper pickaxe) or "cheese" (Moon)
 
 var hits: int = 0
 var broken: bool = false
@@ -43,6 +44,20 @@ static func geode_drops(roll: float) -> Array:
 	if roll < 0.35:
 		out.append({"item": "gem", "amount": 1})
 	return out
+
+
+## Pure (tested): what a Moon cheese boulder bursts into.
+static func cheese_drops(roll: float) -> Array:
+	var out := [{"item": "moon_cheese", "amount": 1}, {"item": "moon_cheese", "amount": 1}, {"item": "moon_rock", "amount": 1}]
+	if roll < 0.3:
+		out.append({"item": "moon_cheese", "amount": 1})
+	return out
+
+
+func _base_tint(c: float) -> Color:
+	if kind == "cheese":
+		return CHEESE_COLOR.lerp(Color(0.55, 0.34, 0.06), clampf(c, 0.0, 1.0) * 0.6)
+	return crack_tint(c).darkened(0.35 if kind == "geode" else 0.0)
 
 
 ## Pure (tested): the rock's tint darkens as it cracks (stage 0..1).
@@ -119,6 +134,22 @@ func _ready() -> void:
 			vein.position = Vector3(randf_range(-0.45, 0.45), randf_range(0.45, 0.95), 0.66 if i % 2 == 0 else -0.66)
 			vein.rotation = Vector3(randf(), randf(), randf())
 			_mesh.add_child(vein)
+	if kind == "cheese":
+		var holes := RandomNumberGenerator.new()
+		holes.seed = hash(str(name)) + 5
+		for k in 9:
+			var a := k * 2.39 + holes.randf()
+			var h := Art.sphere(holes.randf_range(0.09, 0.17), CHEESE_COLOR.darkened(0.42), 4, 8)
+			var y := holes.randf_range(0.3, 1.15)
+			var r := 0.74 if y < 0.9 else 0.46
+			h.position = Vector3(sin(a) * r, y, cos(a) * r * 0.9)
+			_mesh.add_child(h)
+		var glow := OmniLight3D.new()
+		glow.light_color = Color(1.0, 0.8, 0.3)
+		glow.light_energy = 0.22
+		glow.omni_range = 3.0
+		glow.position.y = 1.4
+		_mesh.add_child(glow)
 	if kind == "geode":
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(str(name))
@@ -138,6 +169,8 @@ func _process(delta: float) -> void:
 
 func get_prompt(game: GameState) -> String:
 	if broken:
+		if kind == "cheese":
+			return "Cheese crumbs. The Moon makes more in %d day(s)." % (REGROW_DAYS - days_broken)
 		return "Gravel dust. It'll regrow in %d day(s)." % (REGROW_DAYS - days_broken)
 	if game.current_tool == GameState.Tool.PICKAXE:
 		if not can_mine(kind, game.count("copper_pickaxe") > 0, game.count("gem_pickaxe") > 0):
@@ -182,7 +215,7 @@ func interact(game: GameState) -> void:
 		broken = true
 		hits = 0
 		days_broken = 0
-		game.say("CRACK! The rock gives up its secrets.")
+		game.say("CRACK! It is cheese. Of course it is cheese." if kind == "cheese" else "CRACK! The rock gives up its secrets.")
 		_spawn_chunks(game)
 	else:
 		FX.hit_stop(get_tree(), 0.35)
@@ -197,14 +230,14 @@ func _spawn_chunks(game: GameState) -> void:
 	FX.burst(self, global_position + Vector3(0, 0.8, 0), STONE_COLOR, 22, 0.14, 5.0, -9.0)
 	FX.burst(self, global_position + Vector3(0, 0.4, 0), Color(0.7, 0.68, 0.62), 14, 0.2, 2.0, -2.0, "sphere")   # dust cloud
 	_spawn_shards(host)
-	var drops := geode_drops(randf()) if kind == "geode" else drops_for(ore_rich, randf(), randf())
+	var drops := geode_drops(randf()) if kind == "geode" else (cheese_drops(randf()) if kind == "cheese" else drops_for(ore_rich, randf(), randf()))
 	for i in drops.size():
 		var d: Dictionary = drops[i]
 		var c := WoodLog.new()
 		c.game = game
 		c.item_id = d["item"]
 		c.amount = int(d["amount"])
-		c.chunk_color = {"stone": STONE_COLOR, "copper_ore": ORE_COLOR, "gem": GEM_COLOR, "glow_crystal": CRYSTAL_COLOR}[d["item"]]
+		c.chunk_color = {"stone": STONE_COLOR, "copper_ore": ORE_COLOR, "gem": GEM_COLOR, "glow_crystal": CRYSTAL_COLOR, "moon_cheese": CHEESE_COLOR, "moon_rock": Color(0.55, 0.55, 0.62)}[d["item"]]
 		host.add_child(c)
 		var a := TAU * float(i) / float(drops.size())
 		c.global_position = global_position + Vector3(cos(a) * 0.6, 0.9 + i * 0.1, sin(a) * 0.6)
@@ -287,7 +320,7 @@ func _refresh() -> void:
 	var c := crack_amount(hits)
 	_mesh.scale = Vector3.ONE * (1.0 - 0.12 * c)
 	for m in _mats:
-		(m as ShaderMaterial).set_shader_parameter("albedo_color", crack_tint(c).darkened(0.35 if kind == "geode" else 0.0))
+		(m as ShaderMaterial).set_shader_parameter("albedo_color", _base_tint(c))
 	if _cracks != null:
 		for k in _cracks.get_children():
 			k.queue_free()

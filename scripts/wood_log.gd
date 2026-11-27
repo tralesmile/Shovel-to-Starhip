@@ -290,6 +290,9 @@ static func is_organic(id: String) -> bool:
 ## Stone / ore / gem chunk: a small tumbling rock.
 func _build_chunk() -> void:
 	mass = 1.0
+	if item_id == "moon_cheese":
+		_build_cheese()
+		return
 	var sz := 0.3 if item_id == "stone" else 0.22
 	if is_organic(item_id):
 		sz = 0.26
@@ -313,6 +316,23 @@ func _build_chunk() -> void:
 		glow.light_energy = 0.8
 		glow.omni_range = 2.5
 		add_child(glow)
+
+
+## A holey wedge of Moon cheese.
+func _build_cheese() -> void:
+	angular_damp = 2.5
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(0.38, 0.24, 0.3)
+	cs.shape = bx
+	add_child(cs)
+	var wedge := Art.prism(Vector3(0.42, 0.26, 0.3), chunk_color)
+	(wedge.mesh as PrismMesh).left_to_right = 0.0
+	add_child(wedge)
+	for k in 4:
+		var h := Art.sphere(0.04 + 0.012 * (k % 2), chunk_color.darkened(0.4), 3, 6)
+		h.position = Vector3(-0.13 + 0.07 * k, -0.07 + 0.03 * (k % 3), 0.15 if k % 2 == 0 else -0.15)
+		add_child(h)
 
 
 ## Keeps the soft contact shadow glued to the ground below, shrinking and fading as the item flies.

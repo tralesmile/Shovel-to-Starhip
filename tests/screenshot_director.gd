@@ -64,6 +64,22 @@ func _run() -> void:
 		await _pet_shots(p, "20")
 		get_tree().quit()
 		return
+	if OS.get_cmdline_user_args().has("--only=m0"):
+		Game.story_act = Story.act_count()
+		Game.story_advanced.emit(Game.story_act)
+		main.get_children().filter(func(n): return n is Hud)[0].set_help_visible(false)
+		await _wait(60)
+		await _view(p, 0.45, Vector3(34, 0.2, -16), 0.15, -0.12, 11.0, "m0_before.png")
+		get_tree().quit()
+		return
+	if OS.get_cmdline_user_args().has("--only=m0real"):
+		await _space_real_input(p)
+		get_tree().quit()
+		return
+	if Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--only=m1,")):
+		await _space_shots(p)
+		get_tree().quit()
+		return
 	if OS.get_cmdline_user_args().has("--only=b0"):
 		await _house_before(p)
 		get_tree().quit()
@@ -1567,3 +1583,218 @@ func _house_walk(p: Player) -> void:
 	bw.use(p)
 	await _game_wait(0.3)
 	print("USE demolished=", n - Game.built.size())
+
+
+func _until(cond: Callable, max_frames: int = 3000) -> void:
+	for i in max_frames:
+		if cond.call():
+			return
+		await get_tree().process_frame
+	print("TIMEOUT waiting")
+
+
+## The whole trip with a scripted pilot: workshop, launch, landing, Moon walk and home again.
+func _space_shots(p: Player) -> void:
+	var sp: SpaceProgram = main.space
+	var hud = main.get_children().filter(func(n): return n is Hud)[0]
+	hud.set_help_visible(false)
+	Game.time_of_day = 0.42
+	main._playtest_launch_ready()
+	await _wait(40)
+	await _view(p, 0.45, p.global_position, 0.1, -0.1, 9.0, "m1_pad.png")
+	sp.open_workshop()
+	await _game_wait(1.0)
+	await _shot("m2_workshop.png")
+	sp.workshop.flip("fins", 1)
+	sp.workshop.unlock_current()
+	sp.workshop.flip("engine", 1)
+	sp.workshop.unlock_current()
+	sp.workshop.flip("paint", 2)
+	sp.workshop.flip("nose", 1)
+	await _game_wait(1.5)
+	await _shot("m3_workshop_custom.png")
+	sp.workshop.unlock_current()
+	var pilot := func():
+		if sp.sim == null:
+			return [false, 0.0, false]
+		var a: Array = sp.sim.autopilot()
+		return [a[0], a[1], sp.sim.alt > 520.0]
+	sp.scripted = pilot
+	sp.launch()
+	await _until(func(): return sp._t > 2.3)
+	await _shot("m4_countdown.png")
+	await _until(func(): return sp.sim.alt > 45.0)
+	await _shot("m5_liftoff.png")
+	await _until(func(): return sp.sim.separated)
+	await _wait(8)
+	var img := get_viewport().get_texture().get_image()
+	img.save_png(out_dir.path_join("m6_separation.png"))
+	await _until(func(): return sp.sim.alt > 880.0)
+	await _shot("m7_high.png")
+	await _until(func(): return sp.state == SpaceProgram.State.TRANSIT)
+	print("ORBIT time=", sp.sim.time, " fuel=", sp.sim.fuel, " tumbles=", sp.sim.tumbles)
+	await _until(func(): return sp.state == SpaceProgram.State.LANDING)
+	await _until(func(): return sp.sim.alt < 55.0)
+	await _shot("m8_landing.png")
+	await _until(func(): return sp.state == SpaceProgram.State.MOON)
+	print("LANDED grade=", sp.sim.grade if sp.sim != null else "-", " landings=", Game.moon_landings, " ending=", Game.ending)
+	await _game_wait(1.5)
+	await _shot("m9_ending.png")
+	sp.ui.card_title = ""
+	sp.ui.visible = false
+	await _game_wait(0.6)
+	await _shot("n1_moon.png")
+	# Real input: walk about, jump, plant the flag, mine cheese.
+	var y0 := p.global_position.y
+	p._yaw = 0.5
+	await _walk(p, 1.6)
+	Input.action_press("move_forward")
+	Input.action_press("jump")
+	await _wait(2)
+	Input.action_release("jump")
+	var peak := p.global_position.y
+	for i in 40:
+		await get_tree().physics_frame
+		peak = maxf(peak, p.global_position.y)
+	await _shot("n2_jump.png")
+	Input.action_release("move_forward")
+	await _game_wait(2.5)
+	print("MOON jump rise=", peak - y0, " prints=", sp.moon.print_count(), " y=", p.global_position.y)
+	sp.moon.flag.interact(Game)
+	var f := sp.moon.flag.global_position
+	p.global_position = f + Vector3(-1.4, 0.3, 1.0)
+	await _game_wait(1.5)
+	p.set_view(-0.35, -0.12, 7.5)
+	await _game_wait(0.8)
+	await _shot("n3_flag.png")
+	var rock: MineRock = sp.moon.get_node("MoonRock_0")
+	Game.set_tool(GameState.Tool.PICKAXE)
+	p.global_position = rock.global_position + Vector3(0, 0.4, 2.0)
+	p._model.rotation.y = PI
+	p.set_view(0.15, -0.35, 6.5)
+	await _game_wait(1.2)
+	await _shot("n4_cheese.png")
+	for i in 4:
+		rock.interact(Game)
+		await _game_wait(0.25)
+	await _game_wait(0.35)
+	await _shot("n5_cheese_pop.png")
+	await _game_wait(3.0)
+	print("CHEESE held=", Game.count("moon_cheese"), " broken=", rock.broken)
+	sp.fly_home()
+	await _until(func(): return sp.ship != null and sp.state == SpaceProgram.State.HOMEWARD and sp.ui.fade < 0.05 and sp.rocket.visible == false and sp._chute != null)
+	await _game_wait(1.4)
+	await _shot("n6_parachute.png")
+	await _until(func(): return sp.state == SpaceProgram.State.IDLE)
+	await _game_wait(1.0)
+	print("HOME state=", sp.state, " pos=", p.global_position, " gravity=", p.gravity_scale, " rocket_visible=", sp.rocket.visible)
+	await _shot("n7_home.png")
+
+
+func _tap(action: String) -> void:
+	var ev := InputEventAction.new()
+	ev.action = action
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	Input.action_press(action)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	Input.action_release(action)
+
+
+func _key(action: String, on: bool) -> void:
+	if on and not Input.is_action_pressed(action):
+		Input.action_press(action)
+	elif not on and Input.is_action_pressed(action):
+		Input.action_release(action)
+
+
+## Headless check with real input actions only (no scripted pilot): E at the console, the
+## LAUNCH button, Space + A/D to orbit and to land, then walk, jump, and fly home.
+##   godot --headless --path . -- --shots=/tmp/x --only=m0real
+func _space_real_input(p: Player) -> void:
+	var sp: SpaceProgram = main.space
+	main._playtest_launch_ready()
+	var console: Node3D = main.get_node("Spaceport/LaunchConsole")
+	p.global_position = console.global_position + Vector3(-0.4, 0.2, 1.3)
+	p._model.rotation.y = PI
+	await _game_wait(0.6)
+	await _tap("interact")
+	await _game_wait(0.4)
+	print("WORKSHOP open=", sp.workshop != null)
+	if sp.workshop == null:
+		return
+	await _tap("pause")
+	await _game_wait(0.4)
+	print("ESC closed=", sp.workshop == null, " state=", sp.state, " player_active=", p.is_physics_processing(), " settings_open=", main.get_node("SettingsMenu").is_open())
+	await _game_wait(1.2)
+	await _tap("interact")
+	await _game_wait(0.4)
+	print("REOPEN ok=", sp.workshop != null)
+	sp.workshop._launch.pressed.emit()
+	await _until(func(): return sp.state == SpaceProgram.State.ASCENT, 20000)
+	print("LIFTOFF model_shown=", p._model.visible)
+	var overheats := 0
+	while sp.state == SpaceProgram.State.ASCENT:
+		var f := sp.sim
+		_key("jump", f.heat < 0.82)
+		_key("move_left", f.tilt > 0.08)
+		_key("move_right", f.tilt < -0.08)
+		if f.can_separate() and f.alt > 520.0:
+			await _tap("interact")
+		await get_tree().process_frame
+	for a in ["jump", "move_left", "move_right"]:
+		_key(a, false)
+	print("ASCENT end state=", sp.state, " outcome=", sp.sim.outcome, " t=", snappedf(sp.sim.time, 0.1), " fuel=", snappedf(sp.sim.fuel, 0.01), " tumbles=", sp.sim.tumbles, " sep=", sp.sim.separated)
+	await _until(func(): return sp.state == SpaceProgram.State.LANDING, 40000)
+	while sp.state == SpaceProgram.State.LANDING:
+		var l := sp.sim
+		_key("jump", l.vel < -clampf(l.alt * 0.16, 3.5, 18.0))
+		var want := clampf(-l.side * 0.6, -4.0, 4.0)
+		_key("move_left", l.side_vel > want + 0.4)
+		_key("move_right", l.side_vel < want - 0.4)
+		await get_tree().process_frame
+	for a in ["jump", "move_left", "move_right"]:
+		_key(a, false)
+	print("LANDING grade=", sp.sim.grade, " side=", snappedf(sp.sim.side, 0.1))
+	await _until(func(): return sp.state == SpaceProgram.State.MOON, 40000)
+	await _game_wait(1.5)
+	var y0 := p.global_position.y
+	print("ON MOON floor=", p.is_on_floor(), " gravity=", p.gravity_scale, " clock=", Game.clock_running)
+	var peak := y0
+	_key("jump", true)
+	for i in 30:
+		await get_tree().physics_frame
+		peak = maxf(peak, p.global_position.y)
+	_key("jump", false)
+	for i in 200:
+		await get_tree().physics_frame
+		peak = maxf(peak, p.global_position.y)
+	print("JUMP rise=", snappedf(peak - y0, 0.01), " landed=", p.is_on_floor())
+	p.set_view(PI, -0.3, 7.0)
+	await _walk(p, 1.5)
+	print("WALK prints=", sp.moon.print_count(), " pos=", p.global_position - Moon.ORIGIN)
+	# Run at the edge for a long while: the fence must hold.
+	p.set_view(0.0, -0.3, 7.0)
+	_key("sprint", true)
+	await _walk(p, 12.0)
+	_key("sprint", false)
+	var q := p.global_position - Moon.ORIGIN
+	print("EDGE radius=", snappedf(Vector2(q.x, q.z).length(), 0.1), " y=", snappedf(q.y, 0.1))
+	var spot: Node3D = sp.moon.get_node("LanderSpot")
+	p.global_position = spot.global_position + Vector3(0, 0.4, 1.4)
+	p._model.rotation.y = PI
+	await _game_wait(2.0)
+	print("TARGET at lander=", p.target is LanderSpot)
+	await _tap("interact")
+	await _until(func(): return sp.state == SpaceProgram.State.IDLE, 60000)
+	await _game_wait(0.5)
+	print("HOME gravity=", p.gravity_scale, " floor=", p.is_on_floor(), " model=", p._model.visible, " rocket=", sp.rocket.visible, " moon_hidden=", not sp.moon.visible, " clock=", Game.clock_running, " physics=", p.is_physics_processing())
+	# A second flight with hands off the controls must parachute home, never get stuck.
+	sp.launch()
+	await _until(func(): return sp.state == SpaceProgram.State.ASCENT, 20000)
+	sp.sim.fuel = 0.02
+	_key("jump", true)
+	await _until(func(): return sp.state == SpaceProgram.State.IDLE, 60000)
+	_key("jump", false)
+	print("ABORT recovered state=", sp.state, " model=", p._model.visible, " physics=", p.is_physics_processing(), " rocket=", sp.rocket.visible)

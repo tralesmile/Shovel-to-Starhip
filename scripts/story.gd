@@ -66,7 +66,9 @@ static func act_complete(act: int, g) -> bool:
 ## Compact HUD text, e.g. "Act 3/5 Parts Quest\n[x] Craft Rocket Hull Plates 2/2\n[ ] ...".
 static func hud_text(act: int, g) -> String:
 	if is_finished(act):
-		return "Story: the Starship is ready. (Launch is coming soon!)"
+		if g != null and g.ending != "":
+			return "Story complete: %s" % StarshipDesign.ending(-1.0 if g.ending == "outlaw" else 1.0)["title"].capitalize()
+		return "Story: the Starship is ready!\nGo to the launch console at the Spaceport."
 	var lines: PackedStringArray = ["Act %d/%d  %s" % [act + 1, ACTS.size(), ACTS[act]["title"]]]
 	for p in progress(act, g):
 		lines.append("%s %s  %d/%d" % ["[x]" if p["done"] else "[ ]", p["text"], p["cur"], p["target"]])

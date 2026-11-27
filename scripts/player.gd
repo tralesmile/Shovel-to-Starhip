@@ -17,6 +17,8 @@ const MOUSE_SENS := 0.0035
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 var target: Interactable = null
+var gravity_scale := 1.0      ## below 1 on the Moon
+var _bubble: Node3D
 
 const PAD_LOOK_SPEED := 2.6
 var _yaw: float = 0.0
@@ -650,6 +652,43 @@ func set_helmet(owned: bool, lamp_on: bool) -> void:
 
 
 ## Show/hide the character model (hidden while in a wardrobe or driving).
+func set_view(yaw: float, pitch: float, zoom: float) -> void:
+	_yaw = yaw
+	_pitch = pitch
+	_zoom = zoom
+	_pivot.global_position = global_position + Vector3(0, 1.4, 0)
+
+
+## Moon mode: floaty gravity and a goldfish-bowl helmet.
+func set_space(on: bool) -> void:
+	gravity_scale = Moon.GRAVITY_SCALE if on else 1.0
+	velocity = Vector3.ZERO
+	if on and _bubble == null:
+		_bubble = Node3D.new()
+		var glass := StandardMaterial3D.new()
+		glass.albedo_color = Color(0.7, 0.9, 1.0, 0.16)
+		glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		glass.roughness = 0.05
+		glass.rim_enabled = true
+		glass.rim = 1.0
+		var ball := Art.sphere(0.56, Color.WHITE, 12, 20)
+		ball.material_override = glass
+		ball.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_bubble.add_child(ball)
+		var glint := Art.sphere(0.06, Color.WHITE, 4, 8)
+		glint.material_override = Art.mat(Color.WHITE, true)
+		glint.scale = Vector3(1.0, 1.7, 0.4)
+		glint.position = Vector3(-0.27, 0.22, 0.43)
+		_bubble.add_child(glint)
+		var collar := Art.cylinder(0.36, 0.4, 0.12, Color(0.85, 0.87, 0.92), 16)
+		collar.position.y = -0.46
+		_bubble.add_child(collar)
+		_bubble.position.y = 1.5
+		_model.add_child(_bubble)
+	if _bubble != null:
+		_bubble.visible = on
+
+
 func set_model_shown(shown: bool) -> void:
 	if _model != null:
 		_model.visible = shown
@@ -721,6 +760,9 @@ func headbutt() -> bool:
 
 ## R: blow the Goat Whistle and every friend comes running. Returns how many answered.
 func whistle() -> int:
+	if gravity_scale < 1.0:
+		Game.say("In space, no goat can hear you whistle.")
+		return 0
 	if vehicle != null or mount != null or Game.in_closet or _whistle_cd > 0.0:
 		return 0
 	if Game.count("goat_whistle") <= 0:
@@ -848,6 +890,9 @@ func exit_car() -> void:
 
 
 func _use() -> void:
+	if gravity_scale < 1.0 and Game.current_tool == GameState.Tool.BUILD and target == null:
+		Game.say("No building permit has ever reached the Moon.")
+		return
 	if vehicle != null:
 		exit_car()
 		return
@@ -1108,7 +1153,7 @@ func _physics_process(delta: float) -> void:
 	_coyote = jr["coyote"]
 	_jump_buf = jr["buffer"]
 	if not is_on_floor():
-		velocity.y -= gravity * delta
+		velocity.y -= gravity * gravity_scale * delta
 	if jr["jump"]:
 		var boots := Game.count("spring_boots") > 0
 		velocity.y = GameState.jump_speed(boots, mount != null, Critter.MOUNT_JUMP)
@@ -1117,7 +1162,7 @@ func _physics_process(delta: float) -> void:
 			FX.burst(self, global_position + Vector3(0, 0.1, 0), Color(0.72, 0.64, 0.5), 6, 0.1, 2.2, -2.0, "sphere", 90.0)
 
 	var gliding := false
-	if mount == null and Game.count("glider") > 0:
+	if mount == null and gravity_scale >= 1.0 and Game.count("glider") > 0:   # no air on the Moon
 		velocity.y = FX.glide_vy(velocity.y, true, Input.is_action_pressed("jump"), not is_on_floor())
 		gliding = not is_on_floor() and Input.is_action_pressed("jump") and velocity.y <= FX.GLIDE_FALL + 0.01
 	_set_glider_wing(gliding)
@@ -1198,7 +1243,7 @@ func _physics_process(delta: float) -> void:
 		_cover_told = true
 		Game.say("Hidden in the tall grass. You are, legally speaking, a shrub.")
 	if global_position.y < -20.0:
-		global_position = Vector3(0, 2, 8)
+		global_position = Moon.ground(2.0, 5.0) + Vector3(0, 2, 0) if gravity_scale < 1.0 else Vector3(0, 2, 8)
 		velocity = Vector3.ZERO
 
 	_update_animation(delta)

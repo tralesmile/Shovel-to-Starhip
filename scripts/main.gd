@@ -21,11 +21,12 @@ var _npcs: Array[Npc] = []
 var _water_mat: ShaderMaterial
 var _police: Police
 var _police_car: PoliceCar
+var space: SpaceProgram
 
 const TREE_SPOTS := [
 	Vector3(-8, 0, -9), Vector3(-4, 0, -11), Vector3(2, 0, -10), Vector3(7, 0, -9),
 	Vector3(11, 0, -4), Vector3(-17, 0, -10), Vector3(-36, 0, 8), Vector3(-17, 0, 9),
-	Vector3(9, 0, -14), Vector3(-1, 0, -16), Vector3(-12, 0, -15), Vector3(20, 0, -6),
+	Vector3(9, 0, -14), Vector3(-1, 0, -16), Vector3(-12, 0, -15), Vector3(3, 0, -19),
 	Vector3(24, 0, 2), Vector3(-37, 0, -6),
 ]
 
@@ -86,6 +87,14 @@ func _ready() -> void:
 	hud.player = player
 	add_child(hud)
 
+	space = SpaceProgram.new()
+	space.name = "SpaceProgram"
+	space.player = player
+	space.hud_layer = hud
+	space.rocket = get_node("Spaceport/GranRocket")
+	add_child(space)
+	(get_node("Spaceport/LaunchConsole") as LaunchConsole).program = space
+
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--shots="):
 			var director: Node = load("res://tests/screenshot_director.gd").new()
@@ -95,6 +104,8 @@ func _ready() -> void:
 
 	var loaded := Game.load_game()
 	_spawn_player_car()
+	if OS.get_cmdline_user_args().has("--launch-ready"):
+		_playtest_launch_ready()
 	if loaded:
 		hud.set_help_visible(false)
 		Game.say("Welcome back to Bumpkin Bay! Day %d." % Game.day)
@@ -114,6 +125,17 @@ func _ready() -> void:
 		add_child(title_menu)
 
 
+## Playtest shortcut (run with  -- --launch-ready): Gran's story finished, spare parts in your
+## pockets and you standing by the launch console. It changes the save it is used on.
+func _playtest_launch_ready() -> void:
+	Game.story_act = Story.act_count()
+	Game.story_advanced.emit(Game.story_act)
+	for spec in [["plank", 12], ["copper_ingot", 10], ["turnip", 12], ["gem", 2], ["polished_gem", 2], ["rocket_plate", 2], ["copper_pickaxe", 1]]:
+		Game.add_item(spec[0], spec[1])
+	player.position = (get_node("Spaceport/LaunchConsole") as Node3D).global_position + Vector3(-1.2, 0.5, 1.8)
+	Game.say("Playtest: the Starship is ready. Use the launch console.")
+
+
 var _creak_t := 0.0
 var _creak_n := 0
 var _bark_t := 0.0
@@ -127,14 +149,21 @@ func _process(delta: float) -> void:
 		if c.position.x > 110.0:
 			c.position.x = -110.0
 	_update_daylight()
+	if space != null:
+		space.apply_environment(env, sun, _sky_mat)
+		if space.away():
+			_rain.emitting = false
+			_rain.visible = false
+			_thunder_in = -1.0
 	for n in _npcs:
 		n.update_routine(Game.time_of_day, delta)
 	_update_witnesses(delta)
 	_update_barks(delta)
 	var busted := false
-	if _police and _police.update_police(delta, player.global_position, Game.heat, player.crouching, Game.time_of_day, player.in_cover):
+	var off_world := space != null and space.away()
+	if not off_world and _police and _police.update_police(delta, player.global_position, Game.heat, player.crouching, Game.time_of_day, player.in_cover):
 		busted = true
-	if _police_car and _police_car.update_chase(delta, player.global_position, Game.heat, player.vehicle != null):
+	if not off_world and _police_car and _police_car.update_chase(delta, player.global_position, Game.heat, player.vehicle != null):
 		busted = true
 		Game.say("Squad car: \"Pull over! Your tyres look suspiciously stolen!\"")
 	var chased: bool = _police != null and _police.state == Police.State.CHASE
@@ -147,7 +176,7 @@ func _process(delta: float) -> void:
 	if ck["creak"]:
 		_creak_n += 1
 		Game.say(Closet.creak_line(_creak_n))
-	player.set_model_shown(Closet.model_visible(Game.in_closet, player.vehicle != null))
+	player.set_model_shown(Closet.model_visible(Game.in_closet, player.vehicle != null) and not (space != null and space.flying()))
 	Game.cool_heat(delta, Police.is_hidden(player.global_position), chased, unseen, player.crouching, Game.in_closet)
 	if busted:
 		player.exit_car()
@@ -808,15 +837,14 @@ func _build_spaceport() -> void:
 	Models.solid(port, Models.SPACE + "spacetruck.gltf", Vector3(6, 0, 10), 4.4, 2.6)
 	var gran := GranRocket.new()
 	gran.name = "GranRocket"
-	gran.position = Vector3(-5.5, 0, -8.0)
+	gran.position = Vector3(-9.0, 0, 13.0)   # out front where you can see it
 	port.add_child(gran)
-	var station := Station.new()
-	station.name = "RocketTease"
-	station.kind = Station.Kind.ROCKET
-	station.position = Vector3(0, 0, 8.5)
-	station.interact_radius = 2.4
-	port.add_child(station)
-	var l := Art.label("SPACEPORT\nclosed for lunch since 1987", 100, Color(0.85, 0.95, 1))
+	var console := LaunchConsole.new()
+	console.name = "LaunchConsole"
+	console.position = Vector3(-12.2, 0, 15.4)
+	console.rotation.y = -0.6
+	port.add_child(console)
+	var l := Art.label("SPACEPORT\nlunch is finally over", 100, Color(0.85, 0.95, 1))
 	l.position = Vector3(0, 4.5, 9.0)
 	l.visibility_range_end = 0.0
 	port.add_child(l)
